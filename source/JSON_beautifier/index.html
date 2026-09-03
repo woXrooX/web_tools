@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON beautifier</title>
+<style>
+	:root {
+		color-scheme: dark;
+		--page: #12161b;
+		--panel: #171c22;
+		--ink: #d7dee5;
+		--muted: #7d8b98;
+		--rule: #272f38;
+		--ok: #6cc08b;
+		--bad: #e0715c;
+		--key: #e6edf3;
+		--string: #8fcfa4;
+		--number: #e0a86a;
+		--literal: #b79bea;
+		--punct: #616f7c;
+		--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+		--ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+		--indent: 4ch;
+		--gutter: 20px;
+		--numbers: 4ch;
+		--head: 40px;
+	}
+
+	* { box-sizing: border-box; }
+
+	html, body {
+		height: 100%;
+		margin: 0;
+	}
+
+	body {
+		background: var(--page);
+		color: var(--ink);
+		font-family: var(--ui);
+		display: flex;
+		flex-direction: column;
+	}
+
+	header {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 8px 18px;
+		padding: 14px 20px;
+		border-bottom: 1px solid var(--rule);
+	}
+
+	h1 {
+		margin: 0;
+		font-family: var(--mono);
+		font-size: 15px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+	}
+
+	.controls {
+		margin-left: auto;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+
+	button, select {
+		font-family: var(--ui);
+		font-size: 13px;
+		color: var(--ink);
+		background: var(--panel);
+		border: 1px solid var(--rule);
+		border-radius: 3px;
+		padding: 5px 10px;
+		cursor: pointer;
+	}
+
+	button:hover:not(:disabled), select:hover {
+		border-color: #3d4a56;
+		background: #1e242b;
+	}
+
+	button:disabled {
+		color: #4e5a66;
+		cursor: default;
+	}
+
+	button[aria-pressed="true"] {
+		color: var(--ink);
+		background: #263039;
+		border-color: #3d4a56;
+	}
+
+	button:focus-visible, select:focus-visible, textarea:focus-visible {
+		outline: 2px solid #5b8fd0;
+		outline-offset: 1px;
+	}
+
+	label.field {
+		font-size: 13px;
+		color: var(--muted);
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	main {
+		flex: 1;
+		min-height: 0;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1px;
+		background: var(--rule);
+	}
+
+	.pane {
+		background: var(--panel);
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		min-height: 0;
+	}
+
+	.pane_head {
+		flex: none;
+		height: var(--head);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		padding: 0 14px;
+		font-size: 12px;
+		color: var(--muted);
+		border-bottom: 1px solid var(--rule);
+	}
+
+	.pane_head strong {
+		color: var(--ink);
+		font-weight: 600;
+	}
+
+	.pane_head .head_actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.pane_head button {
+		font-size: 12px;
+		padding: 3px 8px;
+	}
+
+	.status.ok { color: var(--ok); }
+	.status.bad { color: var(--bad); }
+
+	textarea, #output_area {
+		flex: 1;
+		min-height: 0;
+		margin: 0;
+		padding: 14px;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 1.55;
+		tab-size: 4;
+		overflow: auto;
+	}
+
+	textarea {
+		border: 0;
+		resize: none;
+		background: transparent;
+		color: var(--ink);
+	}
+
+	textarea::placeholder { color: #5c6874; }
+
+	#output_area {
+		color: var(--punct);
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+
+	.tree_root {
+		position: relative;
+		padding-left: var(--numbers);
+		counter-reset: line_number;
+	}
+
+	.line {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+
+	.line::before {
+		counter-increment: line_number;
+		content: counter(line_number);
+		position: absolute;
+		left: 0;
+		width: calc(var(--numbers) - 1.5ch);
+		text-align: right;
+		color: #4e5a66;
+		font-variant-numeric: tabular-nums;
+		user-select: none;
+		pointer-events: none;
+	}
+
+	.children { padding-left: var(--indent); }
+
+	.gutter {
+		display: inline-block;
+		width: var(--gutter);
+	}
+
+	.fold {
+		display: inline-block;
+		width: calc(var(--gutter) - 3px);
+		padding: 0;
+		margin-right: 3px;
+		border: 0;
+		border-radius: 3px;
+		background: transparent;
+		color: var(--muted);
+		font-family: var(--mono);
+		font-size: 15px;
+		line-height: inherit;
+		text-align: center;
+		vertical-align: baseline;
+		cursor: pointer;
+	}
+
+	.fold:hover {
+		background: #232c35;
+		color: var(--ink);
+	}
+
+	.fold::before { content: "\25be"; }
+
+	.node.collapsed > .line > .fold::before { content: "\25b8"; }
+
+	.node.collapsed > .children,
+	.node.collapsed > .line.close { display: none; }
+
+	.tail { display: none; }
+
+	.node.collapsed > .line > .tail { display: inline; }
+
+	.count { color: var(--muted); }
+
+	.punct { color: var(--punct); }
+
+	.tok_key { color: var(--key); font-weight: 600; }
+	.tok_string { color: var(--string); }
+	.tok_number { color: var(--number); }
+	.tok_bool, .tok_null { color: var(--literal); }
+
+	.empty { color: #5c6874; }
+
+	.error_box { color: var(--bad); white-space: pre-wrap; }
+	.error_box .caret { color: var(--bad); }
+
+	.drop_active { background: #1c2530; }
+
+	@media (max-width: 760px) {
+		main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+	}
+</style>
+</head>
+<body>
+
+<header>
+	<h1>JSON beautifier</h1>
+	<div class="controls">
+		<label class="field">Indent
+			<select id="indent_select">
+				<option value="2">2 spaces</option>
+				<option value="4">4 spaces</option>
+				<option value="tab" selected>Tab</option>
+			</select>
+		</label>
+		<label class="field" title="Repair Python-style output: single quotes, True/False/None, datetime and other object reprs, tuples, trailing commas."><input type="checkbox" id="python_repair"> Python dict</label>
+		<button id="sort_button" type="button">Sort keys</button>
+		<button id="minify_button" type="button">Minify</button>
+		<button id="sample_button">Load sample</button>
+		<button id="copy_button">Copy output</button>
+		<button id="clear_button">Clear</button>
+	</div>
+</header>
+
+<main>
+	<section class="pane" id="input_pane">
+		<div class="pane_head">
+			<strong>Input</strong>
+			<span id="input_stats"></span>
+		</div>
+		<textarea id="input_area" spellcheck="false" placeholder="Paste JSON or a Python dict here, or drop a .json file."></textarea>
+	</section>
+
+	<section class="pane">
+		<div class="pane_head">
+			<strong>Formatted</strong>
+			<span class="head_actions">
+				<button id="expand_button" type="button">Expand all</button>
+				<button id="collapse_button" type="button">Collapse all</button>
+				<span id="output_status" class="status"></span>
+			</span>
+		</div>
+		<div id="output_area"><span class="empty">Output appears here as you type.</span></div>
+	</section>
+</main>
+
+<script>
+	const input_area = document.getElementById("input_area");
+	const output_area = document.getElementById("output_area");
+	const output_status = document.getElementById("output_status");
+	const input_stats = document.getElementById("input_stats");
+	const indent_select = document.getElementById("indent_select");
+	const sort_button = document.getElementById("sort_button");
+	const python_repair = document.getElementById("python_repair");
+	const input_pane = document.getElementById("input_pane");
+	const minify_button = document.getElementById("minify_button");
+	const expand_button = document.getElementById("expand_button");
+	const collapse_button = document.getElementById("collapse_button");
+
+	const eager_budget = 4000;
+	const eager_depth = 3;
+	const eager_width = 200;
+
+	let last_output = "";
+	let build_credit = 0;
+	let view_minified = false;
+	let sort_active = false;
+
+	function escape_html(text) {
+		return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	}
+
+	function token_class(value) {
+		if (value === null) {
+			return "tok_null";
+		}
+		if (typeof value === "string") {
+			return "tok_string";
+		}
+		if (typeof value === "number") {
+			return "tok_number";
+		}
+		return "tok_bool";
+	}
+
+	function span(class_name, text) {
+		const element = document.createElement("span");
+		element.className = class_name;
+		element.textContent = text;
+		return element;
+	}
+
+	function gutter() {
+		return span("gutter", "");
+	}
+
+	function sort_value(value) {
+		if (Array.isArray(value)) {
+			return value.map(sort_value);
+		}
+		if (value !== null && typeof value === "object") {
+			const sorted = {};
+			Object.keys(value).sort().forEach(function (key) {
+				sorted[key] = sort_value(value[key]);
+			});
+			return sorted;
+		}
+		return value;
+	}
+
+	function current_indent() {
+		return indent_select.value === "tab" ? "\t" : Number(indent_select.value);
+	}
+
+	function apply_indent_width() {
+		const width = indent_select.value === "tab" ? 4 : Number(indent_select.value);
+		document.documentElement.style.setProperty("--indent", width + "ch");
+	}
+
+	function byte_size(text) {
+		return new TextEncoder().encode(text).length;
+	}
+
+	function format_size(bytes) {
+		if (bytes < 1024) {
+			return bytes + " B";
+		}
+		if (bytes < 1024 * 1024) {
+			return (bytes / 1024).toFixed(1) + " KB";
+		}
+		return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+	}
+
+	function error_position(message) {
+		const match = /position (\d+)/.exec(message);
+		return match ? Number(match[1]) : -1;
+	}
+
+	function error_report(source, message) {
+		const position = error_position(message);
+		if (position < 0) {
+			return escape_html(message);
+		}
+		const before = source.slice(0, position);
+		const line_number = before.split("\n").length;
+		const line_start = before.lastIndexOf("\n") + 1;
+		const column = position - line_start + 1;
+		let line_end = source.indexOf("\n", line_start);
+		if (line_end === -1) {
+			line_end = source.length;
+		}
+		const line_text = source.slice(line_start, line_end);
+		const caret = " ".repeat(Math.max(column - 1, 0)) + "^";
+		return escape_html(message.replace(/\s*in JSON at position.*/, "")) +
+			"\nLine " + line_number + ", column " + column + "\n\n" +
+			escape_html(line_text) + "\n" + '<span class="caret">' + caret + "</span>";
+	}
+
+	const python_words = {
+		True: "true",
+		False: "false",
+		None: "null",
+		NaN: "null",
+		Infinity: "null",
+		nan: "null",
+		inf: "null"
+	};
+
+	const passthrough_words = {
+		true: true,
+		false: true,
+		null: true
+	};
+
+	const word_pattern = /[A-Za-z_][A-Za-z0-9_]*(?:\s*\.\s*[A-Za-z_][A-Za-z0-9_]*)*/y;
+	const prefix_pattern = /^(?:u|b|r|rb|br)$/i;
+	const negative_infinity_pattern = /\s*(?:Infinity|inf)\b/y;
+	const trailing_comma_pattern = /\s*[}\]]/y;
+	const keyword_number_pattern = /^(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*)?(\d+)$/;
+	const tzinfo_pattern = /^tzinfo\s*=/;
+	const utc_pattern = /timezone\s*\.\s*utc$/;
+
+	function pad_number(value, width) {
+		return String(value).padStart(width, "0");
+	}
+
+	function skip_string(source, index) {
+		const quote = source[index];
+		let cursor = index + 1;
+		while (cursor < source.length) {
+			if (source[cursor] === "\\") {
+				cursor += 2;
+				continue;
+			}
+			if (source[cursor] === quote) {
+				return cursor + 1;
+			}
+			cursor += 1;
+		}
+		return cursor;
+	}
+
+	function read_call(source, index) {
+		const args = [];
+		let depth = 0;
+		let start = index + 1;
+		let cursor = index;
+		while (cursor < source.length) {
+			const character = source[cursor];
+			if (character === "'" || character === '"') {
+				cursor = skip_string(source, cursor);
+				continue;
+			}
+			if (character === "(" || character === "[" || character === "{") {
+				depth += 1;
+				cursor += 1;
+				continue;
+			}
+			if (character === ")" || character === "]" || character === "}") {
+				depth -= 1;
+				if (depth === 0) {
+					const tail = source.slice(start, cursor).trim();
+					if (tail) {
+						args.push(tail);
+					}
+					return { args: args, end: cursor + 1 };
+				}
+				cursor += 1;
+				continue;
+			}
+			if (character === "," && depth === 1) {
+				args.push(source.slice(start, cursor).trim());
+				start = cursor + 1;
+			}
+			cursor += 1;
+		}
+		return null;
+	}
+
+	function time_text(numbers, offset) {
+		const micro = numbers[offset + 3] || 0;
+		let text = pad_number(numbers[offset] || 0, 2) + ":" + pad_number(numbers[offset + 1] || 0, 2) + ":" + pad_number(numbers[offset + 2] || 0, 2);
+		if (micro) {
+			text += "." + pad_number(micro, 6);
+		}
+		return text;
+	}
+
+	function iso_from_call(name, args) {
+		const kind = name.replace(/^datetime\./, "");
+		if (kind !== "datetime" && kind !== "date" && kind !== "time") {
+			return null;
+		}
+		const numbers = [];
+		let is_utc = false;
+		for (let position = 0; position < args.length; position += 1) {
+			const argument = args[position];
+			if (tzinfo_pattern.test(argument)) {
+				if (!utc_pattern.test(argument)) {
+					return null;
+				}
+				is_utc = true;
+				continue;
+			}
+			const match = keyword_number_pattern.exec(argument);
+			if (!match) {
+				return null;
+			}
+			numbers.push(Number(match[1]));
+		}
+		if (kind === "time") {
+			return numbers.length ? time_text(numbers, 0) + (is_utc ? "Z" : "") : null;
+		}
+		if (numbers.length < 3) {
+			return null;
+		}
+		const date = pad_number(numbers[0], 4) + "-" + pad_number(numbers[1], 2) + "-" + pad_number(numbers[2], 2);
+		if (kind === "date") {
+			return date;
+		}
+		return date + "T" + time_text(numbers, 3) + (is_utc ? "Z" : "");
+	}
+
+	function convert_call(name, args, raw) {
+		const iso = iso_from_call(name, args);
+		if (iso !== null) {
+			return JSON.stringify(iso);
+		}
+		if (args.length === 1 && (args[0][0] === "'" || args[0][0] === '"') && skip_string(args[0], 0) === args[0].length) {
+			return repair_python_literal(args[0]);
+		}
+		return JSON.stringify(raw.replace(/\s+/g, " "));
+	}
+
+	function repair_python_literal(source) {
+		let out = "";
+		let index = 0;
+
+		while (index < source.length) {
+			const character = source[index];
+
+			if (character === '"') {
+				out += character;
+				index += 1;
+				while (index < source.length) {
+					const current = source[index];
+					if (current === "\\") {
+						out += source.slice(index, index + 2);
+						index += 2;
+						continue;
+					}
+					out += current;
+					index += 1;
+					if (current === '"') {
+						break;
+					}
+				}
+				continue;
+			}
+
+			if (character === "'") {
+				out += '"';
+				index += 1;
+				while (index < source.length) {
+					const current = source[index];
+					if (current === "\\") {
+						const next = source[index + 1];
+						if (next === "'") {
+							out += "'";
+						} else {
+							out += current + (next === undefined ? "" : next);
+						}
+						index += 2;
+						continue;
+					}
+					if (current === "'") {
+						out += '"';
+						index += 1;
+						break;
+					}
+					out += current === '"' ? '\\"' : current;
+					index += 1;
+				}
+				continue;
+			}
+
+			word_pattern.lastIndex = index;
+			const word = word_pattern.exec(source);
+			if (word) {
+				const text = word[0];
+				const after_index = index + text.length;
+				const after = source[after_index];
+				if (prefix_pattern.test(text) && (after === "'" || after === '"')) {
+					index = after_index;
+					continue;
+				}
+				if (Object.prototype.hasOwnProperty.call(python_words, text)) {
+					out += python_words[text];
+					index = after_index;
+					continue;
+				}
+				if (Object.prototype.hasOwnProperty.call(passthrough_words, text)) {
+					out += text;
+					index = after_index;
+					continue;
+				}
+				let probe = after_index;
+				while (probe < source.length && /\s/.test(source[probe])) {
+					probe += 1;
+				}
+				if (source[probe] === "(") {
+					const call = read_call(source, probe);
+					if (call) {
+						out += convert_call(text.replace(/\s+/g, ""), call.args, source.slice(index, call.end));
+						index = call.end;
+						continue;
+					}
+				}
+				if (text.indexOf(".") !== -1) {
+					out += JSON.stringify(text.replace(/\s+/g, ""));
+					index = after_index;
+					continue;
+				}
+				out += text;
+				index = after_index;
+				continue;
+			}
+
+			if (character === "-") {
+				negative_infinity_pattern.lastIndex = index + 1;
+				if (negative_infinity_pattern.exec(source)) {
+					out += "null";
+					index = negative_infinity_pattern.lastIndex;
+					continue;
+				}
+			}
+
+			if (character === "(" || character === ")") {
+				out += character === "(" ? "[" : "]";
+				index += 1;
+				continue;
+			}
+
+			if (character === ",") {
+				trailing_comma_pattern.lastIndex = index + 1;
+				if (trailing_comma_pattern.exec(source)) {
+					index += 1;
+					continue;
+				}
+			}
+
+			out += character;
+			index += 1;
+		}
+
+		return out;
+	}
+
+	function build_leaf(key, value, is_last) {
+		const line = document.createElement("div");
+		line.className = "line";
+		line.appendChild(gutter());
+		if (key !== null) {
+			line.appendChild(span("tok_key", JSON.stringify(key)));
+			line.appendChild(span("punct", ": "));
+		}
+		line.appendChild(span(token_class(value), JSON.stringify(value)));
+		if (!is_last) {
+			line.appendChild(span("punct", ","));
+		}
+		return line;
+	}
+
+	function build_empty(key, is_array, is_last) {
+		const line = document.createElement("div");
+		line.className = "line";
+		line.appendChild(gutter());
+		if (key !== null) {
+			line.appendChild(span("tok_key", JSON.stringify(key)));
+			line.appendChild(span("punct", ": "));
+		}
+		line.appendChild(span("punct", (is_array ? "[]" : "{}") + (is_last ? "" : ",")));
+		return line;
+	}
+
+	function build_node(key, value, is_last, depth) {
+		if (value === null || typeof value !== "object") {
+			return build_leaf(key, value, is_last);
+		}
+
+		const is_array = Array.isArray(value);
+		const entries = is_array
+			? value.map(function (item, index) { return [index, item]; })
+			: Object.keys(value).map(function (name) { return [name, value[name]]; });
+
+		if (!entries.length) {
+			return build_empty(key, is_array, is_last);
+		}
+
+		const open_bracket = is_array ? "[" : "{";
+		const close_bracket = is_array ? "]" : "}";
+		const comma = is_last ? "" : ",";
+
+		const node = document.createElement("div");
+		node.className = "node";
+		node.node_entries = entries;
+		node.node_is_array = is_array;
+		node.node_depth = depth;
+		node.node_built = false;
+
+		const head = document.createElement("div");
+		head.className = "line";
+
+		const toggle = document.createElement("button");
+		toggle.type = "button";
+		toggle.className = "fold";
+		toggle.setAttribute("aria-expanded", "true");
+		toggle.setAttribute("aria-label", "Fold or unfold this block");
+		head.appendChild(toggle);
+
+		if (key !== null) {
+			head.appendChild(span("tok_key", JSON.stringify(key)));
+			head.appendChild(span("punct", ": "));
+		}
+		head.appendChild(span("punct", open_bracket));
+
+		const tail = document.createElement("span");
+		tail.className = "tail";
+		tail.appendChild(span("count", " " + entries.length + " " + (is_array ? "items" : "keys") + " "));
+		tail.appendChild(span("punct", close_bracket + comma));
+		head.appendChild(tail);
+
+		const children = document.createElement("div");
+		children.className = "children";
+
+		const foot = document.createElement("div");
+		foot.className = "line close";
+		foot.appendChild(gutter());
+		foot.appendChild(span("punct", close_bracket + comma));
+
+		node.appendChild(head);
+		node.appendChild(children);
+		node.appendChild(foot);
+
+		const expand_now = depth < eager_depth && entries.length <= eager_width && build_credit > 0;
+		if (expand_now) {
+			build_credit -= entries.length;
+			build_children(node);
+		} else {
+			node.classList.add("collapsed");
+			toggle.setAttribute("aria-expanded", "false");
+		}
+
+		return node;
+	}
+
+	function build_children(node) {
+		if (node.node_built) {
+			return;
+		}
+		node.node_built = true;
+		const container = node.querySelector(":scope > .children");
+		const entries = node.node_entries;
+		const fragment = document.createDocumentFragment();
+		entries.forEach(function (entry, index) {
+			const child_key = node.node_is_array ? null : entry[0];
+			fragment.appendChild(build_node(child_key, entry[1], index === entries.length - 1, node.node_depth + 1));
+		});
+		container.appendChild(fragment);
+	}
+
+	function toggle_node(node, collapse) {
+		const next = typeof collapse === "boolean" ? collapse : !node.classList.contains("collapsed");
+		if (!next) {
+			build_children(node);
+		}
+		node.classList.toggle("collapsed", next);
+		const toggle = node.querySelector(":scope > .line > .fold");
+		if (toggle) {
+			toggle.setAttribute("aria-expanded", next ? "false" : "true");
+		}
+	}
+
+	function expand_all() {
+		let rounds = 0;
+		let pending = output_area.querySelectorAll(".node.collapsed");
+		while (pending.length && rounds < 100) {
+			pending.forEach(function (node) {
+				toggle_node(node, false);
+			});
+			rounds += 1;
+			pending = output_area.querySelectorAll(".node.collapsed");
+		}
+	}
+
+	function collapse_all() {
+		output_area.querySelectorAll(".node").forEach(function (node) {
+			toggle_node(node, true);
+		});
+	}
+
+	function minified_html(value) {
+		if (Array.isArray(value)) {
+			const items = value.map(minified_html);
+			return '<span class="punct">[</span>' + items.join('<span class="punct">,</span>') + '<span class="punct">]</span>';
+		}
+		if (value !== null && typeof value === "object") {
+			const pairs = Object.keys(value).map(function (key) {
+				return '<span class="tok_key">' + escape_html(JSON.stringify(key)) + '</span>' +
+					'<span class="punct">:</span>' + minified_html(value[key]);
+			});
+			return '<span class="punct">{</span>' + pairs.join('<span class="punct">,</span>') + '<span class="punct">}</span>';
+		}
+		return '<span class="' + token_class(value) + '">' + escape_html(JSON.stringify(value)) + "</span>";
+	}
+
+	function render_empty() {
+		last_output = "";
+		output_area.className = "";
+		output_area.innerHTML = '<span class="empty">Output appears here as you type.</span>';
+		output_status.className = "status";
+		output_status.textContent = "";
+	}
+
+	function sync_view_controls() {
+		minify_button.textContent = view_minified ? "Beautify" : "Minify";
+		sort_button.setAttribute("aria-pressed", sort_active ? "true" : "false");
+		expand_button.disabled = view_minified;
+		collapse_button.disabled = view_minified;
+	}
+
+	function render() {
+		sync_view_controls();
+
+		const source = input_area.value;
+		const characters = source.length;
+		const lines = source ? source.split("\n").length : 0;
+		input_stats.textContent = characters ? lines + " lines · " + format_size(byte_size(source)) : "";
+
+		if (!source.trim()) {
+			render_empty();
+			return;
+		}
+
+		let parsed;
+		let repaired = false;
+		try {
+			parsed = JSON.parse(source);
+		} catch (error) {
+			let recovered = false;
+			if (python_repair.checked) {
+				const fixed = repair_python_literal(source);
+				if (fixed !== source) {
+					try {
+						parsed = JSON.parse(fixed);
+						recovered = true;
+						repaired = true;
+					} catch (repair_error) {
+						recovered = false;
+					}
+				}
+			}
+			if (!recovered) {
+				last_output = "";
+				output_area.className = "error_box";
+				output_area.innerHTML = error_report(source, error.message);
+				output_status.className = "status bad";
+				output_status.textContent = "Invalid JSON";
+				return;
+			}
+		}
+
+		if (sort_active) {
+			parsed = sort_value(parsed);
+		}
+
+		if (view_minified) {
+			last_output = JSON.stringify(parsed);
+			output_area.className = "";
+			output_area.innerHTML = minified_html(parsed);
+		} else {
+			last_output = JSON.stringify(parsed, null, current_indent());
+			build_credit = eager_budget;
+			output_area.className = "";
+			output_area.innerHTML = "";
+			const tree_root = document.createElement("div");
+			tree_root.className = "tree_root";
+			const digits = String(last_output.split("\n").length).length;
+			tree_root.style.setProperty("--numbers", (digits + 2) + "ch");
+			tree_root.appendChild(build_node(null, parsed, true, 0));
+			output_area.appendChild(tree_root);
+		}
+
+		output_status.className = "status ok";
+		output_status.textContent = (repaired ? "Repaired · " : "Valid · ") + last_output.split("\n").length + " lines · " + format_size(byte_size(last_output));
+	}
+
+	function copy_output() {
+		if (!last_output) {
+			return;
+		}
+		const done = function () {
+			const button = document.getElementById("copy_button");
+			button.textContent = "Copied";
+			setTimeout(function () {
+				button.textContent = "Copy output";
+			}, 1200);
+		};
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(last_output).then(done, fallback_copy);
+		} else {
+			fallback_copy();
+		}
+		function fallback_copy() {
+			const helper = document.createElement("textarea");
+			helper.value = last_output;
+			document.body.appendChild(helper);
+			helper.select();
+			document.execCommand("copy");
+			document.body.removeChild(helper);
+			done();
+		}
+	}
+
+	output_area.addEventListener("click", function (event) {
+		const toggle = event.target.closest(".fold");
+		if (!toggle) {
+			return;
+		}
+		toggle_node(toggle.closest(".node"));
+	});
+
+	expand_button.addEventListener("click", expand_all);
+	collapse_button.addEventListener("click", collapse_all);
+
+	input_area.addEventListener("input", function () {
+		render();
+	});
+
+	indent_select.addEventListener("change", function () {
+		apply_indent_width();
+		render();
+	});
+
+	sort_button.addEventListener("click", function () {
+		sort_active = !sort_active;
+		render();
+	});
+
+	python_repair.addEventListener("change", function () {
+		render();
+	});
+
+	minify_button.addEventListener("click", function () {
+		view_minified = !view_minified;
+		render();
+	});
+
+	document.getElementById("copy_button").addEventListener("click", copy_output);
+
+	document.getElementById("clear_button").addEventListener("click", function () {
+		input_area.value = "";
+		input_area.focus();
+		view_minified = false;
+		render();
+	});
+
+	document.getElementById("sample_button").addEventListener("click", function () {
+		input_area.value = '{"name":"orders","count":2,"active":true,"owner":null,"items":[{"sku":"A-19","qty":3,"price":12.5,"tags":["new","sale"]},{"sku":"B-04","qty":1,"price":249.99,"tags":[]}]}';
+		render();
+	});
+
+	input_area.addEventListener("keydown", function (event) {
+		if (event.key === "Tab") {
+			event.preventDefault();
+			const start = input_area.selectionStart;
+			const end = input_area.selectionEnd;
+			input_area.value = input_area.value.slice(0, start) + "\t" + input_area.value.slice(end);
+			input_area.selectionStart = start + 1;
+			input_area.selectionEnd = start + 1;
+			render();
+		}
+	});
+
+	["dragenter", "dragover"].forEach(function (name) {
+		input_pane.addEventListener(name, function (event) {
+			event.preventDefault();
+			input_pane.classList.add("drop_active");
+		});
+	});
+
+	["dragleave", "drop"].forEach(function (name) {
+		input_pane.addEventListener(name, function () {
+			input_pane.classList.remove("drop_active");
+		});
+	});
+
+	input_pane.addEventListener("drop", function (event) {
+		event.preventDefault();
+		const file = event.dataTransfer.files[0];
+		if (!file) {
+			return;
+		}
+		const reader = new FileReader();
+		reader.onload = function () {
+			input_area.value = reader.result;
+			render();
+		};
+		reader.readAsText(file);
+	});
+
+	apply_indent_width();
+	render();
+</script>
+
+</body>
+</html>
