@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Printer status</title>
+<style>
+	body { font-family: sans-serif; margin: 24px; max-width: 760px; }
+	button { padding: 10px 14px; margin: 0 6px 6px 0; font-size: 14px; cursor: pointer; }
+	#log { white-space: pre-wrap; background: #111; color: #ddd; padding: 14px; border-radius: 6px; font-family: monospace; font-size: 13px; line-height: 1.5; min-height: 260px; }
+	.note { color: #666; font-size: 13px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h2>Printer status</h2>
+
+<p class="note">
+	Connect, then run the queries. If a beep just happened, read the status <strong>before</strong> power-cycling &mdash; the error flag latches until it is cleared.
+</p>
+
+<div>
+	<button id="connect_button">Connect</button>
+	<button id="status_button">Read all status</button>
+	<button id="cut_button">Cut only</button>
+	<button id="clear_button">Clear log</button>
+</div>
+
+<div id="log"></div>
+
+<script type="module">
+	let device = null;
+	let endpoint_out = null;
+	let endpoint_in = null;
+
+	const log_element = document.querySelector("#log");
+
+	function log(text) {
+		log_element.textContent += text + "\n";
+	}
+
+	function find_endpoints(usb_device) {
+		for (const iface of usb_device.configuration.interfaces) {
+			let found_out = null;
+			let found_in = null;
+
+			for (const endpoint of iface.alternate.endpoints) {
+				if (endpoint.type !== "bulk") continue;
+
+				if (endpoint.direction === "out" && found_out === null) found_out = endpoint.endpointNumber;
+				if (endpoint.direction === "in" && found_in === null) found_in = endpoint.endpointNumber;
+			}
+
+			if (found_out !== null)
+				return { interface_number: iface.interfaceNumber, out: found_out, in: found_in };
+		}
+
+		return null;
+	}
+
+	async function connect() {
+		device = await navigator.usb.requestDevice({ filters: [] });
+
+		await device.open();
+
+		if (device.configuration === null) await device.selectConfiguration(1);
+
+		const found = find_endpoints(device);
+
+		if (found === null) throw new Error("no bulk OUT endpoint");
+
+		await device.claimInterface(found.interface_number);
+
+		endpoint_out = found.out;
+		endpoint_in = found.in;
+
+		log("connected: " + device.productName + " (" + device.manufacturerName + ")");
+		log("vendor 0x" + device.vendorId.toString(16) + "  product 0x" + device.productId.toString(16));
+		log("interface " + found.interface_number + "  bulk OUT " + found.out + "  bulk IN " + (found.in === null ? "NONE" : found.in));
+
+		if (found.in === null) log("\nNo bulk IN endpoint. Status cannot be read on this device.");
+	}
+
+	async function send(bytes) {
+		const result = await device.transferOut(endpoint_out, Uint8Array.from(bytes));
+
+		if (result.status !== "ok") throw new Error("send failed: " + result.status);
+
+		return result.bytesWritten;
+	}
+
+	// WebUSB has no transfer timeout, so an unanswered read would hang forever.
+	// The race abandons the wait; the transfer itself stays pending, so reconnect
+	// rather than reusing the port after a timeout.
+	async function receive(length, timeout_ms) {
+		if (endpoint_in === null) throw new Error("no bulk IN endpoint");
+
+		const transfer = device.transferIn(endpoint_in, length);
+		const timeout = new Promise((resolve, reject) => setTimeout(() => reject(new Error("timed out")), timeout_ms));
+		const result = await Promise.race([ transfer, timeout ]);
+
+		if (result.status !== "ok") throw new Error("receive failed: " + result.status);
+
+		return new Uint8Array(result.data.buffer);
+	}
+
+	// DLE EOT n — real-time status. The firmware answers these even while in an error state.
+	async function query(n) {
+		await send([ 0x10, 0x04, n ]);
+
+		const bytes = await receive(1, 2000);
+
+		return bytes[0];
+	}
+
+	function bits(value) {
+		return value.toString(2).padStart(8, '0');
+	}
+
+	async function read_all_status() {
+		const flags = [
+			{ n: 1, label: "printer", checks: [
+				{ mask: 0x08, text: "offline" }
+			] },
+			{ n: 2, label: "offline cause", checks: [
+				{ mask: 0x04, text: "COVER OPEN" },
+				{ mask: 0x08, text: "paper fed by button" },
+				{ mask: 0x20, text: "paper end stop" },
+				{ mask: 0x40, text: "ERROR condition" }
+			] },
+			{ n: 3, label: "error", checks: [
+				{ mask: 0x08, text: "AUTOCUTTER ERROR" },
+				{ mask: 0x20, text: "UNRECOVERABLE ERROR" },
+				{ mask: 0x40, text: "auto-recoverable error" }
+			] },
+			{ n: 4, label: "paper", checks: [
+				{ mask: 0x0C, text: "paper near end" },
+				{ mask: 0x60, text: "PAPER OUT" }
+			] }
+		];
+
+		for (const group of flags) {
+			try {
+				const value = await query(group.n);
+				const set = group.checks.filter(check => (value & check.mask) !== 0).map(check => check.text);
+
+				log("n=" + group.n + " " + group.label + ": 0x" + value.toString(16).padStart(2, '0') + "  " + bits(value) + "   " + (set.length === 0 ? "clear" : set.join(", ")));
+			}
+
+			catch (error) {
+				log("n=" + group.n + " " + group.label + ": " + error.message);
+			}
+		}
+
+		log("");
+	}
+
+	document.querySelector("#connect_button").addEventListener("click", async () => {
+		try { await connect(); }
+		catch (error) { log("connect error: " + error.message); }
+	});
+
+	document.querySelector("#status_button").addEventListener("click", async () => {
+		try { await read_all_status(); }
+		catch (error) { log("status error: " + error.message); }
+	});
+
+	// Init, feed, cut — no raster, so nothing here can be blamed on the bitmap.
+	document.querySelector("#cut_button").addEventListener("click", async () => {
+		try {
+			await send([ 0x1B, 0x40, 0x1B, 0x64, 0x08, 0x1D, 0x56, 0x42, 0x00 ]);
+			log("cut sent");
+		}
+
+		catch (error) { log("cut error: " + error.message); }
+	});
+
+	document.querySelector("#clear_button").addEventListener("click", () => {
+		log_element.textContent = '';
+	});
+</script>
+
+</body>
+</html>
