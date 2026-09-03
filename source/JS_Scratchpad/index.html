@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JS Scratchpad</title>
+<style>
+	:root {
+		--bg: #11151b;
+		--panel: #171c24;
+		--panel_alt: #141920;
+		--line: #242c37;
+		--text: #d6dbe3;
+		--dim: #79838f;
+		--accent: #d9a34a;
+		--string: #9ac98a;
+		--number: #7fb0d8;
+		--warn: #d9a34a;
+		--error: #e0736c;
+		--mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+		--sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	}
+
+	* { box-sizing: border-box; }
+
+	html, body {
+		height: 100%;
+		margin: 0;
+	}
+
+	body {
+		background: var(--bg);
+		color: var(--text);
+		font-family: var(--sans);
+		display: grid;
+		grid-template-rows: auto 1fr auto;
+		height: 100dvh;
+		overflow: hidden;
+	}
+
+	header {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 10px 16px;
+		border-bottom: 1px solid var(--line);
+		background: var(--panel_alt);
+	}
+
+	.brand {
+		font-size: 13px;
+		font-weight: 600;
+		letter-spacing: 0.01em;
+	}
+
+	.brand span {
+		color: var(--dim);
+		font-weight: 400;
+	}
+
+	.actions {
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.hint {
+		color: var(--dim);
+		font-size: 12px;
+		font-family: var(--mono);
+	}
+
+	button {
+		font-family: inherit;
+		font-size: 13px;
+		color: var(--text);
+		background: transparent;
+		border: 1px solid var(--line);
+		border-radius: 4px;
+		padding: 6px 12px;
+		cursor: pointer;
+	}
+
+	button:hover { border-color: #3a4553; }
+
+	button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	#run_button {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: #17130a;
+		font-weight: 600;
+	}
+
+	#run_button:hover { background: #e8b25c; }
+
+	main {
+		display: grid;
+		grid-template-columns: 1fr 6px 1fr;
+		min-height: 0;
+	}
+
+	.pane {
+		min-width: 0;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		background: var(--panel);
+	}
+
+	.pane_head {
+		font-family: var(--mono);
+		font-size: 11px;
+		color: var(--dim);
+		padding: 7px 12px;
+		border-bottom: 1px solid var(--line);
+		background: var(--panel_alt);
+	}
+
+	.editor_wrap {
+		flex: 1;
+		display: flex;
+		min-height: 0;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 20px;
+	}
+
+	#gutter {
+		padding: 12px 8px 12px 12px;
+		color: #4d5765;
+		text-align: right;
+		background: var(--panel);
+		border-right: 1px solid var(--line);
+		overflow: hidden;
+		white-space: pre;
+		user-select: none;
+		flex: none;
+	}
+
+	.code_area {
+		position: relative;
+		flex: 1;
+		min-width: 0;
+	}
+
+	#highlight, #code {
+		position: absolute;
+		inset: 0;
+		margin: 0;
+		padding: 12px;
+		border: 0;
+		font: inherit;
+		white-space: pre;
+		tab-size: 4;
+	}
+
+	#highlight {
+		overflow: hidden;
+		color: var(--text);
+		background: var(--panel);
+		pointer-events: none;
+	}
+
+	#code {
+		overflow: auto;
+		resize: none;
+		background: transparent;
+		color: transparent;
+		caret-color: var(--text);
+		outline: none;
+	}
+
+	#code::selection {
+		background: rgba(110, 158, 214, 0.32);
+		color: transparent;
+	}
+
+	.t_comment { color: #5f6b7a; font-style: italic; }
+	.t_keyword { color: #c8a2e8; }
+	.t_string { color: var(--string); }
+	.t_number { color: var(--number); }
+	.t_literal { color: var(--accent); }
+	.t_global { color: #6fc3c8; }
+	.t_function { color: #e0c07a; }
+	.t_property { color: #b9c3d0; }
+	.t_regex { color: #86c9b1; }
+	.t_operator { color: #98a3b1; }
+
+	#resizer {
+		background: var(--line);
+		cursor: col-resize;
+	}
+
+	#resizer:hover { background: #3a4553; }
+
+	#output {
+		flex: 1;
+		overflow: auto;
+		padding: 6px 0;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 1.55;
+	}
+
+	.entry {
+		padding: 3px 12px 3px 10px;
+		border-left: 2px solid transparent;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+
+	.entry + .entry { border-top: 1px solid #1c222b; }
+
+	.log { border-left-color: #2f3a47; }
+	.info { border-left-color: var(--number); }
+	.warn { border-left-color: var(--warn); color: #e6c489; }
+	.error { border-left-color: var(--error); color: #f0a29c; background: #241a1a; }
+	.trace { color: var(--dim); }
+
+	.empty {
+		color: var(--dim);
+		padding: 12px;
+		font-family: var(--sans);
+		font-size: 13px;
+	}
+
+	footer {
+		border-top: 1px solid var(--line);
+		background: var(--panel_alt);
+		padding: 6px 16px;
+		font-family: var(--mono);
+		font-size: 11px;
+		color: var(--dim);
+		display: flex;
+		gap: 18px;
+	}
+
+	#sandbox { display: none; }
+
+	@media (max-width: 760px) {
+		main { grid-template-columns: 1fr; grid-template-rows: 1fr 6px 1fr; }
+		#resizer { cursor: row-resize; }
+	}
+</style>
+</head>
+<body>
+
+<header>
+	<div class="brand">JS Scratchpad <span>· runs in a sandboxed frame</span></div>
+	<div class="actions">
+		<span class="hint" id="shortcut_hint">Ctrl+Enter</span>
+		<button id="clear_button" type="button">Clear output</button>
+		<button id="run_button" type="button">Run</button>
+	</div>
+</header>
+
+<main>
+	<section class="pane">
+		<div class="pane_head">script.js</div>
+		<div class="editor_wrap">
+			<div id="gutter">1</div>
+			<div class="code_area">
+				<pre id="highlight" aria-hidden="true"></pre>
+				<textarea id="code" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off"></textarea>
+			</div>
+		</div>
+	</section>
+
+	<div id="resizer"></div>
+
+	<section class="pane">
+		<div class="pane_head">console</div>
+		<div id="output"><div class="empty">Output appears here. Print values with console.log.</div></div>
+	</section>
+</main>
+
+<footer>
+	<span id="status">Ready</span>
+	<span id="cursor_position">Ln 1, Col 1</span>
+</footer>
+
+<iframe id="sandbox" sandbox="allow-scripts"></iframe>
+
+<script>
+(function () {
+	"use strict";
+
+	var code_input = document.getElementById("code");
+	var gutter = document.getElementById("gutter");
+	var output = document.getElementById("output");
+	var status_line = document.getElementById("status");
+	var cursor_position = document.getElementById("cursor_position");
+	var run_button = document.getElementById("run_button");
+	var clear_button = document.getElementById("clear_button");
+	var resizer = document.getElementById("resizer");
+	var main_element = document.querySelector("main");
+
+	var is_mac = /Mac|iPhone|iPad/.test(navigator.platform);
+	document.getElementById("shortcut_hint").textContent = is_mac ? "Cmd+Enter" : "Ctrl+Enter";
+
+	code_input.value = "";
+
+	/* ---------- the code that runs inside the sandboxed frame ---------- */
+
+	var sandbox_source = "" +
+		"<!DOCTYPE html><html><head><meta charset='utf-8'></head><body><script>" +
+		"(function () {" +
+		"	var MAX_DEPTH = 4;" +
+		"	var MAX_ITEMS = 200;" +
+		"	function type_of(value) {" +
+		"		return Object.prototype.toString.call(value).slice(8, -1);" +
+		"	}" +
+		"	function format(value, depth, seen) {" +
+		"		if (value === null) { return 'null'; }" +
+		"		if (value === undefined) { return 'undefined'; }" +
+		"		var kind = typeof value;" +
+		"		if (kind === 'string') { return depth === 0 ? value : JSON.stringify(value); }" +
+		"		if (kind === 'number' || kind === 'boolean') { return String(value); }" +
+		"		if (kind === 'bigint') { return String(value) + 'n'; }" +
+		"		if (kind === 'symbol') { return value.toString(); }" +
+		"		if (kind === 'function') { return 'function ' + (value.name || '(anonymous)') + '()'; }" +
+		"		if (value instanceof Error) { return value.name + ': ' + value.message; }" +
+		"		if (seen.indexOf(value) !== -1) { return '[Circular]'; }" +
+		"		if (depth >= MAX_DEPTH) { return Array.isArray(value) ? '[...]' : '{...}'; }" +
+		"		seen = seen.concat([value]);" +
+		"		var tag = type_of(value);" +
+		"		var parts = [];" +
+		"		var index;" +
+		"		if (Array.isArray(value)) {" +
+		"			for (index = 0; index < value.length && index < MAX_ITEMS; index += 1) {" +
+		"				parts.push(format(value[index], depth + 1, seen));" +
+		"			}" +
+		"			if (value.length > MAX_ITEMS) { parts.push('... ' + (value.length - MAX_ITEMS) + ' more'); }" +
+		"			return '[' + parts.join(', ') + ']';" +
+		"		}" +
+		"		if (tag === 'Map') {" +
+		"			value.forEach(function (v, k) { parts.push(format(k, depth + 1, seen) + ' => ' + format(v, depth + 1, seen)); });" +
+		"			return 'Map(' + value.size + ') {' + parts.join(', ') + '}';" +
+		"		}" +
+		"		if (tag === 'Set') {" +
+		"			value.forEach(function (v) { parts.push(format(v, depth + 1, seen)); });" +
+		"			return 'Set(' + value.size + ') {' + parts.join(', ') + '}';" +
+		"		}" +
+		"		if (tag === 'Date') { return value.toISOString(); }" +
+		"		if (tag === 'RegExp') { return value.toString(); }" +
+		"		if (tag === 'Promise') { return 'Promise {...}'; }" +
+		"		var keys = Object.keys(value);" +
+		"		for (index = 0; index < keys.length && index < MAX_ITEMS; index += 1) {" +
+		"			parts.push(keys[index] + ': ' + format(value[keys[index]], depth + 1, seen));" +
+		"		}" +
+		"		var prefix = (value.constructor && value.constructor.name && value.constructor.name !== 'Object') ? value.constructor.name + ' ' : '';" +
+		"		return prefix + '{' + (parts.length ? ' ' + parts.join(', ') + ' ' : '') + '}';" +
+		"	}" +
+		"	function send(level, args) {" +
+		"		var pieces = [];" +
+		"		for (var index = 0; index < args.length; index += 1) {" +
+		"			pieces.push(format(args[index], 0, []));" +
+		"		}" +
+		"		parent.postMessage({ channel: 'scratchpad', kind: 'entry', level: level, text: pieces.join(' ') }, '*');" +
+		"	}" +
+		"	['log', 'info', 'warn', 'error', 'debug'].forEach(function (level) {" +
+		"		console[level] = function () { send(level === 'debug' ? 'log' : level, arguments); };" +
+		"	});" +
+		"	console.clear = function () { parent.postMessage({ channel: 'scratchpad', kind: 'clear' }, '*'); };" +
+		"	console.table = console.log;" +
+		"	window.onerror = function (message, source, line, column, error) {" +
+		"		send('error', [error || message]);" +
+		"		return true;" +
+		"	};" +
+		"	window.addEventListener('unhandledrejection', function (event) {" +
+		"		send('error', ['Uncaught (in promise) ' + format(event.reason, 0, [])]);" +
+		"	});" +
+		"	window.addEventListener('message', function (event) {" +
+		"		if (!event.data || event.data.kind !== 'run') { return; }" +
+		"		var started = performance.now();" +
+		"		var failed = false;" +
+		"		try {" +
+		"			(0, eval)(event.data.code);" +
+		"		} catch (error) {" +
+		"			failed = true;" +
+		"			send('error', [error]);" +
+		"		}" +
+		"		parent.postMessage({ channel: 'scratchpad', kind: 'done', ms: performance.now() - started, failed: failed }, '*');" +
+		"	});" +
+		"	parent.postMessage({ channel: 'scratchpad', kind: 'ready' }, '*');" +
+		"}());" +
+		"<\/script></body></html>";
+
+	/* ---------- syntax highlighting ---------- */
+
+	var highlight_element = document.getElementById("highlight");
+
+	var keyword_words = ("break case catch class const continue debugger default delete do else export extends " +
+		"finally for function if import in instanceof let new of return static super switch this throw try " +
+		"typeof var void while with yield async await").split(" ");
+
+	var literal_words = "true false null undefined NaN Infinity".split(" ");
+
+	var global_words = ("console window document globalThis Math JSON Object Array String Number Boolean Date " +
+		"Map Set WeakMap WeakSet Symbol Promise RegExp Proxy Reflect Error TypeError RangeError Function " +
+		"parseInt parseFloat isNaN setTimeout setInterval clearTimeout clearInterval queueMicrotask fetch " +
+		"structuredClone performance").split(" ");
+
+	var re_whitespace = /\s+/y;
+	var re_line_comment = /\/\/[^\n]*/y;
+	var re_block_comment = /\/\*[\s\S]*?(?:\*\/|$)/y;
+	var re_template = /`(?:\\[\s\S]|[^\\`])*`?/y;
+	var re_string = /(['"])(?:\\[\s\S]|(?!\1)[^\\\n])*\1?/y;
+	var re_number = /0[xX][0-9a-fA-F_]+n?|0[bB][01_]+n?|0[oO][0-7_]+n?|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:[eE][+-]?\d+)?n?/y;
+	var re_regex = /\/(?:\\[\s\S]|\[(?:\\[\s\S]|[^\]\n])*\]|[^\/\\\n])+\/[a-z]*/y;
+	var re_identifier = /[A-Za-z_$][A-Za-z0-9_$]*/y;
+	var re_operator = /[+\-*%=<>!&|^~?:;,.(){}\[\]]+|\//y;
+
+	function match_at(pattern, source, index) {
+		pattern.lastIndex = index;
+		var result = pattern.exec(source);
+		return result === null ? null : result[0];
+	}
+
+	function escape_html(text) {
+		return text.replace(/[&<>]/g, function (character) {
+			if (character === "&") { return "&amp;"; }
+			return character === "<" ? "&lt;" : "&gt;";
+		});
+	}
+
+	function highlight_javascript(source) {
+		var pieces = [];
+		var index = 0;
+		var length = source.length;
+		var last_token = null;
+		var value;
+
+		function emit(type, text) {
+			var escaped = escape_html(text);
+			pieces.push(type === "plain" ? escaped : "<span class=\"t_" + type + "\">" + escaped + "</span>");
+			last_token = { type: type, value: text };
+			index += text.length;
+		}
+
+		function regex_can_start() {
+			if (last_token === null) { return true; }
+			if (last_token.type === "keyword") { return true; }
+			if (last_token.type !== "operator") { return false; }
+			var tail = last_token.value.slice(-1);
+			return tail !== ")" && tail !== "]" && tail !== "}";
+		}
+
+		function next_visible_character() {
+			var scan = index;
+			while (scan < length && /\s/.test(source[scan])) { scan += 1; }
+			return source[scan];
+		}
+
+		while (index < length) {
+			value = match_at(re_whitespace, source, index);
+			if (value !== null) {
+				pieces.push(escape_html(value));
+				index += value.length;
+				continue;
+			}
+
+			value = match_at(re_line_comment, source, index) || match_at(re_block_comment, source, index);
+			if (value !== null) {
+				var remembered = last_token;
+				emit("comment", value);
+				last_token = remembered;
+				continue;
+			}
+
+			value = match_at(re_template, source, index) || match_at(re_string, source, index);
+			if (value !== null) { emit("string", value); continue; }
+
+			value = match_at(re_number, source, index);
+			if (value !== null) { emit("number", value); continue; }
+
+			if (source[index] === "/" && regex_can_start()) {
+				value = match_at(re_regex, source, index);
+				if (value !== null) { emit("regex", value); continue; }
+			}
+
+			value = match_at(re_identifier, source, index);
+			if (value !== null) {
+				var previous = last_token;
+				emit("plain", value);
+				var type = "plain";
+				if (keyword_words.indexOf(value) !== -1) {
+					type = "keyword";
+				} else if (literal_words.indexOf(value) !== -1) {
+					type = "literal";
+				} else if (previous !== null && previous.type === "operator" && previous.value.slice(-1) === ".") {
+					type = next_visible_character() === "(" ? "function" : "property";
+				} else if (global_words.indexOf(value) !== -1) {
+					type = "global";
+				} else if (next_visible_character() === "(") {
+					type = "function";
+				}
+				if (type !== "plain") {
+					pieces[pieces.length - 1] = "<span class=\"t_" + type + "\">" + escape_html(value) + "</span>";
+					last_token.type = type;
+				}
+				continue;
+			}
+
+			value = match_at(re_operator, source, index);
+			if (value !== null) { emit("operator", value); continue; }
+
+			emit("plain", source[index]);
+		}
+
+		return pieces.join("");
+	}
+
+	function update_highlight() {
+		var source = code_input.value;
+		if (source.length > 200000) {
+			highlight_element.textContent = source + "\n";
+			return;
+		}
+		highlight_element.innerHTML = highlight_javascript(source) + "\n";
+	}
+
+	/* ---------- output panel ---------- */
+
+	var entry_count = 0;
+	var error_count = 0;
+
+	function clear_output() {
+		output.innerHTML = "<div class=\"empty\">Output appears here. Print values with console.log.</div>";
+		entry_count = 0;
+		error_count = 0;
+	}
+
+	function append_entry(level, text) {
+		if (entry_count === 0) { output.innerHTML = ""; }
+		var element = document.createElement("div");
+		element.className = "entry " + level;
+		element.textContent = text;
+		output.appendChild(element);
+		output.scrollTop = output.scrollHeight;
+		entry_count += 1;
+		if (level === "error") { error_count += 1; }
+	}
+
+	/* ---------- running ---------- */
+
+	var frame = null;
+	var pending_code = null;
+
+	function run_code() {
+		clear_output();
+		status_line.textContent = "Running...";
+		pending_code = code_input.value;
+
+		if (frame) { frame.remove(); }
+		frame = document.createElement("iframe");
+		frame.id = "sandbox";
+		frame.setAttribute("sandbox", "allow-scripts");
+		frame.srcdoc = sandbox_source;
+		document.body.appendChild(frame);
+	}
+
+	window.addEventListener("message", function (event) {
+		var data = event.data;
+		if (!data || data.channel !== "scratchpad") { return; }
+
+		if (data.kind === "ready" && pending_code !== null) {
+			frame.contentWindow.postMessage({ kind: "run", code: pending_code }, "*");
+			pending_code = null;
+			return;
+		}
+		if (data.kind === "entry") {
+			append_entry(data.level, data.text);
+			return;
+		}
+		if (data.kind === "clear") {
+			clear_output();
+			return;
+		}
+		if (data.kind === "done") {
+			var duration = data.ms < 1 ? "<1" : Math.round(data.ms);
+			status_line.textContent = (data.failed ? "Failed after " : "Finished in ") + duration + " ms";
+		}
+	});
+
+	/* ---------- editor chrome ---------- */
+
+	function update_gutter() {
+		var total = code_input.value.split("\n").length;
+		var numbers = [];
+		for (var index = 1; index <= total; index += 1) { numbers.push(index); }
+		gutter.textContent = numbers.join("\n");
+		gutter.scrollTop = code_input.scrollTop;
+	}
+
+	function update_cursor_position() {
+		var before = code_input.value.slice(0, code_input.selectionStart);
+		var lines = before.split("\n");
+		cursor_position.textContent = "Ln " + lines.length + ", Col " + (lines[lines.length - 1].length + 1);
+	}
+
+	code_input.addEventListener("input", function () {
+		update_highlight();
+		update_gutter();
+		update_cursor_position();
+	});
+
+	code_input.addEventListener("scroll", function () {
+		gutter.scrollTop = code_input.scrollTop;
+		highlight_element.scrollTop = code_input.scrollTop;
+		highlight_element.scrollLeft = code_input.scrollLeft;
+	});
+
+	code_input.addEventListener("keyup", update_cursor_position);
+	code_input.addEventListener("click", update_cursor_position);
+
+	code_input.addEventListener("keydown", function (event) {
+		if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+			event.preventDefault();
+			run_code();
+			return;
+		}
+		if (event.key === "Tab") {
+			event.preventDefault();
+			var start = code_input.selectionStart;
+			var end = code_input.selectionEnd;
+			code_input.value = code_input.value.slice(0, start) + "\t" + code_input.value.slice(end);
+			code_input.selectionStart = start + 1;
+			code_input.selectionEnd = start + 1;
+			update_highlight();
+			update_gutter();
+			update_cursor_position();
+		}
+	});
+
+	document.addEventListener("keydown", function (event) {
+		if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+			event.preventDefault();
+			run_code();
+		}
+	});
+
+	run_button.addEventListener("click", run_code);
+	clear_button.addEventListener("click", function () {
+		clear_output();
+		status_line.textContent = "Ready";
+	});
+
+	/* ---------- split resizing ---------- */
+
+	var dragging = false;
+
+	resizer.addEventListener("mousedown", function () {
+		dragging = true;
+		document.body.style.userSelect = "none";
+	});
+
+	document.addEventListener("mousemove", function (event) {
+		if (!dragging) { return; }
+		var is_stacked = window.matchMedia("(max-width: 760px)").matches;
+		if (is_stacked) {
+			var top_height = event.clientY - main_element.getBoundingClientRect().top;
+			var height_ratio = Math.min(Math.max(top_height, 80), main_element.clientHeight - 80);
+			main_element.style.gridTemplateRows = height_ratio + "px 6px 1fr";
+		} else {
+			var left_width = event.clientX - main_element.getBoundingClientRect().left;
+			var width_ratio = Math.min(Math.max(left_width, 160), main_element.clientWidth - 160);
+			main_element.style.gridTemplateColumns = width_ratio + "px 6px 1fr";
+		}
+	});
+
+	document.addEventListener("mouseup", function () {
+		dragging = false;
+		document.body.style.userSelect = "";
+	});
+
+	update_highlight();
+	update_gutter();
+	update_cursor_position();
+	code_input.focus();
+}());
+</script>
+
+</body>
+</html>
