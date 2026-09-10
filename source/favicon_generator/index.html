@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Favicon generator</title>
+<style>
+:root {
+	color-scheme: dark;
+	--page: #161b24;
+	--surface: #1d2330;
+	--well: #12161e;
+	--rule: #313a4b;
+	--rule_strong: #435069;
+	--ink: #e6eaf1;
+	--slate: #98a2b3;
+	--accent: #8a9dff;
+	--accent_fill: #4a66ee;
+	--accent_fill_hover: #5c77f5;
+	--accent_soft: rgba(138, 157, 255, 0.1);
+	--danger: #ff8f85;
+	--checker: conic-gradient(#2c3443 25%, #222936 0 50%, #2c3443 0 75%, #222936 0);
+	--font: "Avenir Next", Avenir, "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+	--mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--page);
+	color: var(--ink);
+	font-family: var(--font);
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.page {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 48px 24px 64px;
+}
+
+.page_header {
+	max-width: 60ch;
+	margin-bottom: 36px;
+}
+
+.page_header h1 {
+	margin: 0 0 8px;
+	font-size: clamp(36px, 5vw, 56px);
+	line-height: 1.05;
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+.page_header p {
+	margin: 0;
+	color: var(--slate);
+	font-size: 18px;
+}
+
+.workspace {
+	display: grid;
+	grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+	gap: 28px;
+	align-items: start;
+}
+
+/* Drop zone */
+
+.drop_zone {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 230px;
+	padding: 24px;
+	border: 2px dashed var(--rule_strong);
+	border-radius: 14px;
+	background: var(--surface);
+	text-align: center;
+	cursor: pointer;
+	transition: border-color 0.15s, background-color 0.15s;
+}
+
+.drop_zone:hover,
+.drop_zone.is_dragging {
+	border-color: var(--accent);
+	background: var(--accent_soft);
+}
+
+.drop_zone_art {
+	color: var(--accent);
+}
+
+.drop_zone_thumb {
+	display: none;
+	width: 72px;
+	height: 72px;
+	object-fit: contain;
+	background: var(--checker);
+	background-size: 12px 12px;
+	border-radius: 8px;
+}
+
+.drop_zone.has_source .drop_zone_art {
+	display: none;
+}
+
+.drop_zone.has_source .drop_zone_thumb {
+	display: block;
+}
+
+.drop_zone_title {
+	font-size: 18px;
+	font-weight: 600;
+}
+
+.drop_zone_hint {
+	max-width: 30ch;
+	color: var(--slate);
+	font-size: 14px;
+}
+
+.status {
+	min-height: 1.5em;
+	margin: 10px 2px 0;
+	color: var(--slate);
+	font-size: 14px;
+}
+
+.status.is_error {
+	color: var(--danger);
+}
+
+/* Settings */
+
+.settings {
+	margin-top: 20px;
+}
+
+.settings_title {
+	margin: 0 0 8px;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.field {
+	display: grid;
+	gap: 6px;
+	padding: 12px 0;
+	border-top: 1px solid var(--rule);
+}
+
+.field label {
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.field_row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.color_control {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* Higher specificity than input[type="text"] so the full-width rule doesn't win. */
+.color_control input[type="text"] {
+	width: 96px;
+	padding: 6px 8px;
+	font-family: var(--mono);
+	font-size: 13px;
+}
+
+.color_control input[type="text"].is_invalid {
+	border-color: var(--danger);
+}
+
+.field_error {
+	margin: 0;
+	color: var(--danger);
+	font-size: 13px;
+}
+
+.field_value {
+	color: var(--slate);
+	font-size: 14px;
+	font-variant-numeric: tabular-nums;
+}
+
+.field_note {
+	margin: 0;
+	color: var(--slate);
+	font-size: 13px;
+}
+
+.field .check_row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 400;
+}
+
+input[type="text"] {
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid var(--rule);
+	border-radius: 8px;
+	background: var(--well);
+	color: inherit;
+	font: inherit;
+}
+
+input[type="text"]::placeholder {
+	color: #6b7587;
+}
+
+input[type="color"] {
+	width: 44px;
+	height: 32px;
+	padding: 2px;
+	border: 1px solid var(--rule);
+	border-radius: 8px;
+	background: var(--well);
+	cursor: pointer;
+}
+
+input[type="range"],
+input[type="checkbox"] {
+	accent-color: var(--accent_fill);
+}
+
+input[type="range"] {
+	width: 100%;
+}
+
+input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+}
+
+input:disabled {
+	opacity: 0.4;
+}
+
+/* Preview */
+
+.preview {
+	overflow: hidden;
+	background: var(--surface);
+	border: 1px solid var(--rule);
+	border-radius: 14px;
+}
+
+.tab_strip {
+	display: flex;
+	align-items: flex-end;
+	gap: 2px;
+	height: 46px;
+	padding: 0 12px;
+	overflow: hidden;
+}
+
+.tab_strip_light {
+	background: #dde2e8;
+}
+
+.tab_strip_dark {
+	background: #202227;
+	border-bottom: 1px solid var(--rule);
+}
+
+.tab {
+	display: flex;
+	flex: 0 1 220px;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	height: 36px;
+	padding: 0 12px;
+	border-radius: 10px 10px 0 0;
+	font-size: 13px;
+}
+
+.tab_strip_light .tab_active {
+	background: #ffffff;
+	color: #1f1f1f;
+}
+
+.tab_strip_dark .tab_active {
+	background: #35383e;
+	color: #e8eaed;
+}
+
+.tab_strip_light .tab_inactive {
+	color: #5f6673;
+}
+
+.tab_strip_dark .tab_inactive {
+	color: #9aa0a6;
+}
+
+.tab_icon {
+	flex: none;
+	width: 16px;
+	height: 16px;
+}
+
+.tab_placeholder {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: currentColor;
+	opacity: 0.35;
+}
+
+.tab_title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.tab_close {
+	opacity: 0.6;
+}
+
+.preview_body {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 32px;
+	align-items: end;
+	padding: 28px;
+	border-bottom: 1px solid var(--rule);
+}
+
+.zoom {
+	margin: 0;
+}
+
+.zoom_frame {
+	position: relative;
+	width: 224px;
+	height: 224px;
+	background: var(--checker);
+	background-size: 28px 28px;
+	box-shadow: 0 0 0 1px var(--rule_strong);
+}
+
+.zoom_frame canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	image-rendering: crisp-edges;
+	image-rendering: pixelated;
+}
+
+.zoom_frame::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background-image: linear-gradient(to right, rgba(255, 255, 255, 0.09) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+	background-size: 14px 14px;
+	pointer-events: none;
+}
+
+.zoom figcaption,
+.ladder_item figcaption {
+	color: var(--slate);
+	font-size: 13px;
+}
+
+.zoom figcaption {
+	max-width: 224px;
+	margin-top: 10px;
+}
+
+.ladder {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 24px 28px;
+}
+
+.ladder_item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+}
+
+.ladder_item canvas {
+	display: block;
+	background: var(--checker);
+	background-size: 8px 8px;
+}
+
+.ladder_item .shape_apple {
+	border-radius: 22.5%;
+}
+
+.ladder_item .shape_circle {
+	border-radius: 50%;
+}
+
+/* Output */
+
+.output {
+	padding: 24px 28px 28px;
+}
+
+.output_title {
+	margin: 0 0 14px;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.file_group {
+	padding: 14px 0 8px;
+	border-top: 1px solid var(--rule);
+}
+
+.file_group_header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.file_group_title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.file_group_title label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+}
+
+.file_group_count {
+	flex: none;
+	color: var(--slate);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+.file_group_description {
+	margin: 2px 0 8px;
+	color: var(--slate);
+	font-size: 13px;
+}
+
+.file_rows {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.file_rows li {
+	display: grid;
+	grid-template-columns: minmax(0, 330px) minmax(0, 1fr);
+	gap: 16px;
+	padding: 4px 0;
+	font-size: 13.5px;
+}
+
+.file_rows li[hidden] {
+	display: none;
+}
+
+.file_group.is_excluded .file_group_description,
+.file_group.is_excluded .file_rows {
+	opacity: 0.35;
+}
+
+.file_name {
+	font-family: var(--mono);
+	font-size: 12.5px;
+	overflow-wrap: anywhere;
+}
+
+.file_note {
+	color: var(--slate);
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 16px;
+	padding-top: 20px;
+	border-top: 1px solid var(--rule);
+}
+
+.actions_hint {
+	flex: 1 1 240px;
+	color: var(--slate);
+	font-size: 14px;
+}
+
+.button_primary {
+	padding: 12px 22px;
+	border: 0;
+	border-radius: 10px;
+	background: var(--accent_fill);
+	color: #ffffff;
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.button_primary:hover {
+	background: var(--accent_fill_hover);
+}
+
+.button_primary:disabled {
+	background: #343c4d;
+	color: #7f899b;
+	cursor: not-allowed;
+}
+
+.button_secondary {
+	padding: 6px 12px;
+	border: 1px solid var(--rule_strong);
+	border-radius: 8px;
+	background: transparent;
+	color: var(--ink);
+	font: inherit;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.button_secondary:hover {
+	border-color: var(--accent);
+}
+
+.snippet {
+	margin-top: 24px;
+}
+
+.snippet summary {
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.snippet pre {
+	margin: 12px 0 10px;
+	padding: 14px 16px;
+	overflow-x: auto;
+	background: var(--well);
+	border: 1px solid var(--rule);
+	border-radius: 10px;
+	font-family: var(--mono);
+	font-size: 12.5px;
+	line-height: 1.6;
+}
+
+@media (max-width: 880px) {
+	.workspace {
+		grid-template-columns: 1fr;
+	}
+
+	.preview_body {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 520px) {
+	.page {
+		padding-top: 32px;
+	}
+
+	.preview_body,
+	.output {
+		padding: 20px;
+	}
+
+	.file_rows li {
+		grid-template-columns: 1fr;
+		gap: 0;
+		padding: 5px 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.drop_zone {
+		transition: none;
+	}
+}
+</style>
+</head>
+<body>
+<main class="page">
+	<header class="page_header">
+		<h1>Favicon generator</h1>
+		<p>Drop in a PNG or SVG and download the icon files modern browsers and devices actually use, as one zip. Everything happens in this page. Nothing is uploaded.</p>
+	</header>
+
+	<div class="workspace">
+		<section aria-label="Source image and settings">
+			<label class="drop_zone" id="drop_zone" tabindex="0">
+				<input type="file" id="file_input" accept=".png,.svg,image/png,image/svg+xml" hidden>
+				<svg class="drop_zone_art" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+					<rect x="1" y="1" width="42" height="42" rx="8" fill="none" stroke="currentColor" stroke-width="2"/>
+					<path d="M22 13v18M13 22h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+				</svg>
+				<img class="drop_zone_thumb" id="drop_zone_thumb" alt="">
+				<span class="drop_zone_title" id="drop_zone_title">Drop a PNG or SVG here</span>
+				<span class="drop_zone_hint">Or click to choose a file. A square image, 512 px or larger, gives the sharpest results.</span>
+			</label>
+			<p class="status" id="source_status" role="status"></p>
+
+			<div class="settings">
+				<h2 class="settings_title">Settings</h2>
+
+				<div class="field">
+					<label for="site_name_input">Site name</label>
+					<input type="text" id="site_name_input" value="My website" autocomplete="off">
+				</div>
+
+				<div class="field">
+					<label for="short_name_input">Short name</label>
+					<input type="text" id="short_name_input" placeholder="Same as site name" autocomplete="off">
+					<p class="field_note">Shown under the icon on phone home screens.</p>
+				</div>
+
+				<div class="field">
+					<label for="folder_input">Folder</label>
+					<input type="text" id="folder_input" value="/images/Favicon" spellcheck="false" autocomplete="off">
+					<p class="field_note">Where the icons live on your site.</p>
+				</div>
+
+				<div class="field">
+					<label for="file_prefix_input">File name</label>
+					<input type="text" id="file_prefix_input" value="logo" spellcheck="false" autocomplete="off">
+					<p class="field_note" id="file_prefix_note"></p>
+				</div>
+
+				<div class="field">
+					<label class="check_row">
+						<input type="checkbox" id="ico_at_root_input" checked>
+						Keep the ICO as /favicon.ico
+					</label>
+					<p class="field_note">Recommended. Browsers showing non-HTML pages, like PDFs, and tools like RSS readers request /favicon.ico directly without reading your HTML. Untick to name it like the other files.</p>
+				</div>
+
+				<div class="field">
+					<div class="field_row">
+						<label for="theme_color_input">Theme color</label>
+						<span class="color_control">
+							<input type="text" id="theme_color_hex" aria-label="Theme color hex value" aria-describedby="theme_color_error" maxlength="7" spellcheck="false" autocomplete="off">
+							<input type="color" id="theme_color_input" value="#2446d4">
+						</span>
+					</div>
+					<p class="field_error" id="theme_color_error" hidden>Enter a hex value like #2446d4 or #fff.</p>
+					<p class="field_note">Colors the browser toolbar on phones and the title bar of the installed web app.</p>
+				</div>
+
+				<div class="field">
+					<div class="field_row">
+						<label for="background_color_input">Background color</label>
+						<span class="color_control">
+							<input type="text" id="background_color_hex" aria-label="Background color hex value" aria-describedby="background_color_error" maxlength="7" spellcheck="false" autocomplete="off">
+							<input type="color" id="background_color_input" value="#ffffff">
+						</span>
+					</div>
+					<p class="field_error" id="background_color_error" hidden>Enter a hex value like #ffffff or #fff.</p>
+					<label class="check_row">
+						<input type="checkbox" id="transparent_input" checked>
+						Keep the favicon and web app icons transparent
+					</label>
+					<p class="field_note">Apple and maskable Android icons always use this color, because those platforms don't support transparency.</p>
+				</div>
+
+				<div class="field">
+					<div class="field_row">
+						<label for="padding_input">Padding</label>
+						<span class="field_value" id="padding_value"></span>
+					</div>
+					<input type="range" id="padding_input" min="0" max="25" step="1" value="0">
+				</div>
+
+				<div class="field">
+					<div class="field_row">
+						<label for="radius_input">Corner radius</label>
+						<span class="field_value" id="radius_value"></span>
+					</div>
+					<input type="range" id="radius_input" min="0" max="50" step="1" value="0">
+					<p class="field_note" id="radius_note">Turn off transparency to round the background.</p>
+				</div>
+			</div>
+		</section>
+
+		<section class="preview" aria-label="Preview and download">
+			<div class="tab_strip tab_strip_light" aria-hidden="true">
+				<div class="tab tab_active">
+					<canvas class="tab_icon" width="32" height="32"></canvas>
+					<span class="tab_title"></span>
+					<span class="tab_close">×</span>
+				</div>
+				<div class="tab tab_inactive">
+					<span class="tab_placeholder"></span>
+					<span class="tab_title">New tab</span>
+				</div>
+			</div>
+			<div class="tab_strip tab_strip_dark" aria-hidden="true">
+				<div class="tab tab_active">
+					<canvas class="tab_icon" width="32" height="32"></canvas>
+					<span class="tab_title"></span>
+					<span class="tab_close">×</span>
+				</div>
+				<div class="tab tab_inactive">
+					<span class="tab_placeholder"></span>
+					<span class="tab_title">New tab</span>
+				</div>
+			</div>
+
+			<div class="preview_body">
+				<figure class="zoom">
+					<div class="zoom_frame">
+						<canvas id="zoom_canvas" width="16" height="16"></canvas>
+					</div>
+					<figcaption>The 16 × 16 icon, one square per pixel. This is what a browser tab gets on a standard screen.</figcaption>
+				</figure>
+				<div class="ladder" id="ladder"></div>
+			</div>
+
+			<div class="output">
+				<h2 class="output_title">Files in the zip</h2>
+				<div id="file_groups"></div>
+				<div class="actions">
+					<button type="button" class="button_primary" id="download_button" disabled>Download zip</button>
+					<span class="actions_hint" id="download_hint">Add an image to enable the download.</span>
+				</div>
+				<details class="snippet">
+					<summary>HTML for your page's head</summary>
+					<pre><code id="snippet_code"></code></pre>
+					<button type="button" class="button_secondary" id="copy_button">Copy HTML</button>
+				</details>
+			</div>
+		</section>
+	</div>
+</main>
+
+<script>
+const drop_zone = document.getElementById('drop_zone');
+const drop_zone_thumb = document.getElementById('drop_zone_thumb');
+const drop_zone_title = document.getElementById('drop_zone_title');
+const file_input = document.getElementById('file_input');
+const source_status = document.getElementById('source_status');
+const site_name_input = document.getElementById('site_name_input');
+const short_name_input = document.getElementById('short_name_input');
+const folder_input = document.getElementById('folder_input');
+const file_prefix_input = document.getElementById('file_prefix_input');
+const file_prefix_note = document.getElementById('file_prefix_note');
+const ico_at_root_input = document.getElementById('ico_at_root_input');
+const theme_color_input = document.getElementById('theme_color_input');
+const theme_color_hex = document.getElementById('theme_color_hex');
+const theme_color_error = document.getElementById('theme_color_error');
+const background_color_input = document.getElementById('background_color_input');
+const background_color_hex = document.getElementById('background_color_hex');
+const background_color_error = document.getElementById('background_color_error');
+const transparent_input = document.getElementById('transparent_input');
+const padding_input = document.getElementById('padding_input');
+const padding_value = document.getElementById('padding_value');
+const radius_input = document.getElementById('radius_input');
+const radius_value = document.getElementById('radius_value');
+const radius_note = document.getElementById('radius_note');
+const tab_icons = document.querySelectorAll('.tab_icon');
+const tab_titles = document.querySelectorAll('.tab_active .tab_title');
+const zoom_canvas = document.getElementById('zoom_canvas');
+const ladder = document.getElementById('ladder');
+const file_groups = document.getElementById('file_groups');
+const download_button = document.getElementById('download_button');
+const download_hint = document.getElementById('download_hint');
+const snippet_code = document.getElementById('snippet_code');
+const copy_button = document.getElementById('copy_button');
+
+const text_encoder = new TextEncoder();
+
+// Current source image. Everything is rendered from these.
+let source_image = null;
+let source_width = 0;
+let source_height = 0;
+let source_is_svg = false;
+let source_svg_text = '';
+let source_object_url = '';
+
+let render_pending = false;
+let drag_depth = 0;
+
+/* ---------- Output plan ---------- */
+
+// Frames stored inside the ICO file. Only legacy browsers and tools read it.
+const ico_sizes = [16, 32];
+
+function png_file(id, suffix, size, style_key, note) {
+	return { id: id, suffix: suffix, type: 'png', width: size, height: size, style_key: style_key, note: note };
+}
+
+// Every file in the zip, grouped by who uses it.
+// suffix is appended to the chosen file name ("logo" + "_192x192.png").
+// fixed_name ignores the chosen name.
+// style_key picks a drawing style from get_styles().
+const output_groups = [
+	{
+		key: 'browser',
+		title: 'Browsers and search engines',
+		optional: false,
+		description: 'Tabs, bookmarks, history and search results.',
+		files: [
+			{ id: 'ico', type: 'ico', suffix: '.ico', note: 'Legacy browsers and tools that don\'t read SVG' },
+			png_file('png_96', '_96x96.png', 96, 'favicon', 'Google Search, which wants 48 px or larger and does not list SVG as a format'),
+			{ id: 'svg', type: 'svg', suffix: '.svg', note: 'Modern browsers, sharp at every size' }
+		]
+	},
+	{
+		key: 'apple',
+		title: 'Apple devices',
+		optional: true,
+		description: 'Home screen icon for iPhone and iPad. iOS scales this one file for every device.',
+		files: [
+			png_file('apple', '_180x180.png', 180, 'apple', 'Linked with rel="apple-touch-icon"')
+		]
+	},
+	{
+		key: 'manifest',
+		title: 'Installable web app',
+		optional: true,
+		description: 'Icons for Android home screens, install prompts and splash screens.',
+		files: [
+			png_file('icon_192', '_192x192.png', 192, 'favicon', 'Home screen'),
+			png_file('icon_512', '_512x512.png', 512, 'favicon', 'Install prompts and splash screens'),
+			png_file('icon_512_maskable', '_512x512_maskable.png', 512, 'maskable', 'Launchers that crop icons into circles or other shapes'),
+			{ id: 'manifest', type: 'manifest', fixed_name: 'site.webmanifest', note: 'Name, colors and the icon list' }
+		]
+	}
+];
+
+// Preview icons shown next to the magnified view.
+const ladder_items = [
+	{ width: 16, height: 16, display_width: 16, style_key: 'favicon', shape: 'plain', caption: '16 px' },
+	{ width: 32, height: 32, display_width: 32, style_key: 'favicon', shape: 'plain', caption: '32 px' },
+	{ width: 180, height: 180, display_width: 90, style_key: 'apple', shape: 'apple', caption: 'iOS home screen' },
+	{ width: 180, height: 180, display_width: 90, style_key: 'maskable', shape: 'circle', caption: 'Android, masked' }
+];
+
+function get_group_files(group) {
+	return group.files.filter((file) => file.type !== 'svg' || source_is_svg);
+}
+
+function find_group(key) {
+	return output_groups.find((group) => group.key === key);
+}
+
+function find_file(id) {
+	for (const group of output_groups) {
+		const match = group.files.find((file) => file.id === id);
+		if (match) {
+			return match;
+		}
+	}
+	return null;
+}
+
+// "/images//Favicon/ " becomes "images/Favicon". Unsafe characters become "_", and "." or ".." segments are dropped.
+function normalize_folder(value) {
+	return value
+		.split(/[\\/]+/)
+		.map((segment) => segment.trim().replace(/[^A-Za-z0-9._-]/g, '_'))
+		.filter((segment) => segment !== '' && segment !== '.' && segment !== '..')
+		.join('/');
+}
+
+function normalize_file_prefix(value) {
+	const clean = value.trim().replace(/[^A-Za-z0-9._-]/g, '_');
+	return clean || 'logo';
+}
+
+// Path inside the zip, e.g. "images/Favicon/logo_192x192.png". Prefix with "/" for the URL.
+function get_file_path(file, settings) {
+	// The one exception: the conventional /favicon.ico location, unless the user opts out.
+	if (file.type === 'ico' && settings.ico_at_root) {
+		return 'favicon.ico';
+	}
+	const file_name = file.fixed_name || settings.file_prefix + file.suffix;
+	if (settings.folder === '') {
+		return file_name;
+	}
+	return settings.folder + '/' + file_name;
+}
+
+function get_file_url(id, settings) {
+	return '/' + get_file_path(find_file(id), settings);
+}
+
+/* ---------- Settings ---------- */
+
+function read_settings() {
+	const site_name = site_name_input.value.trim() || 'My website';
+	const groups = {};
+	for (const group of output_groups) {
+		groups[group.key] = !group.optional || group.checkbox.checked;
+	}
+	return {
+		site_name: site_name,
+		short_name: short_name_input.value.trim() || site_name,
+		folder: normalize_folder(folder_input.value),
+		file_prefix: normalize_file_prefix(file_prefix_input.value),
+		ico_at_root: ico_at_root_input.checked,
+		theme_color: theme_color_input.value,
+		background_color: background_color_input.value,
+		transparent: transparent_input.checked,
+		padding: Number(padding_input.value),
+		radius: Number(radius_input.value),
+		groups: groups
+	};
+}
+
+function get_styles(settings) {
+	return {
+		favicon: {
+			background: settings.transparent ? null : settings.background_color,
+			padding: settings.padding,
+			radius: settings.transparent ? 0 : settings.radius
+		},
+		// iOS adds its own rounded mask, so the square stays square.
+		apple: {
+			background: settings.background_color,
+			padding: settings.padding,
+			radius: 0
+		},
+		// The maskable safe zone is a centered circle 80% of the icon's width (409 of 512 px),
+		// so keep at least 10% on each side. The circle preview shows anything that gets cut off.
+		maskable: {
+			background: settings.background_color,
+			padding: Math.max(settings.padding, 10),
+			radius: 0
+		}
+	};
+}
+
+/* ---------- Rendering ---------- */
+
+function trace_rounded_rect(context, width, height, radius) {
+	const clamped_radius = Math.min(radius, width / 2, height / 2);
+	context.beginPath();
+	context.moveTo(clamped_radius, 0);
+	context.arcTo(width, 0, width, height, clamped_radius);
+	context.arcTo(width, height, 0, height, clamped_radius);
+	context.arcTo(0, height, 0, 0, clamped_radius);
+	context.arcTo(0, 0, width, 0, clamped_radius);
+	context.closePath();
+}
+
+// Raster images are halved step by step before the final draw.
+// A single big jump (e.g. 1024 to 16) skips most source pixels and looks jagged.
+function draw_source(context, x, y, width, height) {
+	context.imageSmoothingEnabled = true;
+	context.imageSmoothingQuality = 'high';
+
+	if (source_is_svg) {
+		context.drawImage(source_image, x, y, width, height);
+		return;
+	}
+
+	let current = source_image;
+	let current_width = source_width;
+	let current_height = source_height;
+
+	while (current_width / 2 >= width && current_height / 2 >= height) {
+		const step = document.createElement('canvas');
+		step.width = Math.ceil(current_width / 2);
+		step.height = Math.ceil(current_height / 2);
+		const step_context = step.getContext('2d');
+		step_context.imageSmoothingEnabled = true;
+		step_context.imageSmoothingQuality = 'high';
+		step_context.drawImage(current, 0, 0, step.width, step.height);
+		current = step;
+		current_width = step.width;
+		current_height = step.height;
+	}
+
+	context.drawImage(current, x, y, width, height);
+}
+
+// Padding and radius are percentages of the shorter side, so wide tiles work too.
+function render_icon(width, height, style) {
+	const canvas = document.createElement('canvas');
+	canvas.width = width;
+	canvas.height = height;
+	const context = canvas.getContext('2d');
+	const short_side = Math.min(width, height);
+
+	if (style.background) {
+		trace_rounded_rect(context, width, height, short_side / 2 * style.radius / 100);
+		context.fillStyle = style.background;
+		context.fill();
+		context.clip();
+	}
+
+	const inner_size = short_side * (1 - 2 * style.padding / 100);
+	const scale = Math.min(inner_size / source_width, inner_size / source_height);
+	const draw_width = Math.max(1, Math.round(source_width * scale));
+	const draw_height = Math.max(1, Math.round(source_height * scale));
+	const draw_x = Math.round((width - draw_width) / 2);
+	const draw_y = Math.round((height - draw_height) / 2);
+
+	draw_source(context, draw_x, draw_y, draw_width, draw_height);
+	return canvas;
+}
+
+function paint(target, source) {
+	const context = target.getContext('2d');
+	context.clearRect(0, 0, target.width, target.height);
+	context.drawImage(source, 0, 0, target.width, target.height);
+}
+
+function build_ladder() {
+	for (const item of ladder_items) {
+		const figure = document.createElement('figure');
+		figure.className = 'ladder_item';
+		const canvas = document.createElement('canvas');
+		canvas.width = item.width;
+		canvas.height = item.height;
+		canvas.style.width = item.display_width + 'px';
+		canvas.style.height = Math.round(item.display_width * item.height / item.width) + 'px';
+		canvas.className = 'shape_' + item.shape;
+		const caption = document.createElement('figcaption');
+		caption.textContent = item.caption;
+		figure.append(canvas, caption);
+		ladder.append(figure);
+		item.canvas = canvas;
+	}
+}
+
+function build_file_groups() {
+	for (const group of output_groups) {
+		const section = document.createElement('div');
+		section.className = 'file_group';
+		section.setAttribute('role', 'group');
+		section.setAttribute('aria-label', group.title);
+
+		const header = document.createElement('div');
+		header.className = 'file_group_header';
+		const title = document.createElement('h3');
+		title.className = 'file_group_title';
+
+		if (group.optional) {
+			const label = document.createElement('label');
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			checkbox.checked = true;
+			checkbox.addEventListener('change', schedule_render);
+			label.append(checkbox, group.title);
+			title.append(label);
+			group.checkbox = checkbox;
+		} else {
+			title.textContent = group.title;
+		}
+
+		const count = document.createElement('span');
+		count.className = 'file_group_count';
+		header.append(title, count);
+
+		const description = document.createElement('p');
+		description.className = 'file_group_description';
+		description.textContent = group.description;
+
+		const rows = document.createElement('ul');
+		rows.className = 'file_rows';
+		for (const file of group.files) {
+			const row = document.createElement('li');
+			const name = document.createElement('span');
+			name.className = 'file_name';
+			const note = document.createElement('span');
+			note.className = 'file_note';
+			note.textContent = file.note;
+			row.append(name, note);
+			rows.append(row);
+			file.row = row;
+			file.name_element = name;
+		}
+
+		section.append(header, description, rows);
+		file_groups.append(section);
+		group.element = section;
+		group.count_element = count;
+	}
+}
+
+function update_file_groups(settings) {
+	let total_files = 0;
+
+	for (const group of output_groups) {
+		const included = settings.groups[group.key];
+		const files = get_group_files(group);
+
+		for (const file of group.files) {
+			file.row.hidden = file.type === 'svg' && !source_is_svg;
+			file.name_element.textContent = '/' + get_file_path(file, settings);
+		}
+
+		const count_text = files.length + (files.length === 1 ? ' file' : ' files');
+		group.element.classList.toggle('is_excluded', !included);
+		if (!included) {
+			group.count_element.textContent = 'Not included';
+		} else if (group.optional) {
+			group.count_element.textContent = count_text;
+		} else {
+			group.count_element.textContent = count_text + ', always included';
+		}
+
+		if (included) {
+			total_files += files.length;
+		}
+	}
+
+	return total_files;
+}
+
+function render_previews() {
+	const settings = read_settings();
+
+	for (const title of tab_titles) {
+		title.textContent = settings.site_name;
+	}
+	padding_value.textContent = settings.padding + '%';
+	radius_value.textContent = settings.radius + '%';
+	radius_input.disabled = settings.transparent;
+	radius_note.hidden = !settings.transparent;
+	file_prefix_note.textContent = 'Files are named like ' + settings.file_prefix + '_192x192.png.';
+
+	const total_files = update_file_groups(settings);
+	snippet_code.textContent = build_head_snippet(settings);
+
+	if (!source_image) {
+		return;
+	}
+
+	download_hint.textContent = total_files + ' files. Unzip into your site\'s root folder, which creates the folders for you, then paste the HTML below into your page\'s head.';
+
+	const styles = get_styles(settings);
+	const tab_render = render_icon(32, 32, styles.favicon);
+	for (const tab_icon of tab_icons) {
+		paint(tab_icon, tab_render);
+	}
+	paint(zoom_canvas, render_icon(16, 16, styles.favicon));
+
+	for (const item of ladder_items) {
+		paint(item.canvas, render_icon(item.width, item.height, styles[item.style_key]));
+	}
+}
+
+function schedule_render() {
+	if (render_pending) {
+		return;
+	}
+	render_pending = true;
+	requestAnimationFrame(() => {
+		render_pending = false;
+		render_previews();
+	});
+}
+
+/* ---------- Loading files ---------- */
+
+function show_status(message, is_error) {
+	source_status.textContent = message;
+	source_status.classList.toggle('is_error', Boolean(is_error));
+}
+
+function load_image(blob) {
+	return new Promise((resolve, reject) => {
+		const url = URL.createObjectURL(blob);
+		const image = new Image();
+		image.onload = () => resolve({ image: image, url: url });
+		image.onerror = () => {
+			URL.revokeObjectURL(url);
+			reject(new Error('The browser could not open this image. Check that the file is not damaged.'));
+		};
+		image.src = url;
+	});
+}
+
+function parse_length(value) {
+	const match = /^\s*(\d*\.?\d+)\s*(px)?\s*$/.exec(value || '');
+	if (!match) {
+		return null;
+	}
+	const number = parseFloat(match[1]);
+	return number > 0 ? number : null;
+}
+
+async function load_png(file) {
+	const result = await load_image(file);
+	return {
+		image: result.image,
+		url: result.url,
+		width: result.image.naturalWidth,
+		height: result.image.naturalHeight,
+		is_svg: false,
+		svg_text: ''
+	};
+}
+
+// SVGs need an explicit width, height and viewBox, or some browsers draw them at 0 × 0 on a canvas.
+async function load_svg(text) {
+	let markup = text;
+	if (!/xmlns\s*=\s*["']http:\/\/www\.w3\.org\/2000\/svg["']/.test(markup)) {
+		markup = markup.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+	}
+
+	const doc = new DOMParser().parseFromString(markup, 'image/svg+xml');
+	const root = doc.documentElement;
+	if (doc.getElementsByTagName('parsererror').length > 0 || root.localName !== 'svg') {
+		throw new Error('This SVG could not be read. Open it in a text editor and check that the markup is valid.');
+	}
+
+	const view_box = (root.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+	const has_view_box = view_box.length === 4 && view_box.every(Number.isFinite) && view_box[2] > 0 && view_box[3] > 0;
+	let width = parse_length(root.getAttribute('width'));
+	let height = parse_length(root.getAttribute('height'));
+
+	if (has_view_box) {
+		const ratio = view_box[2] / view_box[3];
+		if (!width && !height) {
+			width = view_box[2];
+			height = view_box[3];
+		} else if (!width) {
+			width = height * ratio;
+		} else if (!height) {
+			height = width / ratio;
+		}
+	} else {
+		width = width || height || 512;
+		height = height || width;
+		root.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+	}
+
+	const longest_side = Math.max(width, height);
+	const pixel_width = Math.max(1, Math.round(width / longest_side * 1024));
+	const pixel_height = Math.max(1, Math.round(height / longest_side * 1024));
+	root.setAttribute('width', pixel_width);
+	root.setAttribute('height', pixel_height);
+
+	const svg_text = new XMLSerializer().serializeToString(root);
+	const result = await load_image(new Blob([svg_text], { type: 'image/svg+xml' }));
+	return {
+		image: result.image,
+		url: result.url,
+		width: pixel_width,
+		height: pixel_height,
+		is_svg: true,
+		svg_text: svg_text
+	};
+}
+
+async function load_file(file) {
+	const is_svg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+	const is_png = file.type === 'image/png' || /\.png$/i.test(file.name);
+
+	if (!is_svg && !is_png) {
+		show_status(file.name + ' is not a PNG or SVG. Choose a .png or .svg file.', true);
+		return;
+	}
+
+	let loaded;
+	try {
+		loaded = is_svg ? await load_svg(await file.text()) : await load_png(file);
+	} catch (error) {
+		show_status(error.message, true);
+		return;
+	}
+
+	if (source_object_url) {
+		URL.revokeObjectURL(source_object_url);
+	}
+	source_image = loaded.image;
+	source_width = loaded.width;
+	source_height = loaded.height;
+	source_is_svg = loaded.is_svg;
+	source_svg_text = loaded.svg_text;
+	source_object_url = loaded.url;
+
+	const messages = [];
+	if (source_is_svg) {
+		messages.push(file.name + ' loaded. Vector files stay sharp at every size.');
+	} else {
+		messages.push(file.name + ' loaded, ' + source_width + ' × ' + source_height + ' px.');
+		if (Math.min(source_width, source_height) < 512) {
+			messages.push('It is smaller than 512 px, so the larger icons will look soft.');
+		}
+	}
+	if (Math.abs(source_width - source_height) > 1) {
+		messages.push('It is not square, so it will be centered with empty space around it.');
+	}
+	show_status(messages.join(' '), false);
+
+	drop_zone.classList.add('has_source');
+	drop_zone_thumb.src = source_object_url;
+	drop_zone_title.textContent = 'Drop another file to replace it';
+	download_button.disabled = false;
+	schedule_render();
+}
+
+/* ---------- Text files ---------- */
+
+function build_manifest(settings) {
+	const icons = [];
+	for (const file of find_group('manifest').files) {
+		if (file.type !== 'png') {
+			continue;
+		}
+		const icon = { src: '/' + get_file_path(file, settings), sizes: file.width + 'x' + file.height, type: 'image/png' };
+		if (file.style_key === 'maskable') {
+			icon.purpose = 'maskable';
+		}
+		icons.push(icon);
+	}
+
+	const manifest = {
+		name: settings.site_name,
+		short_name: settings.short_name,
+		icons: icons,
+		theme_color: settings.theme_color,
+		background_color: settings.background_color
+	};
+	return JSON.stringify(manifest, null, '\t') + '\n';
+}
+
+function build_head_snippet(settings) {
+	// sizes="32x32" instead of "any": with "any", Chrome downloads the ICO as well as the SVG.
+	const lines = ['<link rel="icon" href="' + get_file_url('ico', settings) + '" sizes="32x32">'];
+	lines.push('<link rel="icon" href="' + get_file_url('png_96', settings) + '" type="image/png" sizes="96x96">');
+	// The SVG goes last so browsers that pick the last matching icon still choose it.
+	if (source_is_svg) {
+		lines.push('<link rel="icon" href="' + get_file_url('svg', settings) + '" type="image/svg+xml">');
+	}
+	if (settings.groups.apple) {
+		lines.push('<link rel="apple-touch-icon" href="' + get_file_url('apple', settings) + '">');
+	}
+	if (settings.groups.manifest) {
+		lines.push('<link rel="manifest" href="' + get_file_url('manifest', settings) + '">');
+	}
+	lines.push('<meta name="theme-color" content="' + settings.theme_color + '">');
+	return lines.join('\n');
+}
+
+// Wraps the original SVG so padding and background match the PNG icons.
+function build_svg_favicon(style) {
+	const view_size = 512;
+	const doc = new DOMParser().parseFromString(source_svg_text, 'image/svg+xml');
+	const inner = doc.documentElement;
+	const inner_size = Number((view_size * (1 - 2 * style.padding / 100)).toFixed(2));
+	const offset = Number(((view_size - inner_size) / 2).toFixed(2));
+	inner.setAttribute('x', offset);
+	inner.setAttribute('y', offset);
+	inner.setAttribute('width', inner_size);
+	inner.setAttribute('height', inner_size);
+
+	const inner_markup = new XMLSerializer().serializeToString(inner);
+	let body = inner_markup;
+
+	if (style.background) {
+		const radius = Number((view_size / 2 * style.radius / 100).toFixed(2));
+		body = '<defs><clipPath id="favicon_generator_clip"><rect width="512" height="512" rx="' + radius + '"/></clipPath></defs>'
+			+ '<rect width="512" height="512" rx="' + radius + '" fill="' + style.background + '"/>'
+			+ '<g clip-path="url(#favicon_generator_clip)">' + inner_markup + '</g>';
+	}
+
+	return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' + body + '</svg>\n';
+}
+
+/* ---------- Binary formats ---------- */
+
+function canvas_to_png_bytes(canvas) {
+	return new Promise((resolve, reject) => {
+		canvas.toBlob((blob) => {
+			if (!blob) {
+				reject(new Error('the browser could not encode a PNG.'));
+				return;
+			}
+			blob.arrayBuffer().then((buffer) => resolve(new Uint8Array(buffer)), reject);
+		}, 'image/png');
+	});
+}
+
+// ICO = a small directory header followed by the images. Modern ICO files can store plain PNG data.
+function build_ico(entries) {
+	const header_size = 6 + 16 * entries.length;
+	let total_size = header_size;
+	for (const entry of entries) {
+		total_size += entry.bytes.length;
+	}
+
+	const output = new Uint8Array(total_size);
+	const view = new DataView(output.buffer);
+	view.setUint16(0, 0, true);
+	view.setUint16(2, 1, true);
+	view.setUint16(4, entries.length, true);
+
+	let offset = header_size;
+	entries.forEach((entry, index) => {
+		const base = 6 + index * 16;
+		const dimension = entry.size >= 256 ? 0 : entry.size;
+		view.setUint8(base, dimension);
+		view.setUint8(base + 1, dimension);
+		view.setUint8(base + 2, 0);
+		view.setUint8(base + 3, 0);
+		view.setUint16(base + 4, 1, true);
+		view.setUint16(base + 6, 32, true);
+		view.setUint32(base + 8, entry.bytes.length, true);
+		view.setUint32(base + 12, offset, true);
+		output.set(entry.bytes, offset);
+		offset += entry.bytes.length;
+	});
+
+	return output;
+}
+
+const crc_table = (() => {
+	const table = new Uint32Array(256);
+	for (let n = 0; n < 256; n++) {
+		let value = n;
+		for (let k = 0; k < 8; k++) {
+			value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+		}
+		table[n] = value >>> 0;
+	}
+	return table;
+})();
+
+function crc32(bytes) {
+	let crc = 0xffffffff;
+	for (let i = 0; i < bytes.length; i++) {
+		crc = crc_table[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+	}
+	return (crc ^ 0xffffffff) >>> 0;
+}
+
+// Minimal ZIP writer using the "stored" method (no compression).
+// PNGs are already compressed, so deflate would barely shrink them.
+function build_zip(files) {
+	const now = new Date();
+	const dos_time = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+	const dos_date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+
+	const parts = [];
+	const central_entries = [];
+	let offset = 0;
+
+	for (const file of files) {
+		const name_bytes = text_encoder.encode(file.name);
+		const crc = crc32(file.data);
+		const size = file.data.length;
+
+		const local = new Uint8Array(30 + name_bytes.length);
+		const local_view = new DataView(local.buffer);
+		local_view.setUint32(0, 0x04034b50, true);
+		local_view.setUint16(4, 20, true);
+		local_view.setUint16(6, 0x0800, true);
+		local_view.setUint16(8, 0, true);
+		local_view.setUint16(10, dos_time, true);
+		local_view.setUint16(12, dos_date, true);
+		local_view.setUint32(14, crc, true);
+		local_view.setUint32(18, size, true);
+		local_view.setUint32(22, size, true);
+		local_view.setUint16(26, name_bytes.length, true);
+		local_view.setUint16(28, 0, true);
+		local.set(name_bytes, 30);
+		parts.push(local, file.data);
+
+		const central = new Uint8Array(46 + name_bytes.length);
+		const central_view = new DataView(central.buffer);
+		central_view.setUint32(0, 0x02014b50, true);
+		central_view.setUint16(4, 20, true);
+		central_view.setUint16(6, 20, true);
+		central_view.setUint16(8, 0x0800, true);
+		central_view.setUint16(10, 0, true);
+		central_view.setUint16(12, dos_time, true);
+		central_view.setUint16(14, dos_date, true);
+		central_view.setUint32(16, crc, true);
+		central_view.setUint32(20, size, true);
+		central_view.setUint32(24, size, true);
+		central_view.setUint16(28, name_bytes.length, true);
+		central_view.setUint16(30, 0, true);
+		central_view.setUint16(32, 0, true);
+		central_view.setUint16(34, 0, true);
+		central_view.setUint16(36, 0, true);
+		central_view.setUint32(38, 0, true);
+		central_view.setUint32(42, offset, true);
+		central.set(name_bytes, 46);
+		central_entries.push(central);
+
+		offset += local.length + size;
+	}
+
+	let central_size = 0;
+	for (const entry of central_entries) {
+		central_size += entry.length;
+	}
+
+	const end = new Uint8Array(22);
+	const end_view = new DataView(end.buffer);
+	end_view.setUint32(0, 0x06054b50, true);
+	end_view.setUint16(4, 0, true);
+	end_view.setUint16(6, 0, true);
+	end_view.setUint16(8, files.length, true);
+	end_view.setUint16(10, files.length, true);
+	end_view.setUint32(12, central_size, true);
+	end_view.setUint32(16, offset, true);
+	end_view.setUint16(20, 0, true);
+
+	return new Blob([...parts, ...central_entries, end], { type: 'application/zip' });
+}
+
+/* ---------- Download ---------- */
+
+async function build_files(settings) {
+	const styles = get_styles(settings);
+	const png_cache = new Map();
+
+	// Some files share the same pixels (e.g. the ICO's 32 px frame), so render each size and style once.
+	const get_png = async (width, height, style_key) => {
+		const cache_key = width + 'x' + height + ':' + style_key;
+		if (!png_cache.has(cache_key)) {
+			png_cache.set(cache_key, await canvas_to_png_bytes(render_icon(width, height, styles[style_key])));
+		}
+		return png_cache.get(cache_key);
+	};
+
+	const files = [];
+	for (const group of output_groups) {
+		if (!settings.groups[group.key]) {
+			continue;
+		}
+		for (const file of get_group_files(group)) {
+			let data;
+			switch (file.type) {
+				case 'png':
+					data = await get_png(file.width, file.height, file.style_key);
+					break;
+				case 'ico': {
+					const entries = [];
+					for (const size of ico_sizes) {
+						entries.push({ size: size, bytes: await get_png(size, size, 'favicon') });
+					}
+					data = build_ico(entries);
+					break;
+				}
+				case 'svg':
+					data = text_encoder.encode(build_svg_favicon(styles.favicon));
+					break;
+				case 'manifest':
+					data = text_encoder.encode(build_manifest(settings));
+					break;
+			}
+			files.push({ name: get_file_path(file, settings), data: data });
+		}
+	}
+	return files;
+}
+
+function save_blob(blob, file_name) {
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = file_name;
+	document.body.append(link);
+	link.click();
+	link.remove();
+	setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+async function download_zip() {
+	if (!source_image) {
+		return;
+	}
+	download_button.disabled = true;
+	download_button.textContent = 'Building zip…';
+
+	try {
+		const files = await build_files(read_settings());
+		save_blob(build_zip(files), 'favicons.zip');
+	} catch (error) {
+		show_status('The zip could not be built: ' + error.message, true);
+	} finally {
+		download_button.disabled = false;
+		download_button.textContent = 'Download zip';
+	}
+}
+
+/* ---------- Events ---------- */
+
+function has_files(event) {
+	return Boolean(event.dataTransfer) && Array.from(event.dataTransfer.types).includes('Files');
+}
+
+// The whole page accepts drops, so a near miss doesn't open the image in the tab.
+window.addEventListener('dragenter', (event) => {
+	if (!has_files(event)) {
+		return;
+	}
+	event.preventDefault();
+	drag_depth += 1;
+	drop_zone.classList.add('is_dragging');
+});
+
+window.addEventListener('dragover', (event) => {
+	if (!has_files(event)) {
+		return;
+	}
+	event.preventDefault();
+	event.dataTransfer.dropEffect = 'copy';
+});
+
+window.addEventListener('dragleave', (event) => {
+	if (!has_files(event)) {
+		return;
+	}
+	drag_depth -= 1;
+	if (drag_depth <= 0) {
+		drag_depth = 0;
+		drop_zone.classList.remove('is_dragging');
+	}
+});
+
+window.addEventListener('drop', (event) => {
+	event.preventDefault();
+	drag_depth = 0;
+	drop_zone.classList.remove('is_dragging');
+	const file = event.dataTransfer && event.dataTransfer.files[0];
+	if (file) {
+		load_file(file);
+	}
+});
+
+drop_zone.addEventListener('keydown', (event) => {
+	if (event.key === 'Enter' || event.key === ' ') {
+		event.preventDefault();
+		file_input.click();
+	}
+});
+
+file_input.addEventListener('change', () => {
+	const file = file_input.files[0];
+	if (file) {
+		load_file(file);
+	}
+	file_input.value = '';
+});
+
+// Accepts "#2446d4", "2446d4", "#fff" or "fff". Returns "#rrggbb", or null if invalid.
+function normalize_hex(value) {
+	const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value.trim());
+	if (!match) {
+		return null;
+	}
+	let digits = match[1].toLowerCase();
+	if (digits.length === 3) {
+		digits = digits.split('').map((digit) => digit + digit).join('');
+	}
+	return '#' + digits;
+}
+
+// The color picker holds the real value. The text field only writes to it when the hex is valid,
+// so an unfinished value like "#24" never reaches the icons.
+function connect_color(picker, hex_input, error_element) {
+	const set_invalid = (is_invalid) => {
+		hex_input.classList.toggle('is_invalid', is_invalid);
+		hex_input.setAttribute('aria-invalid', String(is_invalid));
+		error_element.hidden = !is_invalid;
+	};
+
+	// Show the picker's value in the text field (also expands "#fff" to "#ffffff").
+	const show_picker_value = () => {
+		hex_input.value = picker.value;
+		set_invalid(false);
+	};
+
+	show_picker_value();
+	picker.addEventListener('input', show_picker_value);
+
+	hex_input.addEventListener('input', () => {
+		const hex = normalize_hex(hex_input.value);
+		// "#24" is unfinished, not wrong. Only flag characters that can never become a hex color.
+		const could_become_valid = /^#?[0-9a-f]{0,6}$/i.test(hex_input.value.trim());
+		set_invalid(!could_become_valid);
+		if (hex !== null) {
+			picker.value = hex;
+			schedule_render();
+		}
+	});
+
+	hex_input.addEventListener('blur', show_picker_value);
+
+	hex_input.addEventListener('keydown', (event) => {
+		if (event.key === 'Enter') {
+			show_picker_value();
+		}
+	});
+}
+
+connect_color(theme_color_input, theme_color_hex, theme_color_error);
+connect_color(background_color_input, background_color_hex, background_color_error);
+
+const setting_inputs = [site_name_input, short_name_input, folder_input, file_prefix_input, ico_at_root_input, theme_color_input, background_color_input, transparent_input, padding_input, radius_input];
+for (const input of setting_inputs) {
+	input.addEventListener('input', schedule_render);
+	input.addEventListener('change', schedule_render);
+}
+
+download_button.addEventListener('click', download_zip);
+
+copy_button.addEventListener('click', async () => {
+	try {
+		await navigator.clipboard.writeText(snippet_code.textContent);
+	} catch (error) {
+		const range = document.createRange();
+		range.selectNodeContents(snippet_code);
+		const selection = window.getSelection();
+		selection.removeAllRanges();
+		selection.addRange(range);
+		document.execCommand('copy');
+	}
+	copy_button.textContent = 'Copied';
+	setTimeout(() => {
+		copy_button.textContent = 'Copy HTML';
+	}, 1500);
+});
+
+build_ladder();
+build_file_groups();
+render_previews();
+</script>
+</body>
+</html>
