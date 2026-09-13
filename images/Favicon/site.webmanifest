@@ -1,0 +1,24 @@
+{
+	"name": "Web tools",
+	"short_name": "WT",
+	"icons": [
+		{
+			"src": "/images/Favicon/logo_192x192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		},
+		{
+			"src": "/images/Favicon/logo_512x512.png",
+			"sizes": "512x512",
+			"type": "image/png"
+		},
+		{
+			"src": "/images/Favicon/logo_512x512_maskable.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	],
+	"theme_color": "#3a64a3",
+	"background_color": "#3a64a3"
+}
