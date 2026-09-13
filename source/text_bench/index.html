@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text bench</title>
+<style>
+	:root {
+		color-scheme: dark;
+		--paper: #11161d;
+		--surface: #1a212b;
+		--ink: #e4e9ef;
+		--ink-soft: #94a1b2;
+		--line: #2d3846;
+		--accent: #7aa2f7;
+		--accent-soft: #22304a;
+	}
+
+	* { box-sizing: border-box; }
+
+	body {
+		margin: 0;
+		padding: 28px 20px 64px;
+		background: var(--paper);
+		color: var(--ink);
+		font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	}
+
+	.page {
+		max-width: 880px;
+		margin: 0 auto;
+	}
+
+	h1 {
+		margin: 0;
+		font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+		font-size: 34px;
+		font-weight: 400;
+		letter-spacing: -0.01em;
+	}
+
+	.intro {
+		margin: 6px 0 24px;
+		color: var(--ink-soft);
+		max-width: 60ch;
+	}
+
+	.bench {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 4px;
+	}
+
+	.bar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+		padding: 10px 12px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.stats {
+		margin-right: auto;
+		color: var(--ink-soft);
+		font-size: 13px;
+		font-variant-numeric: tabular-nums;
+	}
+
+	textarea {
+		display: block;
+		width: 100%;
+		min-height: 240px;
+		padding: 16px;
+		border: 0;
+		border-radius: 0 0 4px 4px;
+		resize: vertical;
+		color: inherit;
+		background: transparent;
+		font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		tab-size: 4;
+	}
+
+	textarea::placeholder { color: #66727f; }
+	textarea:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+	button {
+		padding: 7px 11px;
+		border: 1px solid var(--line);
+		border-radius: 3px;
+		background: var(--surface);
+		color: var(--ink);
+		font: inherit;
+		font-size: 13px;
+		cursor: pointer;
+	}
+
+	button:hover { border-color: var(--accent); background: var(--accent-soft); color: #ffffff; }
+	button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+	button:disabled { opacity: 0.4; cursor: default; border-color: var(--line); background: var(--surface); }
+
+	.bar button { min-width: 72px; }
+
+	.group { margin-top: 26px; }
+
+	.group h2 {
+		margin: 0 0 9px;
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--ink-soft);
+	}
+
+	.grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 7px;
+	}
+
+	.grid button { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+	.group.plain .grid button { font-family: inherit; }
+
+	@media (max-width: 520px) {
+		h1 { font-size: 27px; }
+		.grid button { flex: 1 1 auto; }
+	}
+</style>
+</head>
+<body>
+<div class="page">
+	<h1>Text bench</h1>
+	<p class="intro">Paste text below, then apply changes one after another. Each change works on what is currently in the box, so you can stack them.</p>
+
+	<div class="bench">
+		<div class="bar">
+			<span class="stats" id="stats">0 characters · 0 words · 1 line</span>
+			<button id="undo" type="button" disabled>Undo</button>
+			<button id="clear" type="button">Clear</button>
+			<button id="copy" type="button">Copy</button>
+		</div>
+		<textarea id="text" spellcheck="false" placeholder="Paste or type your text here."></textarea>
+	</div>
+
+	<div id="groups"></div>
+</div>
+
+<script>
+	var text_box = document.getElementById("text");
+	var stats_box = document.getElementById("stats");
+	var undo_button = document.getElementById("undo");
+	var undo_stack = [];
+
+	function split_words(text) {
+		var trimmed = text.trim();
+		return trimmed === "" ? [] : trimmed.split(/\s+/);
+	}
+
+	function split_lines(text) {
+		return text.split(/\r?\n/);
+	}
+
+	function to_words(text) {
+		return text
+			.replace(/[_\-]+/g, " ")
+			.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+			.replace(/[^A-Za-z0-9 ]+/g, " ")
+			.trim()
+			.split(/\s+/)
+			.filter(function (word) { return word !== ""; })
+			.map(function (word) { return word.toLowerCase(); });
+	}
+
+	function capitalize(word) {
+		return word.charAt(0).toUpperCase() + word.slice(1);
+	}
+
+	function strip_accents(text) {
+		return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+	}
+
+	function encode_base64(text) {
+		var bytes = new TextEncoder().encode(text);
+		var binary = "";
+		bytes.forEach(function (byte) { binary += String.fromCharCode(byte); });
+		return btoa(binary);
+	}
+
+	function decode_base64(text) {
+		var binary = atob(text.trim());
+		var bytes = Uint8Array.from(binary, function (character) { return character.charCodeAt(0); });
+		return new TextDecoder().decode(bytes);
+	}
+
+	var transform_groups = [
+		{
+			name: "Case",
+			items: [
+				{ label: "UPPERCASE", run: function (t) { return t.toUpperCase(); } },
+				{ label: "lowercase", run: function (t) { return t.toLowerCase(); } },
+				{ label: "Title Case", run: function (t) {
+					return t.toLowerCase().replace(/\b\p{L}/gu, function (character) { return character.toUpperCase(); });
+				} },
+				{ label: "Sentence case", run: function (t) {
+					return t.toLowerCase().replace(/(^\s*\p{L})|([.!?]\s+\p{L})/gu, function (match) { return match.toUpperCase(); });
+				} },
+				{ label: "tOGGLE cASE", run: function (t) {
+					return t.replace(/\p{L}/gu, function (character) {
+						return character === character.toLowerCase() ? character.toUpperCase() : character.toLowerCase();
+					});
+				} },
+				{ label: "camelCase", run: function (t) {
+					return to_words(t).map(function (word, index) { return index === 0 ? word : capitalize(word); }).join("");
+				} },
+				{ label: "PascalCase", run: function (t) {
+					return to_words(t).map(capitalize).join("");
+				} },
+				{ label: "snake_case", run: function (t) { return to_words(t).join("_"); } },
+				{ label: "kebab-case", run: function (t) { return to_words(t).join("-"); } },
+				{ label: "CONSTANT_CASE", run: function (t) { return to_words(t).join("_").toUpperCase(); } }
+			]
+		},
+		{
+			name: "Spacing",
+			plain: true,
+			items: [
+				{ label: "Trim each line", run: function (t) {
+					return split_lines(t).map(function (line) { return line.trim(); }).join("\n");
+				} },
+				{ label: "Collapse repeated spaces", run: function (t) { return t.replace(/[ \t]{2,}/g, " "); } },
+				{ label: "Remove all spaces", run: function (t) { return t.replace(/[ \t]+/g, ""); } },
+				{ label: "Remove empty lines", run: function (t) {
+					return split_lines(t).filter(function (line) { return line.trim() !== ""; }).join("\n");
+				} },
+				{ label: "Tabs to spaces", run: function (t) { return t.replace(/\t/g, "    "); } },
+				{ label: "Leading spaces to tabs", run: function (t) {
+					return split_lines(t).map(function (line) {
+						return line.replace(/^ +/, function (spaces) { return "\t".repeat(Math.floor(spaces.length / 4)); });
+					}).join("\n");
+				} }
+			]
+		},
+		{
+			name: "Lines",
+			plain: true,
+			items: [
+				{ label: "Sort A to Z", run: function (t) {
+					return split_lines(t).sort(function (a, b) { return a.localeCompare(b); }).join("\n");
+				} },
+				{ label: "Sort Z to A", run: function (t) {
+					return split_lines(t).sort(function (a, b) { return b.localeCompare(a); }).join("\n");
+				} },
+				{ label: "Reverse order", run: function (t) { return split_lines(t).reverse().join("\n"); } },
+				{ label: "Remove duplicates", run: function (t) {
+					var seen = {};
+					return split_lines(t).filter(function (line) {
+						if (seen[line] === true) { return false; }
+						seen[line] = true;
+						return true;
+					}).join("\n");
+				} },
+				{ label: "Number lines", run: function (t) {
+					return split_lines(t).map(function (line, index) { return (index + 1) + ". " + line; }).join("\n");
+				} },
+				{ label: "Join into one line", run: function (t) {
+					return split_lines(t).map(function (line) { return line.trim(); }).filter(function (line) { return line !== ""; }).join(" ");
+				} },
+				{ label: "Split on commas", run: function (t) {
+					return t.split(",").map(function (part) { return part.trim(); }).join("\n");
+				} }
+			]
+		},
+		{
+			name: "Characters",
+			plain: true,
+			items: [
+				{ label: "Reverse text", run: function (t) { return Array.from(t).reverse().join(""); } },
+				{ label: "Remove punctuation", run: function (t) { return t.replace(/[^\p{L}\p{N}\s]/gu, ""); } },
+				{ label: "Remove accents", run: strip_accents },
+				{ label: "Make a url slug", run: function (t) {
+					return strip_accents(t).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+				} },
+				{ label: "Straighten quotes", run: function (t) {
+					return t.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[\u2013\u2014]/g, "-");
+				} }
+			]
+		},
+		{
+			name: "Encoding",
+			plain: true,
+			items: [
+				{ label: "Encode for a url", run: function (t) { return encodeURIComponent(t); } },
+				{ label: "Decode from a url", run: function (t) { return decodeURIComponent(t); } },
+				{ label: "Encode as base64", run: encode_base64 },
+				{ label: "Decode from base64", run: decode_base64 },
+				{ label: "Escape html", run: function (t) {
+					return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+				} },
+				{ label: "Unescape html", run: function (t) {
+					return t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+				} },
+				{ label: "Quote as a json string", run: function (t) { return JSON.stringify(t); } }
+			]
+		}
+	];
+
+	function update_stats() {
+		var value = text_box.value;
+		var word_count = split_words(value).length;
+		var line_count = split_lines(value).length;
+		stats_box.textContent = value.length + (value.length === 1 ? " character · " : " characters · ")
+			+ word_count + (word_count === 1 ? " word · " : " words · ")
+			+ line_count + (line_count === 1 ? " line" : " lines");
+	}
+
+	function set_text(new_value) {
+		if (new_value === text_box.value) { return; }
+		undo_stack.push(text_box.value);
+		if (undo_stack.length > 50) { undo_stack.shift(); }
+		undo_button.disabled = false;
+		text_box.value = new_value;
+		update_stats();
+	}
+
+	function apply(transform, button) {
+		try {
+			set_text(transform.run(text_box.value));
+		} catch (error) {
+			flash(button, "Did not work");
+		}
+	}
+
+	function flash(button, message) {
+		var original = button.textContent;
+		button.textContent = message;
+		setTimeout(function () { button.textContent = original; }, 1200);
+	}
+
+	function build_groups() {
+		var container = document.getElementById("groups");
+		transform_groups.forEach(function (group) {
+			var section = document.createElement("section");
+			section.className = group.plain ? "group plain" : "group";
+
+			var heading = document.createElement("h2");
+			heading.textContent = group.name;
+			section.appendChild(heading);
+
+			var grid = document.createElement("div");
+			grid.className = "grid";
+			group.items.forEach(function (transform) {
+				var button = document.createElement("button");
+				button.type = "button";
+				button.textContent = transform.label;
+				button.addEventListener("click", function () { apply(transform, button); });
+				grid.appendChild(button);
+			});
+
+			section.appendChild(grid);
+			container.appendChild(section);
+		});
+	}
+
+	document.getElementById("undo").addEventListener("click", function () {
+		if (undo_stack.length === 0) { return; }
+		text_box.value = undo_stack.pop();
+		undo_button.disabled = undo_stack.length === 0;
+		update_stats();
+		text_box.focus();
+	});
+
+	document.getElementById("clear").addEventListener("click", function () {
+		set_text("");
+		text_box.focus();
+	});
+
+	document.getElementById("copy").addEventListener("click", function (event) {
+		var button = event.currentTarget;
+		text_box.select();
+		if (navigator.clipboard && window.isSecureContext) {
+			navigator.clipboard.writeText(text_box.value).then(function () { flash(button, "Copied"); });
+		} else {
+			document.execCommand("copy");
+			flash(button, "Copied");
+		}
+	});
+
+	text_box.addEventListener("input", update_stats);
+
+	build_groups();
+	update_stats();
+</script>
+</body>
+</html>
