@@ -1,6 +1,6 @@
 {
-	"name": "Web tools",
-	"short_name": "WT",
+	"name": "My website",
+	"short_name": "My website",
 	"icons": [
 		{
 			"src": "/images/Favicon/logo_192x192.png",
@@ -19,6 +19,6 @@
 			"purpose": "maskable"
 		}
 	],
-	"theme_color": "#3a64a3",
-	"background_color": "#3a64a3"
+	"theme_color": "#5b8fd0",
+	"background_color": "#5b8fd0"
 }
