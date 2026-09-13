@@ -4,29 +4,81 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Printer status</title>
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e1317">
+
+<link rel="stylesheet" href="../../styles/core.css">
 <style>
-	body { font-family: sans-serif; margin: 24px; max-width: 760px; }
-	button { padding: 10px 14px; margin: 0 6px 6px 0; font-size: 14px; cursor: pointer; }
-	#log { white-space: pre-wrap; background: #111; color: #ddd; padding: 14px; border-radius: 6px; font-family: monospace; font-size: 13px; line-height: 1.5; min-height: 260px; }
-	.note { color: #666; font-size: 13px; line-height: 1.5; }
+	.shell {
+		max-width: var(--shell);
+		margin: 0 auto;
+		padding: 26px 24px 56px;
+	}
+
+	.masthead p {
+		margin: 6px 0 0;
+		color: var(--ink_soft);
+		max-width: 66ch;
+	}
+
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 22px 0 14px;
+	}
+
+	#log {
+		white-space: pre-wrap;
+		background: var(--well);
+		color: var(--ink);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		padding: 14px;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 1.6;
+		min-height: 280px;
+		overflow-x: auto;
+	}
+
+	#log:empty::after {
+		content: "Not connected. Choose Connect to pick a printer.";
+		color: var(--ink_faint);
+	}
 </style>
 </head>
 <body>
 
-<h2>Printer status</h2>
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>Printer_Test</strong>
+</nav>
 
-<p class="note">
-	Connect, then run the queries. If a beep just happened, read the status <strong>before</strong> power-cycling &mdash; the error flag latches until it is cleared.
-</p>
 
-<div>
-	<button id="connect_button">Connect</button>
-	<button id="status_button">Read all status</button>
-	<button id="cut_button">Cut only</button>
-	<button id="clear_button">Clear log</button>
-</div>
+<main class="shell">
 
-<div id="log"></div>
+	<header class="masthead">
+		<h1>Printer status</h1>
+		<p>Read live status from an ESC/POS receipt printer over WebUSB. If a beep just happened, read the status before power-cycling: the error flag latches until it is cleared.</p>
+	</header>
+
+	<div class="toolbar">
+		<button id="connect_button" class="primary" type="button">Connect</button>
+		<button id="status_button" type="button">Read all status</button>
+		<button id="cut_button" type="button">Cut only</button>
+		<button id="clear_button" type="button">Clear log</button>
+	</div>
+
+	<div id="log"></div>
+
+</main>
 
 <script type="module">
 	let device = null;

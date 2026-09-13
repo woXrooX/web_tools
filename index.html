@@ -1,68 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<title>Web tools</title>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>web_tools</title>
+<meta name="description" content="Small browser tools for software engineers. Everything runs locally. Nothing is uploaded.">
 
+<link rel="icon" href="images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="images/Favicon/logo_180x180.png">
+<link rel="manifest" href="images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e1317">
 
-		<link rel="icon" href="images/Favicon/logo.ico" sizes="32x32">
-		<link rel="icon" href="images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
-		<link rel="icon" href="images/Favicon/logo.svg" type="image/svg+xml">
-		<link rel="apple-touch-icon" href="images/Favicon/logo_180x180.png">
-		<link rel="manifest" href="images/Favicon/site.webmanifest">
-		<meta name="theme-color" content="#3a64a3">
+<link rel="stylesheet" href="styles/core.css">
+<style>
+	.shell {
+		max-width: 44rem;
+		margin: 0 auto;
+		padding: 72px 24px 96px;
+	}
 
+	.wordmark {
+		font-family: var(--mono);
+		font-size: 26px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
 
-		<style>
-			body {
-				background: #16181c;
-				color: #ffffff;
-				font-family: Georgia, "Times New Roman", serif;
-				max-width: 34rem;
-				margin: 4rem auto;
-				padding: 0 1.5rem;
-				line-height: 1.6;
-			}
+	.lede {
+		margin: 10px 0 0;
+		color: var(--ink_soft);
+		max-width: 54ch;
+	}
 
-			h1 {
-				font-size: 2rem;
-				font-weight: normal;
-				margin-bottom: 2rem;
-			}
+	.tools {
+		margin: 44px 0 0;
+		padding: 0;
+		list-style: none;
+		border-top: 1px solid var(--line);
+	}
 
-			ul {
-				list-style: none;
-				padding: 0;
-			}
+	.tools li {
+		border-bottom: 1px solid var(--line);
+	}
 
-			li {
-				padding: 0.6rem 0;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-			}
+	.tools a {
+		display: block;
+		padding: 10px;
+		color: var(--ink);
+		text-decoration: none;
+	}
 
-			a, a:visited {
-				color: #ffffff;
-				text-decoration: none;
-			}
+	.tools a:hover,
+	.tools a:focus-visible {
+		background: var(--accent_soft);
+		color: var(--ink);
+	}
 
-			a:hover, a:focus {
-				text-decoration: underline;
-			}
-		</style>
-	</head>
-	<body>
+	.tools .name {
+		font-family: var(--mono);
+		font-size: 14px;
+		color: var(--accent);
+	}
 
-		<h1>Web tools</h1>
+	.tools a:hover .name {
+		color: var(--accent_hover);
+	}
 
-		<ul>
-			<li><a href="source/favicon_generator/index.html">favicon_generator</a></li>
-			<li><a href="source/JS_Scratchpad/index.html">JS_Scratchpad</a></li>
-			<li><a href="source/JSON_beautifier/index.html">JSON_beautifier</a></li>
-			<li><a href="source/Printer_Test/index.html">Printer_Test</a></li>
-			<li><a href="source/SVG_resizer/index.html">SVG_resizer</a></li>
-			<li><a href="source/text_bench/index.html">text_bench</a></li>
-		</ul>
+	.tools .what {
+		margin: 3px 0 0;
+		color: var(--ink_soft);
+		font-size: 14px;
+	}
 
-	</body>
+	.colophon {
+		margin: 44px 0 0;
+		color: var(--ink_faint);
+		font-size: 13px;
+	}
+
+	.colophon a {
+		color: var(--ink_soft);
+	}
+
+	@media (max-width: 540px) {
+		.shell { padding: 44px 20px 64px; }
+		.wordmark { font-size: 22px; }
+	}
+</style>
+</head>
+<body>
+
+<main class="shell">
+
+	<h1 class="wordmark">web_tools</h1>
+	<p class="lede">Small tools for everyday engineering work. Each one is a single page with no dependencies and no build step. Your files never leave the browser.</p>
+
+	<ul class="tools">
+		<li>
+			<a href="source/favicon_generator/index.html">
+				<span class="name">favicon_generator</span>
+				<p class="what">Turn one PNG or SVG into the full set of icon files browsers and devices expect, packed as a zip.</p>
+			</a>
+		</li>
+		<li>
+			<a href="source/JS_Scratchpad/index.html">
+				<span class="name">JS_Scratchpad</span>
+				<p class="what">Write JavaScript and run it in a sandboxed frame, with console output beside the editor.</p>
+			</a>
+		</li>
+		<li>
+			<a href="source/JSON_beautifier/index.html">
+				<span class="name">JSON_beautifier</span>
+				<p class="what">Format, collapse and inspect JSON, with errors pointed at the line that caused them.</p>
+			</a>
+		</li>
+		<li>
+			<a href="source/Printer_Test/index.html">
+				<span class="name">Printer_Test</span>
+				<p class="what">Read live status from an ESC/POS receipt printer over WebUSB, and send a test cut.</p>
+			</a>
+		</li>
+		<li>
+			<a href="source/SVG_resizer/index.html">
+				<span class="name">SVG_resizer</span>
+				<p class="what">Drop in an SVG, set the size you want, and take it back out as SVG or PNG.</p>
+			</a>
+		</li>
+		<li>
+			<a href="source/text_bench/index.html">
+				<span class="name">text_bench</span>
+				<p class="what">Stack text transforms one after another: case, spacing, line order, encoding.</p>
+			</a>
+		</li>
+	</ul>
+
+	<p class="colophon">Open source on <a href="https://github.com/woXrooX/web_tools">GitHub</a>.</p>
+
+</main>
+
+</body>
 </html>

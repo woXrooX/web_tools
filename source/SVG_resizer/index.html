@@ -4,29 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SVG resizer</title>
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e1317">
+
+<link rel="stylesheet" href="../../styles/core.css">
 <style>
-:root {
-	--bg: #10161a;
-	--panel: #182126;
-	--field: #0d1317;
-	--ink: #e3eae9;
-	--muted: #8798a0;
-	--line: #2c3940;
-	--accent: #4fd1b3;
-	--accent-deep: #1c8a74;
-	--accent-soft: #1d3a38;
-	--danger: #ff8f74;
-	--sans: "Avenir Next", "Segoe UI", system-ui, sans-serif;
-	--mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-
-* { box-sizing: border-box; }
-
-html { color-scheme: dark; }
-
 body {
 	margin: 0;
-	background: var(--bg);
+	background: var(--page);
 	color: var(--ink);
 	font-family: var(--sans);
 	font-size: 15px;
@@ -42,14 +32,11 @@ body {
 
 .masthead h1 {
 	margin: 0;
-	font-size: 30px;
-	font-weight: 600;
-	letter-spacing: -0.02em;
 }
 
 .masthead p {
 	margin: 4px 0 0;
-	color: var(--muted);
+	color: var(--ink_soft);
 	max-width: 62ch;
 }
 
@@ -66,7 +53,7 @@ body {
 /* ---------- stage ---------- */
 
 .stage {
-	background: var(--panel);
+	background: var(--surface);
 	border: 1px solid var(--line);
 	border-radius: 3px;
 	padding: 20px;
@@ -79,7 +66,7 @@ body {
 
 .stage.is_dragging {
 	border-color: var(--accent);
-	background: var(--accent-soft);
+	background: var(--accent_soft);
 }
 
 .canvas {
@@ -89,12 +76,8 @@ body {
 	display: grid;
 	place-items: center;
 	overflow: hidden;
-	background-color: #1f2a30;
-	background-image:
-		linear-gradient(45deg, #263238 25%, transparent 25%, transparent 75%, #263238 75%),
-		linear-gradient(45deg, #263238 25%, transparent 25%, transparent 75%, #263238 75%);
+	background-image: var(--checker);
 	background-size: 16px 16px;
-	background-position: 0 0, 8px 8px;
 	border: 1px solid var(--line);
 }
 
@@ -115,7 +98,7 @@ body {
 
 .empty {
 	text-align: center;
-	color: var(--muted);
+	color: var(--ink_soft);
 	padding: 34px;
 	max-width: 42ch;
 }
@@ -139,7 +122,7 @@ body {
 	gap: 8px;
 	font-family: var(--mono);
 	font-size: 11px;
-	color: var(--muted);
+	color: var(--ink_soft);
 }
 
 .dim_h { grid-column: 1; grid-row: 2; }
@@ -164,7 +147,7 @@ body {
 /* ---------- panel ---------- */
 
 .panel {
-	background: var(--panel);
+	background: var(--surface);
 	border: 1px solid var(--line);
 	border-radius: 3px;
 	padding: 18px;
@@ -177,7 +160,7 @@ body {
 	margin: 0 0 10px;
 	font-size: 13px;
 	font-weight: 600;
-	color: var(--muted);
+	color: var(--ink_soft);
 	letter-spacing: 0.01em;
 }
 
@@ -190,7 +173,7 @@ body {
 	gap: 4px 12px;
 }
 
-.facts dt { color: var(--muted); }
+.facts dt { color: var(--ink_soft); }
 .facts dd { margin: 0; overflow-wrap: anywhere; }
 
 .field_row {
@@ -203,7 +186,7 @@ body {
 label {
 	display: block;
 	font-size: 12px;
-	color: var(--muted);
+	color: var(--ink_soft);
 	margin-bottom: 4px;
 }
 
@@ -215,7 +198,7 @@ input[type="number"] {
 	padding: 7px 8px;
 	border: 1px solid var(--line);
 	border-radius: 2px;
-	background: var(--field);
+	background: var(--well);
 }
 
 input[type="number"]:focus-visible,
@@ -229,17 +212,17 @@ select:focus-visible {
 	height: 34px;
 	border: 1px solid var(--line);
 	border-radius: 2px;
-	background: var(--field);
+	background: var(--well);
 	cursor: pointer;
 	font-size: 14px;
-	color: var(--muted);
+	color: var(--ink_soft);
 	padding: 0;
 }
 
 .link_toggle[aria-pressed="true"] {
 	background: var(--accent);
 	border-color: var(--accent);
-	color: #0b1214;
+	color: #06232a;
 }
 
 .presets {
@@ -255,7 +238,7 @@ select:focus-visible {
 	font-family: var(--mono);
 	font-size: 12px;
 	padding: 6px 4px;
-	background: var(--field);
+	background: var(--well);
 	border: 1px solid var(--line);
 	border-radius: 2px;
 	color: var(--ink);
@@ -274,7 +257,7 @@ select:focus-visible {
 	font-family: inherit;
 	font-size: 12px;
 	padding: 6px 4px;
-	background: var(--field);
+	background: var(--well);
 	border: 1px solid var(--line);
 	border-radius: 2px;
 	color: var(--ink);
@@ -284,7 +267,7 @@ select:focus-visible {
 .backdrop button[aria-pressed="true"] {
 	border-color: var(--accent);
 	color: var(--accent);
-	background: var(--accent-soft);
+	background: var(--accent_soft);
 }
 
 .actions {
@@ -299,7 +282,7 @@ select:focus-visible {
 	padding: 9px 12px;
 	border-radius: 2px;
 	border: 1px solid var(--line);
-	background: var(--field);
+	background: var(--well);
 	color: var(--ink);
 	cursor: pointer;
 	text-align: center;
@@ -310,11 +293,11 @@ select:focus-visible {
 .btn_primary {
 	background: var(--accent);
 	border-color: var(--accent);
-	color: #0b1214;
+	color: #06232a;
 	font-weight: 600;
 }
 
-.btn_primary:hover:not(:disabled) { background: #6fe0c6; color: #0b1214; }
+.btn_primary:hover:not(:disabled) { background: var(--accent_hover); color: #06232a; }
 
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
@@ -330,14 +313,14 @@ select {
 	padding: 0 8px;
 	border: 1px solid var(--line);
 	border-radius: 2px;
-	background: var(--field);
+	background: var(--well);
 	color: var(--ink);
 }
 
 .status {
 	min-height: 20px;
 	font-size: 13px;
-	color: var(--muted);
+	color: var(--ink_soft);
 }
 
 .status.is_error { color: var(--danger); }
@@ -346,7 +329,7 @@ select {
 	max-width: 1180px;
 	margin: 0 auto;
 	padding: 0 28px 40px;
-	color: var(--muted);
+	color: var(--ink_soft);
 	font-size: 13px;
 }
 
@@ -362,6 +345,13 @@ select {
 </style>
 </head>
 <body>
+
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>SVG_resizer</strong>
+</nav>
+
 
 <header class="masthead">
 	<h1>SVG resizer</h1>

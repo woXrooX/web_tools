@@ -1,0 +1,220 @@
+/* web_tools — shared foundation.
+   Tokens, reset, site chrome and UI primitives.
+   Tool specific layout stays in each tool's own <style> block. */
+
+:root {
+	color-scheme: dark;
+
+	/* surfaces, from furthest back to nearest front */
+	--page: #0e1317;
+	--surface: #151c21;
+	--well: #0a0e11;
+
+	/* borders */
+	--line: #232d34;
+	--line_strong: #33414a;
+
+	/* text */
+	--ink: #e2e8ec;
+	--ink_soft: #8b98a2;
+	--ink_faint: #5d6a74;
+
+	/* accent */
+	--accent: #4fc3d9;
+	--accent_hover: #6ed3e6;
+	--accent_deep: #1d7f94;
+	--accent_soft: rgba(79, 195, 217, 0.12);
+
+	/* status */
+	--ok: #6cc08b;
+	--warn: #d9a659;
+	--danger: #e87f6a;
+
+	/* syntax */
+	--syntax_key: #e2e8ec;
+	--syntax_string: #8fcfa4;
+	--syntax_number: #e0a86a;
+	--syntax_literal: #b79bea;
+	--syntax_punct: #5d6a74;
+
+	/* type */
+	--sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+	/* geometry */
+	--radius: 3px;
+	--shell: 68rem;
+
+	/* transparency checkerboard, for tools that show images */
+	--checker: conic-gradient(#1c252b 25%, #141c21 0 50%, #1c252b 0 75%, #141c21 0);
+}
+
+* { box-sizing: border-box; }
+
+html {
+	background: var(--page);
+}
+
+body {
+	margin: 0;
+	background: var(--page);
+	color: var(--ink);
+	font-family: var(--sans);
+	font-size: 15px;
+	line-height: 1.55;
+	-webkit-font-smoothing: antialiased;
+}
+
+a {
+	color: var(--accent);
+}
+
+a:hover {
+	color: var(--accent_hover);
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* ---------- site chrome ---------- */
+
+/* The bar is the only markup repeated across tools. It is static, so it never
+   needs editing when a tool is added. The tool list lives on the root page only. */
+.site_bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 20px;
+	height: 38px;
+	border-bottom: 1px solid var(--line);
+	background: var(--page);
+	font-family: var(--mono);
+	font-size: 12px;
+}
+
+.site_bar a {
+	color: var(--ink_soft);
+	text-decoration: none;
+}
+
+.site_bar a:hover {
+	color: var(--accent);
+}
+
+.site_bar span {
+	color: var(--ink_faint);
+}
+
+.site_bar strong {
+	color: var(--ink);
+	font-weight: 500;
+}
+
+/* ---------- headings ---------- */
+
+h1 {
+	margin: 0;
+	font-size: 28px;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+}
+
+h2 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+/* ---------- primitives ---------- */
+
+button,
+.button {
+	padding: 7px 12px;
+	border: 1px solid var(--line_strong);
+	border-radius: var(--radius);
+	background: var(--surface);
+	color: var(--ink);
+	font-family: inherit;
+	font-size: 13px;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+button:hover,
+.button:hover {
+	border-color: var(--accent);
+	background: var(--accent_soft);
+	color: var(--ink);
+}
+
+button:disabled,
+.button:disabled {
+	opacity: 0.4;
+	cursor: default;
+	border-color: var(--line);
+	background: var(--surface);
+	color: var(--ink_soft);
+}
+
+button.primary {
+	border-color: var(--accent_deep);
+	background: var(--accent_deep);
+	color: #ffffff;
+}
+
+button.primary:hover {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: #06232a;
+}
+
+input,
+select,
+textarea {
+	border: 1px solid var(--line_strong);
+	border-radius: var(--radius);
+	background: var(--well);
+	color: var(--ink);
+	font-family: inherit;
+	font-size: 13px;
+	padding: 6px 8px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+}
+
+::placeholder {
+	color: var(--ink_faint);
+}
+
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+	accent-color: var(--accent);
+	padding: 0;
+}
+
+::selection {
+	background: var(--accent_deep);
+	color: #ffffff;
+}
+
+/* ---------- scrollbars ---------- */
+
+* {
+	scrollbar-color: var(--line_strong) transparent;
+	scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}

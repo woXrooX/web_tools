@@ -4,30 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JSON beautifier</title>
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e1317">
+
+<link rel="stylesheet" href="../../styles/core.css">
 <style>
+	/* Layout only. Colour and type come from ../../styles/core.css.
+	   --indent and --numbers are also rewritten at runtime. */
 	:root {
-		color-scheme: dark;
-		--page: #12161b;
-		--panel: #171c22;
-		--ink: #d7dee5;
-		--muted: #7d8b98;
-		--rule: #272f38;
-		--ok: #6cc08b;
-		--bad: #e0715c;
-		--key: #e6edf3;
-		--string: #8fcfa4;
-		--number: #e0a86a;
-		--literal: #b79bea;
-		--punct: #616f7c;
-		--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-		--ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 		--indent: 4ch;
 		--gutter: 20px;
 		--numbers: 4ch;
 		--head: 40px;
 	}
-
-	* { box-sizing: border-box; }
 
 	html, body {
 		height: 100%;
@@ -37,7 +31,7 @@
 	body {
 		background: var(--page);
 		color: var(--ink);
-		font-family: var(--ui);
+		font-family: var(--sans);
 		display: flex;
 		flex-direction: column;
 	}
@@ -48,7 +42,7 @@
 		align-items: baseline;
 		gap: 8px 18px;
 		padding: 14px 20px;
-		border-bottom: 1px solid var(--rule);
+		border-bottom: 1px solid var(--line);
 	}
 
 	h1 {
@@ -68,30 +62,30 @@
 	}
 
 	button, select {
-		font-family: var(--ui);
+		font-family: var(--sans);
 		font-size: 13px;
 		color: var(--ink);
-		background: var(--panel);
-		border: 1px solid var(--rule);
+		background: var(--surface);
+		border: 1px solid var(--line);
 		border-radius: 3px;
 		padding: 5px 10px;
 		cursor: pointer;
 	}
 
 	button:hover:not(:disabled), select:hover {
-		border-color: #3d4a56;
+		border-color: var(--line_strong);
 		background: #1e242b;
 	}
 
 	button:disabled {
-		color: #4e5a66;
+		color: var(--ink_faint);
 		cursor: default;
 	}
 
 	button[aria-pressed="true"] {
 		color: var(--ink);
 		background: #263039;
-		border-color: #3d4a56;
+		border-color: var(--line_strong);
 	}
 
 	button:focus-visible, select:focus-visible, textarea:focus-visible {
@@ -101,7 +95,7 @@
 
 	label.field {
 		font-size: 13px;
-		color: var(--muted);
+		color: var(--ink_soft);
 		display: flex;
 		align-items: center;
 		gap: 6px;
@@ -113,11 +107,11 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 1px;
-		background: var(--rule);
+		background: var(--line);
 	}
 
 	.pane {
-		background: var(--panel);
+		background: var(--surface);
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
@@ -133,8 +127,8 @@
 		gap: 10px;
 		padding: 0 14px;
 		font-size: 12px;
-		color: var(--muted);
-		border-bottom: 1px solid var(--rule);
+		color: var(--ink_soft);
+		border-bottom: 1px solid var(--line);
 	}
 
 	.pane_head strong {
@@ -154,7 +148,7 @@
 	}
 
 	.status.ok { color: var(--ok); }
-	.status.bad { color: var(--bad); }
+	.status.bad { color: var(--danger); }
 
 	textarea, #output_area {
 		flex: 1;
@@ -175,10 +169,10 @@
 		color: var(--ink);
 	}
 
-	textarea::placeholder { color: #5c6874; }
+	textarea::placeholder { color: var(--ink_faint); }
 
 	#output_area {
-		color: var(--punct);
+		color: var(--syntax_punct);
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
 	}
@@ -201,7 +195,7 @@
 		left: 0;
 		width: calc(var(--numbers) - 1.5ch);
 		text-align: right;
-		color: #4e5a66;
+		color: var(--ink_faint);
 		font-variant-numeric: tabular-nums;
 		user-select: none;
 		pointer-events: none;
@@ -222,7 +216,7 @@
 		border: 0;
 		border-radius: 3px;
 		background: transparent;
-		color: var(--muted);
+		color: var(--ink_soft);
 		font-family: var(--mono);
 		font-size: 15px;
 		line-height: inherit;
@@ -247,19 +241,19 @@
 
 	.node.collapsed > .line > .tail { display: inline; }
 
-	.count { color: var(--muted); }
+	.count { color: var(--ink_soft); }
 
-	.punct { color: var(--punct); }
+	.punct { color: var(--syntax_punct); }
 
-	.tok_key { color: var(--key); font-weight: 600; }
-	.tok_string { color: var(--string); }
-	.tok_number { color: var(--number); }
-	.tok_bool, .tok_null { color: var(--literal); }
+	.tok_key { color: var(--syntax_key); font-weight: 600; }
+	.tok_string { color: var(--syntax_string); }
+	.tok_number { color: var(--syntax_number); }
+	.tok_bool, .tok_null { color: var(--syntax_literal); }
 
-	.empty { color: #5c6874; }
+	.empty { color: var(--ink_faint); }
 
-	.error_box { color: var(--bad); white-space: pre-wrap; }
-	.error_box .caret { color: var(--bad); }
+	.error_box { color: var(--danger); white-space: pre-wrap; }
+	.error_box .caret { color: var(--danger); }
 
 	.drop_active { background: #1c2530; }
 
@@ -269,6 +263,13 @@
 </style>
 </head>
 <body>
+
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>JSON_beautifier</strong>
+</nav>
+
 
 <header>
 	<h1>JSON beautifier</h1>

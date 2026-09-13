@@ -3,37 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
 <title>Favicon generator</title>
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e1317">
+
+<link rel="stylesheet" href="../../styles/core.css">
 <style>
-:root {
-	color-scheme: dark;
-	--page: #161b24;
-	--surface: #1d2330;
-	--well: #12161e;
-	--rule: #313a4b;
-	--rule_strong: #435069;
-	--ink: #e6eaf1;
-	--slate: #98a2b3;
-	--accent: #8a9dff;
-	--accent_fill: #4a66ee;
-	--accent_fill_hover: #5c77f5;
-	--accent_soft: rgba(138, 157, 255, 0.1);
-	--danger: #ff8f85;
-	--checker: conic-gradient(#2c3443 25%, #222936 0 50%, #2c3443 0 75%, #222936 0);
-	--font: "Avenir Next", Avenir, "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
-	--mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-}
-
-* {
-	box-sizing: border-box;
-}
-
 body {
 	margin: 0;
 	background: var(--page);
 	color: var(--ink);
-	font-family: var(--font);
+	font-family: var(--sans);
 	font-size: 16px;
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
@@ -57,15 +42,11 @@ body {
 
 .page_header h1 {
 	margin: 0 0 8px;
-	font-size: clamp(36px, 5vw, 56px);
-	line-height: 1.05;
-	font-weight: 600;
-	letter-spacing: -0.025em;
 }
 
 .page_header p {
 	margin: 0;
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 18px;
 }
 
@@ -86,7 +67,7 @@ body {
 	gap: 8px;
 	min-height: 230px;
 	padding: 24px;
-	border: 2px dashed var(--rule_strong);
+	border: 2px dashed var(--line_strong);
 	border-radius: 14px;
 	background: var(--surface);
 	text-align: center;
@@ -129,14 +110,14 @@ body {
 
 .drop_zone_hint {
 	max-width: 30ch;
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 14px;
 }
 
 .status {
 	min-height: 1.5em;
 	margin: 10px 2px 0;
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 14px;
 }
 
@@ -160,7 +141,7 @@ body {
 	display: grid;
 	gap: 6px;
 	padding: 12px 0;
-	border-top: 1px solid var(--rule);
+	border-top: 1px solid var(--line);
 }
 
 .field label {
@@ -200,14 +181,14 @@ body {
 }
 
 .field_value {
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 14px;
 	font-variant-numeric: tabular-nums;
 }
 
 .field_note {
 	margin: 0;
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 13px;
 }
 
@@ -221,7 +202,7 @@ body {
 input[type="text"] {
 	width: 100%;
 	padding: 8px 10px;
-	border: 1px solid var(--rule);
+	border: 1px solid var(--line);
 	border-radius: 8px;
 	background: var(--well);
 	color: inherit;
@@ -236,7 +217,7 @@ input[type="color"] {
 	width: 44px;
 	height: 32px;
 	padding: 2px;
-	border: 1px solid var(--rule);
+	border: 1px solid var(--line);
 	border-radius: 8px;
 	background: var(--well);
 	cursor: pointer;
@@ -244,7 +225,7 @@ input[type="color"] {
 
 input[type="range"],
 input[type="checkbox"] {
-	accent-color: var(--accent_fill);
+	accent-color: var(--accent_deep);
 }
 
 input[type="range"] {
@@ -266,7 +247,7 @@ input:disabled {
 .preview {
 	overflow: hidden;
 	background: var(--surface);
-	border: 1px solid var(--rule);
+	border: 1px solid var(--line);
 	border-radius: 14px;
 }
 
@@ -285,7 +266,7 @@ input:disabled {
 
 .tab_strip_dark {
 	background: #202227;
-	border-bottom: 1px solid var(--rule);
+	border-bottom: 1px solid var(--line);
 }
 
 .tab {
@@ -351,7 +332,7 @@ input:disabled {
 	gap: 32px;
 	align-items: end;
 	padding: 28px;
-	border-bottom: 1px solid var(--rule);
+	border-bottom: 1px solid var(--line);
 }
 
 .zoom {
@@ -364,7 +345,7 @@ input:disabled {
 	height: 224px;
 	background: var(--checker);
 	background-size: 28px 28px;
-	box-shadow: 0 0 0 1px var(--rule_strong);
+	box-shadow: 0 0 0 1px var(--line_strong);
 }
 
 .zoom_frame canvas {
@@ -386,7 +367,7 @@ input:disabled {
 
 .zoom figcaption,
 .ladder_item figcaption {
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 13px;
 }
 
@@ -438,7 +419,7 @@ input:disabled {
 
 .file_group {
 	padding: 14px 0 8px;
-	border-top: 1px solid var(--rule);
+	border-top: 1px solid var(--line);
 }
 
 .file_group_header {
@@ -463,14 +444,14 @@ input:disabled {
 
 .file_group_count {
 	flex: none;
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 13px;
 	font-variant-numeric: tabular-nums;
 }
 
 .file_group_description {
 	margin: 2px 0 8px;
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 13px;
 }
 
@@ -504,7 +485,7 @@ input:disabled {
 }
 
 .file_note {
-	color: var(--slate);
+	color: var(--ink_soft);
 }
 
 .actions {
@@ -513,12 +494,12 @@ input:disabled {
 	align-items: center;
 	gap: 12px 16px;
 	padding-top: 20px;
-	border-top: 1px solid var(--rule);
+	border-top: 1px solid var(--line);
 }
 
 .actions_hint {
 	flex: 1 1 240px;
-	color: var(--slate);
+	color: var(--ink_soft);
 	font-size: 14px;
 }
 
@@ -526,7 +507,7 @@ input:disabled {
 	padding: 12px 22px;
 	border: 0;
 	border-radius: 10px;
-	background: var(--accent_fill);
+	background: var(--accent_deep);
 	color: #ffffff;
 	font: inherit;
 	font-weight: 600;
@@ -534,7 +515,7 @@ input:disabled {
 }
 
 .button_primary:hover {
-	background: var(--accent_fill_hover);
+	background: var(--accent_hover);
 }
 
 .button_primary:disabled {
@@ -545,7 +526,7 @@ input:disabled {
 
 .button_secondary {
 	padding: 6px 12px;
-	border: 1px solid var(--rule_strong);
+	border: 1px solid var(--line_strong);
 	border-radius: 8px;
 	background: transparent;
 	color: var(--ink);
@@ -573,7 +554,7 @@ input:disabled {
 	padding: 14px 16px;
 	overflow-x: auto;
 	background: var(--well);
-	border: 1px solid var(--rule);
+	border: 1px solid var(--line);
 	border-radius: 10px;
 	font-family: var(--mono);
 	font-size: 12.5px;
@@ -615,6 +596,13 @@ input:disabled {
 </style>
 </head>
 <body>
+
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>favicon_generator</strong>
+</nav>
+
 <main class="page">
 	<header class="page_header">
 		<h1>Favicon generator</h1>

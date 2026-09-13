@@ -4,36 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JS Scratchpad</title>
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e1317">
+
+<link rel="stylesheet" href="../../styles/core.css">
 <style>
-	:root {
-		--bg: #11151b;
-		--panel: #171c24;
-		--panel_alt: #141920;
-		--line: #242c37;
-		--text: #d6dbe3;
-		--dim: #79838f;
-		--accent: #d9a34a;
-		--string: #9ac98a;
-		--number: #7fb0d8;
-		--warn: #d9a34a;
-		--error: #e0736c;
-		--mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-		--sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-	}
-
-	* { box-sizing: border-box; }
-
 	html, body {
 		height: 100%;
 		margin: 0;
 	}
 
 	body {
-		background: var(--bg);
-		color: var(--text);
+		background: var(--page);
+		color: var(--ink);
 		font-family: var(--sans);
 		display: grid;
-		grid-template-rows: auto 1fr auto;
+		grid-template-rows: auto auto 1fr auto;
 		height: 100dvh;
 		overflow: hidden;
 	}
@@ -44,7 +35,7 @@
 		gap: 16px;
 		padding: 10px 16px;
 		border-bottom: 1px solid var(--line);
-		background: var(--panel_alt);
+		background: var(--well);
 	}
 
 	.brand {
@@ -54,7 +45,7 @@
 	}
 
 	.brand span {
-		color: var(--dim);
+		color: var(--ink_soft);
 		font-weight: 400;
 	}
 
@@ -66,7 +57,7 @@
 	}
 
 	.hint {
-		color: var(--dim);
+		color: var(--ink_soft);
 		font-size: 12px;
 		font-family: var(--mono);
 	}
@@ -74,7 +65,7 @@
 	button {
 		font-family: inherit;
 		font-size: 13px;
-		color: var(--text);
+		color: var(--ink);
 		background: transparent;
 		border: 1px solid var(--line);
 		border-radius: 4px;
@@ -82,7 +73,7 @@
 		cursor: pointer;
 	}
 
-	button:hover { border-color: #3a4553; }
+	button:hover { border-color: var(--accent); }
 
 	button:focus-visible {
 		outline: 2px solid var(--accent);
@@ -109,16 +100,16 @@
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
-		background: var(--panel);
+		background: var(--surface);
 	}
 
 	.pane_head {
 		font-family: var(--mono);
 		font-size: 11px;
-		color: var(--dim);
+		color: var(--ink_soft);
 		padding: 7px 12px;
 		border-bottom: 1px solid var(--line);
-		background: var(--panel_alt);
+		background: var(--well);
 	}
 
 	.editor_wrap {
@@ -134,7 +125,7 @@
 		padding: 12px 8px 12px 12px;
 		color: #4d5765;
 		text-align: right;
-		background: var(--panel);
+		background: var(--surface);
 		border-right: 1px solid var(--line);
 		overflow: hidden;
 		white-space: pre;
@@ -161,8 +152,8 @@
 
 	#highlight {
 		overflow: hidden;
-		color: var(--text);
-		background: var(--panel);
+		color: var(--ink);
+		background: var(--surface);
 		pointer-events: none;
 	}
 
@@ -171,7 +162,7 @@
 		resize: none;
 		background: transparent;
 		color: transparent;
-		caret-color: var(--text);
+		caret-color: var(--ink);
 		outline: none;
 	}
 
@@ -182,13 +173,13 @@
 
 	.t_comment { color: #5f6b7a; font-style: italic; }
 	.t_keyword { color: #c8a2e8; }
-	.t_string { color: var(--string); }
-	.t_number { color: var(--number); }
+	.t_string { color: var(--syntax_string); }
+	.t_number { color: var(--syntax_number); }
 	.t_literal { color: var(--accent); }
-	.t_global { color: #6fc3c8; }
+	.t_global { color: var(--accent); }
 	.t_function { color: #e0c07a; }
 	.t_property { color: #b9c3d0; }
-	.t_regex { color: #86c9b1; }
+	.t_regex { color: var(--syntax_string); }
 	.t_operator { color: #98a3b1; }
 
 	#resizer {
@@ -196,7 +187,7 @@
 		cursor: col-resize;
 	}
 
-	#resizer:hover { background: #3a4553; }
+	#resizer:hover { background: var(--line_strong); }
 
 	#output {
 		flex: 1;
@@ -217,13 +208,13 @@
 	.entry + .entry { border-top: 1px solid #1c222b; }
 
 	.log { border-left-color: #2f3a47; }
-	.info { border-left-color: var(--number); }
+	.info { border-left-color: var(--syntax_number); }
 	.warn { border-left-color: var(--warn); color: #e6c489; }
-	.error { border-left-color: var(--error); color: #f0a29c; background: #241a1a; }
-	.trace { color: var(--dim); }
+	.error { border-left-color: var(--danger); color: #f0a29c; background: #241a1a; }
+	.trace { color: var(--ink_soft); }
 
 	.empty {
-		color: var(--dim);
+		color: var(--ink_soft);
 		padding: 12px;
 		font-family: var(--sans);
 		font-size: 13px;
@@ -231,11 +222,11 @@
 
 	footer {
 		border-top: 1px solid var(--line);
-		background: var(--panel_alt);
+		background: var(--well);
 		padding: 6px 16px;
 		font-family: var(--mono);
 		font-size: 11px;
-		color: var(--dim);
+		color: var(--ink_soft);
 		display: flex;
 		gap: 18px;
 	}
@@ -249,6 +240,13 @@
 </style>
 </head>
 <body>
+
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>JS_Scratchpad</strong>
+</nav>
+
 
 <header>
 	<div class="brand">JS Scratchpad <span>· runs in a sandboxed frame</span></div>
