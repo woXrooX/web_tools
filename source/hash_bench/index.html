@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hash bench</title>
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e0f12">
+
+<link rel="stylesheet" href="../../styles/core.css">
+<style>
+	.shell {
+		max-width: var(--shell);
+		margin: 0 auto;
+		padding: 26px 24px 64px;
+	}
+
+	.masthead p {
+		margin: 6px 0 0;
+		color: var(--ink_soft);
+		max-width: 66ch;
+	}
+
+	.source {
+		margin-top: 22px;
+		background: var(--surface);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+
+	.bar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+		padding: 10px 12px;
+	}
+
+	.bar .stats {
+		margin-right: auto;
+		color: var(--ink_faint);
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	.tab.on {
+		background: var(--ink);
+		color: var(--page);
+		font-weight: 600;
+	}
+
+	textarea {
+		display: block;
+		width: 100%;
+		min-height: 190px;
+		padding: 14px;
+		border-radius: 0;
+		background: var(--well);
+		resize: vertical;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 1.6;
+	}
+
+	.drop {
+		display: none;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-height: 190px;
+		padding: 20px;
+		background: var(--well);
+		text-align: center;
+	}
+
+	.drop.active {
+		display: flex;
+	}
+
+	.drop.over {
+		outline: 2px dashed var(--ink);
+		outline-offset: -10px;
+	}
+
+	.drop .headline {
+		font-weight: 600;
+	}
+
+	.drop .detail {
+		color: var(--ink_faint);
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	.options {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 22px;
+		align-items: flex-end;
+		margin-top: 18px;
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.field > .caption {
+		color: var(--ink_soft);
+		font-size: 13px;
+	}
+
+	.segmented {
+		display: flex;
+		gap: 4px;
+	}
+
+	.segmented button.on {
+		background: var(--ink);
+		color: var(--page);
+		font-weight: 600;
+	}
+
+	#hmac_key {
+		min-width: 240px;
+		font-family: var(--mono);
+	}
+
+	.field.wide {
+		flex: 1 1 280px;
+	}
+
+	#compare {
+		width: 100%;
+		font-family: var(--mono);
+	}
+
+	.verdict {
+		margin-top: 14px;
+		padding: 9px 12px;
+		border-radius: var(--radius);
+		font-size: 13px;
+	}
+
+	.verdict[hidden] {
+		display: none;
+	}
+
+	.verdict.match {
+		background: rgba(127, 174, 142, 0.12);
+		color: var(--ok);
+	}
+
+	.verdict.miss {
+		background: rgba(217, 126, 110, 0.1);
+		color: var(--danger);
+	}
+
+	.digests {
+		margin: 22px 0 0;
+		padding: 0;
+		list-style: none;
+		background: var(--surface);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+
+	.digests li {
+		display: grid;
+		grid-template-columns: 130px 1fr auto;
+		gap: 12px;
+		align-items: center;
+		padding: 11px 12px;
+	}
+
+	.digests li + li {
+		border-top: 1px solid var(--line);
+	}
+
+	.digests li.hit {
+		background: rgba(127, 174, 142, 0.1);
+	}
+
+	.algo {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.algo .name {
+		font-family: var(--mono);
+		font-size: 13px;
+	}
+
+	.algo .note {
+		color: var(--ink_faint);
+		font-size: 11px;
+	}
+
+	.value {
+		font-family: var(--mono);
+		font-size: 13px;
+		word-break: break-all;
+		color: var(--ink);
+		-webkit-user-select: all;
+		user-select: all;
+	}
+
+	.value.muted {
+		color: var(--ink_faint);
+		user-select: auto;
+	}
+
+	.digests button {
+		min-width: 66px;
+	}
+
+	.footnote {
+		margin-top: 20px;
+		color: var(--ink_faint);
+		font-size: 13px;
+		max-width: 70ch;
+	}
+
+	@media (max-width: 620px) {
+		.digests li {
+			grid-template-columns: 1fr auto;
+		}
+
+		.algo {
+			grid-column: 1 / -1;
+			flex-direction: row;
+			align-items: baseline;
+			gap: 8px;
+		}
+	}
+</style>
+</head>
+<body>
+
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>hash_bench</strong>
+</nav>
+
+<main class="shell">
+
+	<header class="masthead">
+		<h1>Hash bench</h1>
+		<p>Hash text or a file with every common algorithm at once. Paste a checksum to compare against and the matching row is marked. Nothing is uploaded.</p>
+	</header>
+
+	<section class="source">
+		<div class="bar">
+			<span class="stats" id="stats">0 bytes</span>
+			<button class="tab on" id="tab_text" type="button">Text</button>
+			<button class="tab" id="tab_file" type="button">File</button>
+			<button id="clear_button" type="button">Clear</button>
+		</div>
+
+		<textarea id="text" spellcheck="false" placeholder="Paste or type the text to hash."></textarea>
+
+		<div class="drop" id="drop">
+			<span class="headline">Drop a file here</span>
+			<span class="detail" id="file_detail">Or choose one. The file is read in this page only.</span>
+			<button id="choose_button" type="button">Choose a file</button>
+			<input type="file" id="file_input" hidden>
+		</div>
+	</section>
+
+	<div class="options">
+		<div class="field">
+			<span class="caption">Output</span>
+			<div class="segmented" id="format_group">
+				<button type="button" class="on" data-format="hex_lower">hex</button>
+				<button type="button" data-format="hex_upper">HEX</button>
+				<button type="button" data-format="base64">base64</button>
+			</div>
+		</div>
+
+		<label class="field">
+			<span class="caption">HMAC key, leave empty for a plain hash</span>
+			<input type="text" id="hmac_key" placeholder="Secret key" autocomplete="off" spellcheck="false">
+		</label>
+
+		<label class="field wide">
+			<span class="caption">Compare against a known checksum</span>
+			<input type="text" id="compare" placeholder="Paste a hash to verify" autocomplete="off" spellcheck="false">
+		</label>
+	</div>
+
+	<p class="verdict" id="verdict" hidden></p>
+
+	<ul class="digests" id="digests"></ul>
+
+	<p class="footnote">MD5 and SHA-1 are still fine for checksums and cache keys, but both are broken for collision resistance, so neither should be used for signatures or password storage. CRC32 detects accidental corruption only. HMAC applies to the SHA algorithms.</p>
+
+</main>
+
+<script>
+	const text_box = document.getElementById("text");
+	const drop_zone = document.getElementById("drop");
+	const file_input = document.getElementById("file_input");
+	const file_detail = document.getElementById("file_detail");
+	const stats_box = document.getElementById("stats");
+	const hmac_key_box = document.getElementById("hmac_key");
+	const compare_box = document.getElementById("compare");
+	const verdict_box = document.getElementById("verdict");
+	const digest_list = document.getElementById("digests");
+	const format_group = document.getElementById("format_group");
+
+	let mode = "text";
+	let file_bytes = null;
+	let file_name = "";
+	let output_format = "hex_lower";
+	let run_token = 0;
+
+	/* ---------- MD5, which Web Crypto does not provide ---------- */
+
+	const md5_shifts = [
+		7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+		5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+		4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+		6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
+	];
+
+	const md5_sines = (function () {
+		const table = new Uint32Array(64);
+
+		for (let index = 0; index < 64; index++) {
+			table[index] = Math.floor(Math.abs(Math.sin(index + 1)) * 4294967296);
+		}
+
+		return table;
+	})();
+
+	function rotate_left(value, count) {
+		return (value << count) | (value >>> (32 - count));
+	}
+
+	function md5(bytes) {
+		const bit_length = bytes.length * 8;
+		const padded_length = (((bytes.length + 8) >> 6) << 6) + 64;
+		const buffer = new Uint8Array(padded_length);
+
+		buffer.set(bytes);
+		buffer[bytes.length] = 0x80;
+
+		const view = new DataView(buffer.buffer);
+
+		view.setUint32(padded_length - 8, bit_length >>> 0, true);
+		view.setUint32(padded_length - 4, Math.floor(bit_length / 4294967296), true);
+
+		let a0 = 0x67452301;
+		let b0 = 0xefcdab89;
+		let c0 = 0x98badcfe;
+		let d0 = 0x10325476;
+
+		const words = new Uint32Array(16);
+
+		for (let offset = 0; offset < padded_length; offset += 64) {
+			for (let index = 0; index < 16; index++) {
+				words[index] = view.getUint32(offset + index * 4, true);
+			}
+
+			let a = a0;
+			let b = b0;
+			let c = c0;
+			let d = d0;
+
+			for (let index = 0; index < 64; index++) {
+				let mixed;
+				let word_index;
+
+				if (index < 16) {
+					mixed = (b & c) | (~b & d);
+					word_index = index;
+				}
+
+				else if (index < 32) {
+					mixed = (d & b) | (~d & c);
+					word_index = (5 * index + 1) % 16;
+				}
+
+				else if (index < 48) {
+					mixed = b ^ c ^ d;
+					word_index = (3 * index + 5) % 16;
+				}
+
+				else {
+					mixed = c ^ (b | ~d);
+					word_index = (7 * index) % 16;
+				}
+
+				const temp = d;
+
+				d = c;
+				c = b;
+
+				const sum = (a + mixed + md5_sines[index] + words[word_index]) >>> 0;
+
+				b = (b + rotate_left(sum, md5_shifts[index])) >>> 0;
+				a = temp;
+			}
+
+			a0 = (a0 + a) >>> 0;
+			b0 = (b0 + b) >>> 0;
+			c0 = (c0 + c) >>> 0;
+			d0 = (d0 + d) >>> 0;
+		}
+
+		const digest = new Uint8Array(16);
+		const digest_view = new DataView(digest.buffer);
+
+		digest_view.setUint32(0, a0, true);
+		digest_view.setUint32(4, b0, true);
+		digest_view.setUint32(8, c0, true);
+		digest_view.setUint32(12, d0, true);
+
+		return digest;
+	}
+
+	/* ---------- CRC32, a checksum rather than a hash ---------- */
+
+	const crc32_table = (function () {
+		const table = new Uint32Array(256);
+
+		for (let index = 0; index < 256; index++) {
+			let value = index;
+
+			for (let bit = 0; bit < 8; bit++) {
+				value = (value & 1) !== 0 ? (0xedb88320 ^ (value >>> 1)) : (value >>> 1);
+			}
+
+			table[index] = value >>> 0;
+		}
+
+		return table;
+	})();
+
+	function crc32(bytes) {
+		let crc = 0xffffffff;
+
+		for (let index = 0; index < bytes.length; index++) {
+			crc = crc32_table[(crc ^ bytes[index]) & 0xff] ^ (crc >>> 8);
+		}
+
+		const digest = new Uint8Array(4);
+
+		new DataView(digest.buffer).setUint32(0, (crc ^ 0xffffffff) >>> 0, false);
+
+		return digest;
+	}
+
+	/* ---------- algorithms ---------- */
+
+	const algorithms = [
+		{ id: "md5", label: "MD5", engine: "local", run: md5, note: "checksums only" },
+		{ id: "sha1", label: "SHA-1", engine: "subtle", subtle_name: "SHA-1", note: "git objects, legacy" },
+		{ id: "sha256", label: "SHA-256", engine: "subtle", subtle_name: "SHA-256", note: "" },
+		{ id: "sha384", label: "SHA-384", engine: "subtle", subtle_name: "SHA-384", note: "" },
+		{ id: "sha512", label: "SHA-512", engine: "subtle", subtle_name: "SHA-512", note: "" },
+		{ id: "crc32", label: "CRC32", engine: "local", run: crc32, note: "corruption check" }
+	];
+
+	/* ---------- formatting ---------- */
+
+	function to_hex(bytes) {
+		let out = "";
+
+		for (let index = 0; index < bytes.length; index++) {
+			out += bytes[index].toString(16).padStart(2, "0");
+		}
+
+		return out;
+	}
+
+	function to_base64(bytes) {
+		let binary = "";
+
+		for (let index = 0; index < bytes.length; index++) {
+			binary += String.fromCharCode(bytes[index]);
+		}
+
+		return btoa(binary);
+	}
+
+	function format_digest(bytes) {
+		if (output_format === "base64") {
+			return to_base64(bytes);
+		}
+
+		const hex = to_hex(bytes);
+
+		return output_format === "hex_upper" ? hex.toUpperCase() : hex;
+	}
+
+	function format_size(count) {
+		if (count < 1024) {
+			return count + (count === 1 ? " byte" : " bytes");
+		}
+
+		if (count < 1024 * 1024) {
+			return (count / 1024).toFixed(1) + " KB";
+		}
+
+		return (count / (1024 * 1024)).toFixed(1) + " MB";
+	}
+
+	/* ---------- rows ---------- */
+
+	const rows = {};
+
+	function build_rows() {
+		for (const algorithm of algorithms) {
+			const row = document.createElement("li");
+
+			const algo_cell = document.createElement("div");
+			algo_cell.className = "algo";
+
+			const name = document.createElement("span");
+			name.className = "name";
+			name.textContent = algorithm.label;
+			algo_cell.appendChild(name);
+
+			if (algorithm.note !== "") {
+				const note = document.createElement("span");
+				note.className = "note";
+				note.textContent = algorithm.note;
+				algo_cell.appendChild(note);
+			}
+
+			const value = document.createElement("code");
+			value.className = "value muted";
+			value.textContent = "\u2014";
+
+			const copy = document.createElement("button");
+			copy.type = "button";
+			copy.textContent = "Copy";
+			copy.addEventListener("click", function () { copy_value(algorithm.id, copy); });
+
+			row.appendChild(algo_cell);
+			row.appendChild(value);
+			row.appendChild(copy);
+			digest_list.appendChild(row);
+
+			rows[algorithm.id] = { row: row, value: value, copy: copy, hex: "", text: "" };
+		}
+	}
+
+	function copy_value(id, button) {
+		const entry = rows[id];
+
+		if (entry.text === "") {
+			return;
+		}
+
+		const original = button.textContent;
+
+		function done(label) {
+			button.textContent = label;
+			setTimeout(function () { button.textContent = original; }, 1100);
+		}
+
+		if (navigator.clipboard && window.isSecureContext) {
+			navigator.clipboard.writeText(entry.text).then(function () { done("Copied"); }, function () { done("Failed"); });
+			return;
+		}
+
+		const helper = document.createElement("textarea");
+		helper.value = entry.text;
+		document.body.appendChild(helper);
+		helper.select();
+		document.execCommand("copy");
+		document.body.removeChild(helper);
+		done("Copied");
+	}
+
+	/* ---------- hashing ---------- */
+
+	function current_bytes() {
+		if (mode === "file") {
+			return file_bytes;
+		}
+
+		return new TextEncoder().encode(text_box.value);
+	}
+
+	async function digest_for(algorithm, bytes, key_bytes) {
+		if (key_bytes !== null) {
+			if (algorithm.engine !== "subtle") {
+				return null;
+			}
+
+			const key = await crypto.subtle.importKey(
+				"raw",
+				key_bytes,
+				{ name: "HMAC", hash: algorithm.subtle_name },
+				false,
+				["sign"]
+			);
+
+			return new Uint8Array(await crypto.subtle.sign("HMAC", key, bytes));
+		}
+
+		if (algorithm.engine === "local") {
+			return algorithm.run(bytes);
+		}
+
+		return new Uint8Array(await crypto.subtle.digest(algorithm.subtle_name, bytes));
+	}
+
+	async function recompute() {
+		run_token++;
+
+		const token = run_token;
+		const bytes = current_bytes();
+
+		if (bytes === null) {
+			for (const algorithm of algorithms) {
+				set_row(algorithm.id, "", "\u2014", true);
+			}
+
+			update_stats(null);
+			update_verdict();
+			return;
+		}
+
+		update_stats(bytes);
+
+		const key_text = hmac_key_box.value;
+		const key_bytes = key_text === "" ? null : new TextEncoder().encode(key_text);
+
+		for (const algorithm of algorithms) {
+			try {
+				const digest = await digest_for(algorithm, bytes, key_bytes);
+
+				if (token !== run_token) {
+					return;
+				}
+
+				if (digest === null) {
+					set_row(algorithm.id, "", "not available with an HMAC key", true);
+					continue;
+				}
+
+				set_row(algorithm.id, to_hex(digest), format_digest(digest), false);
+			}
+
+			catch (error) {
+				if (token !== run_token) {
+					return;
+				}
+
+				set_row(algorithm.id, "", "failed: " + error.message, true);
+			}
+		}
+
+		update_verdict();
+	}
+
+	function set_row(id, hex, text, muted) {
+		const entry = rows[id];
+
+		entry.hex = hex;
+		entry.text = muted ? "" : text;
+		entry.value.textContent = text;
+		entry.value.className = muted ? "value muted" : "value";
+		entry.copy.disabled = muted;
+	}
+
+	function update_stats(bytes) {
+		if (mode === "file") {
+			stats_box.textContent = file_name === "" ? "no file chosen" : file_name + " \u00b7 " + format_size(bytes === null ? 0 : bytes.length);
+			return;
+		}
+
+		const count = bytes === null ? 0 : bytes.length;
+		const characters = Array.from(text_box.value).length;
+
+		stats_box.textContent = characters + (characters === 1 ? " character \u00b7 " : " characters \u00b7 ") + format_size(count);
+	}
+
+	/* ---------- compare ---------- */
+
+	function normalize_expected(value) {
+		return value.trim().replace(/[\s:]/g, "").toLowerCase();
+	}
+
+	function update_verdict() {
+		const expected = normalize_expected(compare_box.value);
+
+		for (const algorithm of algorithms) {
+			rows[algorithm.id].row.classList.remove("hit");
+		}
+
+		if (expected === "") {
+			verdict_box.hidden = true;
+			return;
+		}
+
+		let matched = null;
+
+		for (const algorithm of algorithms) {
+			const entry = rows[algorithm.id];
+
+			if (entry.hex !== "" && entry.hex === expected) {
+				matched = algorithm.label;
+				entry.row.classList.add("hit");
+				break;
+			}
+		}
+
+		verdict_box.hidden = false;
+
+		if (matched !== null) {
+			verdict_box.className = "verdict match";
+			verdict_box.textContent = "Matches " + matched + ".";
+			return;
+		}
+
+		verdict_box.className = "verdict miss";
+		verdict_box.textContent = "No match. Check the input, or whether the checksum came from a different algorithm.";
+	}
+
+	/* ---------- input handling ---------- */
+
+	function set_mode(next) {
+		mode = next;
+
+		document.getElementById("tab_text").classList.toggle("on", next === "text");
+		document.getElementById("tab_file").classList.toggle("on", next === "file");
+
+		text_box.hidden = next !== "text";
+		drop_zone.classList.toggle("active", next === "file");
+
+		recompute();
+	}
+
+	function load_file(file) {
+		if (!file) {
+			return;
+		}
+
+		file_name = file.name;
+		file_detail.textContent = "Reading " + file.name + "\u2026";
+
+		const reader = new FileReader();
+
+		reader.onload = function () {
+			file_bytes = new Uint8Array(reader.result);
+			file_detail.textContent = file.name + " \u00b7 " + format_size(file_bytes.length);
+			recompute();
+		};
+
+		reader.onerror = function () {
+			file_bytes = null;
+			file_detail.textContent = "Could not read that file.";
+			recompute();
+		};
+
+		reader.readAsArrayBuffer(file);
+	}
+
+	let debounce_timer = null;
+
+	function schedule() {
+		clearTimeout(debounce_timer);
+		debounce_timer = setTimeout(recompute, 90);
+	}
+
+	text_box.addEventListener("input", schedule);
+	hmac_key_box.addEventListener("input", schedule);
+	compare_box.addEventListener("input", update_verdict);
+
+	document.getElementById("tab_text").addEventListener("click", function () { set_mode("text"); });
+	document.getElementById("tab_file").addEventListener("click", function () { set_mode("file"); });
+
+	document.getElementById("clear_button").addEventListener("click", function () {
+		if (mode === "file") {
+			file_bytes = null;
+			file_name = "";
+			file_input.value = "";
+			file_detail.textContent = "Or choose one. The file is read in this page only.";
+		}
+
+		else {
+			text_box.value = "";
+			text_box.focus();
+		}
+
+		recompute();
+	});
+
+	document.getElementById("choose_button").addEventListener("click", function () { file_input.click(); });
+	file_input.addEventListener("change", function () { load_file(file_input.files[0]); });
+
+	drop_zone.addEventListener("dragover", function (event) {
+		event.preventDefault();
+		drop_zone.classList.add("over");
+	});
+
+	drop_zone.addEventListener("dragleave", function () { drop_zone.classList.remove("over"); });
+
+	drop_zone.addEventListener("drop", function (event) {
+		event.preventDefault();
+		drop_zone.classList.remove("over");
+		load_file(event.dataTransfer.files[0]);
+	});
+
+	format_group.addEventListener("click", function (event) {
+		const button = event.target.closest("button");
+
+		if (button === null) {
+			return;
+		}
+
+		output_format = button.dataset.format;
+
+		for (const other of format_group.querySelectorAll("button")) {
+			other.classList.toggle("on", other === button);
+		}
+
+		recompute();
+	});
+
+	build_rows();
+	recompute();
+</script>
+
+</body>
+</html>
