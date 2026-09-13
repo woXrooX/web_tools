@@ -1,5 +1,5 @@
 # web_tools
 
-https://woxroox.github.io/web_tools/
+Small tools for everyday engineering work.
 
-Small, fast tools for software engineers — built entirely with AI, for humans.
+https://woxroox.github.io/web_tools/
