@@ -1,52 +1,60 @@
 /* web_tools — shared foundation.
    Tokens, reset, site chrome and UI primitives.
-   Tool specific layout stays in each tool's own <style> block. */
+   Tool specific layout stays in each tool's own <style> block.
+
+   Palette follows woXrooX/Portfolio: a three layer flat background,
+   monochrome text, 5px radius, shadow based elevation. */
 
 :root {
 	color-scheme: dark;
 
 	/* surfaces, from furthest back to nearest front */
-	--page: #0e1317;
-	--surface: #151c21;
-	--well: #0a0e11;
+	--well: #08090b;
+	--page: #0e0f12;
+	--surface: #15161b;
+	--raised: #1c1e24;
 
-	/* borders */
-	--line: #232d34;
-	--line_strong: #33414a;
+	/* borders, kept only where they carry structure */
+	--line: #22242b;
+	--line_strong: #343841;
 
 	/* text */
-	--ink: #e2e8ec;
-	--ink_soft: #8b98a2;
-	--ink_faint: #5d6a74;
+	--ink: #ffffff;
+	--ink_soft: #cccccc;
+	--ink_faint: #5b646e;
 
-	/* accent */
-	--accent: #4fc3d9;
-	--accent_hover: #6ed3e6;
-	--accent_deep: #1d7f94;
-	--accent_soft: rgba(79, 195, 217, 0.12);
+	/* emphasis. Monochrome: red stays reserved for errors. */
+	--accent: #ffffff;
+	--accent_soft: rgba(255, 255, 255, 0.07);
+	--accent_wash: rgba(255, 255, 255, 0.12);
 
 	/* status */
-	--ok: #6cc08b;
-	--warn: #d9a659;
-	--danger: #e87f6a;
+	--ok: #7fae8e;
+	--warn: #c9a56b;
+	--danger: #d97e6e;
 
-	/* syntax */
-	--syntax_key: #e2e8ec;
-	--syntax_string: #8fcfa4;
-	--syntax_number: #e0a86a;
-	--syntax_literal: #b79bea;
-	--syntax_punct: #5d6a74;
+	/* syntax, desaturated to sit under the monochrome chrome */
+	--syntax_key: #ffffff;
+	--syntax_string: #9db8a6;
+	--syntax_number: #c9b085;
+	--syntax_literal: #a396c4;
+	--syntax_punct: #5b646e;
 
 	/* type */
 	--sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 	--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
 	/* geometry */
-	--radius: 3px;
+	--radius: 5px;
+	--padding: 10px;
 	--shell: 68rem;
 
+	/* elevation */
+	--shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+	--shadow_deep: 0 0 20px 5px rgba(0, 0, 0, 0.6);
+
 	/* transparency checkerboard, for tools that show images */
-	--checker: conic-gradient(#1c252b 25%, #141c21 0 50%, #1c252b 0 75%, #141c21 0);
+	--checker: conic-gradient(#1c1e24 25%, #131418 0 50%, #1c1e24 0 75%, #131418 0);
 }
 
 * { box-sizing: border-box; }
@@ -66,15 +74,17 @@ body {
 }
 
 a {
-	color: var(--accent);
+	color: var(--ink);
+	text-decoration-color: var(--ink_faint);
+	text-underline-offset: 3px;
 }
 
 a:hover {
-	color: var(--accent_hover);
+	text-decoration-color: var(--ink);
 }
 
 :focus-visible {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--ink);
 	outline-offset: 2px;
 }
 
@@ -86,21 +96,20 @@ a:hover {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 0 20px;
+	padding: 0 var(--padding);
 	height: 38px;
-	border-bottom: 1px solid var(--line);
-	background: var(--page);
+	background: var(--surface);
 	font-family: var(--mono);
 	font-size: 12px;
 }
 
 .site_bar a {
-	color: var(--ink_soft);
+	color: var(--ink_faint);
 	text-decoration: none;
 }
 
 .site_bar a:hover {
-	color: var(--accent);
+	color: var(--ink);
 }
 
 .site_bar span {
@@ -108,7 +117,7 @@ a:hover {
 }
 
 .site_bar strong {
-	color: var(--ink);
+	color: var(--ink_soft);
 	font-weight: 500;
 }
 
@@ -132,10 +141,10 @@ h2 {
 button,
 .button {
 	padding: 7px 12px;
-	border: 1px solid var(--line_strong);
+	border: 0;
 	border-radius: var(--radius);
 	background: var(--surface);
-	color: var(--ink);
+	color: var(--ink_soft);
 	font-family: inherit;
 	font-size: 13px;
 	line-height: 1.4;
@@ -144,36 +153,34 @@ button,
 
 button:hover,
 .button:hover {
-	border-color: var(--accent);
-	background: var(--accent_soft);
+	background: var(--raised);
 	color: var(--ink);
 }
 
 button:disabled,
 .button:disabled {
-	opacity: 0.4;
+	opacity: 0.35;
 	cursor: default;
-	border-color: var(--line);
 	background: var(--surface);
-	color: var(--ink_soft);
+	color: var(--ink_faint);
 }
 
 button.primary {
-	border-color: var(--accent_deep);
-	background: var(--accent_deep);
-	color: #ffffff;
+	background: var(--ink);
+	color: var(--page);
+	font-weight: 600;
 }
 
 button.primary:hover {
-	border-color: var(--accent);
-	background: var(--accent);
-	color: #06232a;
+	background: var(--ink);
+	color: var(--page);
+	box-shadow: var(--shadow);
 }
 
 input,
 select,
 textarea {
-	border: 1px solid var(--line_strong);
+	border: 0;
 	border-radius: var(--radius);
 	background: var(--well);
 	color: var(--ink);
@@ -185,7 +192,7 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--ink);
 	outline-offset: -2px;
 }
 
@@ -196,13 +203,13 @@ textarea:focus {
 input[type="checkbox"],
 input[type="radio"],
 input[type="range"] {
-	accent-color: var(--accent);
+	accent-color: var(--ink);
 	padding: 0;
 }
 
 ::selection {
-	background: var(--accent_deep);
-	color: #ffffff;
+	background: var(--accent_wash);
+	color: var(--ink);
 }
 
 /* ---------- scrollbars ---------- */

@@ -10,7 +10,7 @@
 <link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
 <link rel="manifest" href="../../images/Favicon/site.webmanifest">
-<meta name="theme-color" content="#0e1317">
+<meta name="theme-color" content="#0e0f12">
 
 <link rel="stylesheet" href="../../styles/core.css">
 <style>
@@ -288,16 +288,16 @@ select:focus-visible {
 	text-align: center;
 }
 
-.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:hover:not(:disabled) { background: var(--raised); color: var(--ink); }
 
 .btn_primary {
-	background: var(--accent);
-	border-color: var(--accent);
-	color: #06232a;
+	background: var(--ink);
+	border-color: var(--ink);
+	color: var(--page);
 	font-weight: 600;
 }
 
-.btn_primary:hover:not(:disabled) { background: var(--accent_hover); color: #06232a; }
+.btn_primary:hover:not(:disabled) { background: var(--ink); color: var(--page); box-shadow: var(--shadow); }
 
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 

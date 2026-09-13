@@ -10,7 +10,7 @@
 <link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
 <link rel="manifest" href="../../images/Favicon/site.webmanifest">
-<meta name="theme-color" content="#0e1317">
+<meta name="theme-color" content="#0e0f12">
 
 <link rel="stylesheet" href="../../styles/core.css">
 <style>
@@ -210,7 +210,7 @@ input[type="text"] {
 }
 
 input[type="text"]::placeholder {
-	color: #6b7587;
+	color: var(--ink_faint);
 }
 
 input[type="color"] {
@@ -225,7 +225,7 @@ input[type="color"] {
 
 input[type="range"],
 input[type="checkbox"] {
-	accent-color: var(--accent_deep);
+	accent-color: var(--ink);
 }
 
 input[type="range"] {
@@ -507,20 +507,21 @@ input:disabled {
 	padding: 12px 22px;
 	border: 0;
 	border-radius: 10px;
-	background: var(--accent_deep);
-	color: #ffffff;
+	background: var(--ink);
+	color: var(--page);
 	font: inherit;
 	font-weight: 600;
 	cursor: pointer;
 }
 
 .button_primary:hover {
-	background: var(--accent_hover);
+	background: var(--ink);
+	box-shadow: var(--shadow);
 }
 
 .button_primary:disabled {
-	background: #343c4d;
-	color: #7f899b;
+	background: var(--surface);
+	color: var(--ink_faint);
 	cursor: not-allowed;
 }
 

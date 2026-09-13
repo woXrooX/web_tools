@@ -10,7 +10,7 @@
 <link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
 <link rel="manifest" href="../../images/Favicon/site.webmanifest">
-<meta name="theme-color" content="#0e1317">
+<meta name="theme-color" content="#0e0f12">
 
 <link rel="stylesheet" href="../../styles/core.css">
 <style>
@@ -83,11 +83,11 @@
 	#run_button {
 		background: var(--accent);
 		border-color: var(--accent);
-		color: #17130a;
+		color: var(--page);
 		font-weight: 600;
 	}
 
-	#run_button:hover { background: #e8b25c; }
+	#run_button:hover { background: var(--ink); box-shadow: var(--shadow); }
 
 	main {
 		display: grid;
@@ -121,9 +121,10 @@
 		line-height: 20px;
 	}
 
+
 	#gutter {
 		padding: 12px 8px 12px 12px;
-		color: #4d5765;
+		color: var(--ink_faint);
 		text-align: right;
 		background: var(--surface);
 		border-right: 1px solid var(--line);
@@ -163,24 +164,23 @@
 		background: transparent;
 		color: transparent;
 		caret-color: var(--ink);
-		outline: none;
 	}
 
 	#code::selection {
-		background: rgba(110, 158, 214, 0.32);
+		background: var(--accent_wash);
 		color: transparent;
 	}
 
-	.t_comment { color: #5f6b7a; font-style: italic; }
-	.t_keyword { color: #c8a2e8; }
+	.t_comment { color: var(--ink_faint); font-style: italic; }
+	.t_keyword { color: var(--syntax_literal); }
 	.t_string { color: var(--syntax_string); }
 	.t_number { color: var(--syntax_number); }
 	.t_literal { color: var(--accent); }
 	.t_global { color: var(--accent); }
-	.t_function { color: #e0c07a; }
-	.t_property { color: #b9c3d0; }
+	.t_function { color: var(--syntax_number); }
+	.t_property { color: var(--ink_soft); }
 	.t_regex { color: var(--syntax_string); }
-	.t_operator { color: #98a3b1; }
+	.t_operator { color: var(--syntax_punct); }
 
 	#resizer {
 		background: var(--line);
@@ -209,8 +209,8 @@
 
 	.log { border-left-color: #2f3a47; }
 	.info { border-left-color: var(--syntax_number); }
-	.warn { border-left-color: var(--warn); color: #e6c489; }
-	.error { border-left-color: var(--danger); color: #f0a29c; background: #241a1a; }
+	.warn { border-left-color: var(--warn); color: var(--warn); }
+	.error { border-left-color: var(--danger); color: var(--danger); background: rgba(217, 126, 110, 0.08); }
 	.trace { color: var(--ink_soft); }
 
 	.empty {
