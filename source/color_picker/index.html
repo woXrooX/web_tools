@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color picker</title>
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e0f12">
+
+<link rel="stylesheet" href="../../styles/core.css">
+<style>
+	.shell {
+		max-width: var(--shell);
+		margin: 0 auto;
+		padding: 26px 24px 64px;
+	}
+
+	.masthead p {
+		margin: 6px 0 0;
+		color: var(--ink_soft);
+		max-width: 66ch;
+	}
+
+	.workspace {
+		display: grid;
+		grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+		gap: 24px;
+		align-items: start;
+		margin-top: 22px;
+	}
+
+	/* ---------- preview ---------- */
+
+	.preview {
+		position: sticky;
+		top: 16px;
+	}
+
+	.swatch {
+		position: relative;
+		aspect-ratio: 1 / 1;
+		border-radius: var(--radius);
+		background-image: var(--checker);
+		background-size: 24px 24px;
+		box-shadow: var(--shadow_deep);
+		overflow: hidden;
+	}
+
+	.swatch_fill {
+		position: absolute;
+		inset: 0;
+	}
+
+	.gamut {
+		margin: 12px 0 0;
+		font-size: 13px;
+		color: var(--ink_soft);
+	}
+
+	.gamut.outside {
+		color: var(--warn);
+	}
+
+	.contrast {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 18px;
+		margin: 6px 0 0;
+		padding: 0;
+		list-style: none;
+		font-size: 13px;
+		color: var(--ink_faint);
+	}
+
+	.contrast strong {
+		color: var(--ink_soft);
+		font-family: var(--mono);
+		font-weight: 500;
+	}
+
+	/* ---------- controls ---------- */
+
+	.panel {
+		padding: 14px;
+		border-radius: var(--radius);
+		background: var(--surface);
+	}
+
+	.panel + .panel {
+		margin-top: 12px;
+	}
+
+	.sliders {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.slider_row {
+		display: grid;
+		grid-template-columns: 78px minmax(0, 1fr) 76px;
+		gap: 12px;
+		align-items: center;
+	}
+
+	.slider_row label {
+		color: var(--ink_soft);
+		font-size: 13px;
+	}
+
+	.slider_value {
+		width: 100%;
+		font-family: var(--mono);
+		text-align: right;
+	}
+
+	.track {
+		-webkit-appearance: none;
+		appearance: none;
+		display: block;
+		width: 100%;
+		height: 22px;
+		margin: 0;
+		border-radius: var(--radius);
+		background-color: var(--well);
+		cursor: pointer;
+	}
+
+	.track.alpha {
+		background-size: 100% 100%, 12px 12px;
+	}
+
+	.track:focus {
+		outline: none;
+	}
+
+	.track:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	.track::-webkit-slider-runnable-track {
+		height: 22px;
+		background: transparent;
+	}
+
+	.track::-moz-range-track {
+		height: 22px;
+		background: transparent;
+	}
+
+	.track::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 10px;
+		height: 28px;
+		margin-top: -3px;
+		border: 2px solid #ffffff;
+		border-radius: 3px;
+		background: transparent;
+		box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(0, 0, 0, 0.7);
+	}
+
+	.track::-moz-range-thumb {
+		box-sizing: border-box;
+		width: 10px;
+		height: 28px;
+		border: 2px solid #ffffff;
+		border-radius: 3px;
+		background: transparent;
+		box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(0, 0, 0, 0.7);
+	}
+
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+	}
+
+	.toolbar .caption {
+		margin-right: 4px;
+		color: var(--ink_soft);
+		font-size: 13px;
+	}
+
+	.segmented {
+		display: flex;
+		gap: 4px;
+		margin-right: auto;
+	}
+
+	.segmented button.on {
+		background: var(--ink);
+		color: var(--page);
+		font-weight: 600;
+	}
+
+	.toolbar button {
+		background: var(--raised);
+	}
+
+	.toolbar .segmented button.on {
+		background: var(--ink);
+	}
+
+	.formats {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin: 14px 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.format_row {
+		display: grid;
+		grid-template-columns: 78px minmax(0, 1fr) 74px;
+		gap: 12px;
+		align-items: center;
+	}
+
+	.format_name {
+		display: flex;
+		flex-direction: column;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 1.3;
+		color: var(--ink_soft);
+	}
+
+	.format_name small {
+		color: var(--warn);
+		font-family: var(--sans);
+		font-size: 11px;
+	}
+
+	.format_name small[hidden] {
+		display: none;
+	}
+
+	.format_input {
+		width: 100%;
+		padding: 8px 10px;
+		font-family: var(--mono);
+		font-size: 13px;
+	}
+
+	.format_input.invalid {
+		outline: 2px solid var(--danger);
+		outline-offset: -2px;
+	}
+
+	.format_row button {
+		background: var(--raised);
+	}
+
+	.footnote {
+		margin-top: 20px;
+		color: var(--ink_faint);
+		font-size: 13px;
+		max-width: 70ch;
+	}
+
+	@media (max-width: 820px) {
+		.workspace {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.preview {
+			position: static;
+		}
+
+		.swatch {
+			aspect-ratio: 16 / 7;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.shell {
+			padding: 20px 14px 48px;
+		}
+
+		.slider_row {
+			grid-template-columns: 74px minmax(0, 1fr) 64px;
+			gap: 8px;
+		}
+
+		.format_row {
+			grid-template-columns: minmax(0, 1fr) 64px;
+			gap: 4px 8px;
+		}
+
+		.format_name {
+			grid-column: 1 / -1;
+			flex-direction: row;
+			gap: 8px;
+			align-items: baseline;
+		}
+	}
+</style>
+</head>
+<body>
+
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>color_picker</strong>
+</nav>
+
+<main class="shell">
+
+	<header class="masthead">
+		<h1>Color picker</h1>
+		<p>Edit a color in any CSS format and every other format follows. Each field accepts any format, including named colors, so you can paste whatever you have into any of them. The URL keeps the current color, so you can share it.</p>
+	</header>
+
+	<div class="workspace">
+
+		<section class="preview" aria-label="Preview">
+			<div class="swatch">
+				<div class="swatch_fill" id="swatch_fill"></div>
+			</div>
+			<p class="gamut" id="gamut_status"></p>
+			<ul class="contrast">
+				<li><strong id="contrast_white"></strong> on white</li>
+				<li><strong id="contrast_black"></strong> on black</li>
+			</ul>
+		</section>
+
+		<div>
+			<section class="panel sliders" aria-label="HSLA sliders">
+				<div class="slider_row">
+					<label for="hue_range">Hue</label>
+					<input class="track" type="range" id="hue_range" min="0" max="360" step="1">
+					<input class="slider_value" type="text" id="hue_number" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Hue in degrees">
+				</div>
+				<div class="slider_row">
+					<label for="saturation_range">Saturation</label>
+					<input class="track" type="range" id="saturation_range" min="0" max="100" step="1">
+					<input class="slider_value" type="text" id="saturation_number" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Saturation in percent">
+				</div>
+				<div class="slider_row">
+					<label for="lightness_range">Lightness</label>
+					<input class="track" type="range" id="lightness_range" min="0" max="100" step="1">
+					<input class="slider_value" type="text" id="lightness_number" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Lightness in percent">
+				</div>
+				<div class="slider_row">
+					<label for="alpha_range">Alpha</label>
+					<input class="track alpha" type="range" id="alpha_range" min="0" max="1" step="0.01">
+					<input class="slider_value" type="text" id="alpha_number" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Alpha from 0 to 1">
+				</div>
+			</section>
+
+			<section class="panel" aria-label="Formats">
+				<div class="toolbar">
+					<span class="caption">rgb and hsl syntax</span>
+					<div class="segmented" id="syntax_group">
+						<button type="button" class="on" data-syntax="modern">Modern</button>
+						<button type="button" data-syntax="legacy">Legacy</button>
+					</div>
+					<button type="button" id="eyedropper_button" hidden>Pick from screen</button>
+				</div>
+
+				<ul class="formats" id="formats"></ul>
+			</section>
+
+			<p class="footnote">The color is kept at full precision and fields are rounded only for display, so editing one field never makes the others drift. hex is 8 bits per channel. lab and lch use the D50 white point, as CSS does. When a color is outside sRGB, hex, rgb, hsl and hwb show the nearest sRGB color using the CSS Color 4 gamut mapping, and the sliders work on that color. Contrast follows WCAG 2 and is rounded down.</p>
+		</div>
+
+	</div>
+
+</main>
+
+<span id="probe" hidden></span>
+
+<script>
+	/* ---------- color math ----------
+	   Canonical state is extended (unclamped) gamma encoded sRGB plus alpha.
+	   hex, rgb, hsl and hwb never touch a matrix, so they round trip exactly.
+	   Matrices and constants follow CSS Color Module Level 4. */
+
+	const matrix_linear_srgb_to_xyz = [
+		[506752 / 1228815, 87881 / 245763, 12673 / 70218],
+		[87098 / 409605, 175762 / 245763, 12673 / 175545],
+		[7918 / 409605, 87881 / 737289, 1001167 / 1053270]
+	];
+
+	const matrix_xyz_to_linear_srgb = [
+		[12831 / 3959, -329 / 214, -1974 / 3959],
+		[-851781 / 878810, 1648619 / 878810, 36519 / 878810],
+		[705 / 12673, -2585 / 12673, 705 / 667]
+	];
+
+	const matrix_linear_p3_to_xyz = [
+		[608311 / 1250200, 189793 / 714400, 198249 / 1000160],
+		[35783 / 156275, 247089 / 357200, 198249 / 2500400],
+		[0, 32229 / 714400, 5220557 / 5000800]
+	];
+
+	const matrix_xyz_to_linear_p3 = [
+		[446124 / 178915, -333277 / 357830, -72051 / 178915],
+		[-14852 / 17905, 63121 / 35810, 423 / 17905],
+		[11844 / 330415, -50337 / 660830, 316169 / 330415]
+	];
+
+	const matrix_d65_to_d50 = [
+		[1.0479297925449969, 0.022946870601609652, -0.05019226628920524],
+		[0.02962780877005599, 0.9904344267538799, -0.017073799063418826],
+		[-0.009243040646204504, 0.015055191490298152, 0.7518742814281371]
+	];
+
+	const matrix_d50_to_d65 = [
+		[0.955473421488075, -0.02309845494876471, 0.06325924320057072],
+		[-0.0283697093338637, 1.0099953980813041, 0.021041441191917323],
+		[0.012314014864481998, -0.020507649298898964, 1.330365926242124]
+	];
+
+	const matrix_xyz_to_lms = [
+		[0.8190224379967030, 0.3619062600528904, -0.1288737815209879],
+		[0.0329836539323885, 0.9292868615863434, 0.0361446663506424],
+		[0.0481771893596242, 0.2642395317527308, 0.6335478284694309]
+	];
+
+	const matrix_lms_to_oklab = [
+		[0.2104542683093140, 0.7936177747023054, -0.0040720430116193],
+		[1.9779985324311684, -2.4285922420485799, 0.4505937096174110],
+		[0.0259040424655478, 0.7827717124575296, -0.8086757549230774]
+	];
+
+	const matrix_lms_to_xyz = [
+		[1.2268798758459243, -0.5578149944602171, 0.2813910456659647],
+		[-0.0405757452148008, 1.1122868032803170, -0.0717110580655164],
+		[-0.0763729366746601, -0.4214933324022432, 1.5869240198367816]
+	];
+
+	const matrix_oklab_to_lms = [
+		[1.0, 0.3963377773761749, 0.2158037573099136],
+		[1.0, -0.1055613458156586, -0.0638541728258133],
+		[1.0, -0.0894841775298119, -1.2914855480194092]
+	];
+
+	const d50_white = [0.3457 / 0.3585, 1.0, (1.0 - 0.3457 - 0.3585) / 0.3585];
+	const lab_epsilon = 216 / 24389;
+	const lab_kappa = 24389 / 27;
+	const achromatic_epsilon = 1e-7;
+	const gamut_epsilon = 0.000075;
+
+	function multiply(matrix, vector) {
+		return matrix.map(function (row) {
+			return row[0] * vector[0] + row[1] * vector[1] + row[2] * vector[2];
+		});
+	}
+
+	function normalize_hue(hue) {
+		const result = hue % 360;
+		return result < 0 ? result + 360 : result;
+	}
+
+	/* sign preserving so extended values outside 0..1 survive */
+	function linearize(channels) {
+		return channels.map(function (value) {
+			const sign = value < 0 ? -1 : 1;
+			const absolute = Math.abs(value);
+			if (absolute <= 0.04045) return value / 12.92;
+			return sign * Math.pow((absolute + 0.055) / 1.055, 2.4);
+		});
+	}
+
+	function gamma_encode(channels) {
+		return channels.map(function (value) {
+			const sign = value < 0 ? -1 : 1;
+			const absolute = Math.abs(value);
+			if (absolute > 0.0031308) return sign * (1.055 * Math.pow(absolute, 1 / 2.4) - 0.055);
+			return 12.92 * value;
+		});
+	}
+
+	function srgb_to_xyz(rgb) {
+		return multiply(matrix_linear_srgb_to_xyz, linearize(rgb));
+	}
+
+	function xyz_to_srgb(xyz) {
+		return gamma_encode(multiply(matrix_xyz_to_linear_srgb, xyz));
+	}
+
+	function p3_to_xyz(rgb) {
+		return multiply(matrix_linear_p3_to_xyz, linearize(rgb));
+	}
+
+	function xyz_to_p3(xyz) {
+		return gamma_encode(multiply(matrix_xyz_to_linear_p3, xyz));
+	}
+
+	function xyz_to_lab(xyz) {
+		const scaled = multiply(matrix_d65_to_d50, xyz).map(function (value, index) {
+			return value / d50_white[index];
+		});
+		const f = scaled.map(function (value) {
+			return value > lab_epsilon ? Math.cbrt(value) : (lab_kappa * value + 16) / 116;
+		});
+		return [116 * f[1] - 16, 500 * (f[0] - f[1]), 200 * (f[1] - f[2])];
+	}
+
+	function lab_to_xyz(lab) {
+		const f1 = (lab[0] + 16) / 116;
+		const f0 = lab[1] / 500 + f1;
+		const f2 = f1 - lab[2] / 200;
+		const x = Math.pow(f0, 3) > lab_epsilon ? Math.pow(f0, 3) : (116 * f0 - 16) / lab_kappa;
+		const y = lab[0] > lab_kappa * lab_epsilon ? Math.pow(f1, 3) : lab[0] / lab_kappa;
+		const z = Math.pow(f2, 3) > lab_epsilon ? Math.pow(f2, 3) : (116 * f2 - 16) / lab_kappa;
+		return multiply(matrix_d50_to_d65, [x * d50_white[0], y * d50_white[1], z * d50_white[2]]);
+	}
+
+	function xyz_to_oklab(xyz) {
+		const lms = multiply(matrix_xyz_to_lms, xyz).map(Math.cbrt);
+		return multiply(matrix_lms_to_oklab, lms);
+	}
+
+	function oklab_to_xyz(oklab) {
+		const lms = multiply(matrix_oklab_to_lms, oklab).map(function (value) {
+			return value * value * value;
+		});
+		return multiply(matrix_lms_to_xyz, lms);
+	}
+
+	/* polar forms. hue is null when the color has no chroma */
+	function to_polar(lightness, a, b) {
+		const chroma = Math.sqrt(a * a + b * b);
+		const hue = chroma < achromatic_epsilon ? null : normalize_hue(Math.atan2(b, a) * 180 / Math.PI);
+		return [lightness, chroma, hue];
+	}
+
+	function from_polar(lightness, chroma, hue) {
+		const radians = (hue || 0) * Math.PI / 180;
+		return [lightness, chroma * Math.cos(radians), chroma * Math.sin(radians)];
+	}
+
+	/* hsl: hue in degrees, saturation and lightness in 0..1 */
+	function srgb_to_hsl(rgb) {
+		const max = Math.max(rgb[0], rgb[1], rgb[2]);
+		const min = Math.min(rgb[0], rgb[1], rgb[2]);
+		const delta = max - min;
+		const lightness = (max + min) / 2;
+		let hue = null;
+		let saturation = 0;
+
+		if (delta > achromatic_epsilon) {
+			if (max === rgb[0]) hue = (rgb[1] - rgb[2]) / delta + (rgb[1] < rgb[2] ? 6 : 0);
+			else if (max === rgb[1]) hue = (rgb[2] - rgb[0]) / delta + 2;
+			else hue = (rgb[0] - rgb[1]) / delta + 4;
+			hue = normalize_hue(hue * 60);
+
+			if (lightness > 0 && lightness < 1) saturation = (max - lightness) / Math.min(lightness, 1 - lightness);
+		}
+
+		return [hue, saturation, lightness];
+	}
+
+	function hsl_to_srgb(hue, saturation, lightness) {
+		const amount = saturation * Math.min(lightness, 1 - lightness);
+
+		function channel(offset) {
+			const k = (offset + normalize_hue(hue || 0) / 30) % 12;
+			return lightness - amount * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+		}
+
+		return [channel(0), channel(8), channel(4)];
+	}
+
+	function srgb_to_hwb(rgb) {
+		const hue = srgb_to_hsl(rgb)[0];
+		const whiteness = Math.min(rgb[0], rgb[1], rgb[2]);
+		const blackness = 1 - Math.max(rgb[0], rgb[1], rgb[2]);
+		return [hue, whiteness, blackness];
+	}
+
+	function hwb_to_srgb(hue, whiteness, blackness) {
+		if (whiteness + blackness >= 1) {
+			const gray = whiteness / (whiteness + blackness);
+			return [gray, gray, gray];
+		}
+
+		return hsl_to_srgb(hue, 1, 0.5).map(function (value) {
+			return value * (1 - whiteness - blackness) + whiteness;
+		});
+	}
+
+	function in_gamut(rgb) {
+		return rgb.every(function (value) {
+			return value >= -gamut_epsilon && value <= 1 + gamut_epsilon;
+		});
+	}
+
+	function clip(rgb) {
+		return rgb.map(function (value) {
+			return Math.min(1, Math.max(0, value));
+		});
+	}
+
+	function delta_e_ok(first, second) {
+		return Math.hypot(first[0] - second[0], first[1] - second[1], first[2] - second[2]);
+	}
+
+	/* CSS Color 4 gamut mapping: lower OKLCh chroma until clipping is below a JND.
+	   to_space and from_space convert between XYZ and the destination RGB space. */
+	function gamut_map(xyz, to_space, from_space) {
+		const origin_rgb = to_space(xyz);
+		if (in_gamut(origin_rgb)) return clip(origin_rgb);
+
+		const origin_oklch = to_polar.apply(null, xyz_to_oklab(xyz));
+		if (origin_oklch[0] >= 1) return [1, 1, 1];
+		if (origin_oklch[0] <= 0) return [0, 0, 0];
+
+		const just_noticeable = 0.02;
+		const precision = 0.0001;
+
+		function oklab_of_chroma(chroma) {
+			return from_polar(origin_oklch[0], chroma, origin_oklch[2]);
+		}
+
+		function clipped_of(oklab) {
+			return clip(to_space(oklab_to_xyz(oklab)));
+		}
+
+		let current = oklab_of_chroma(origin_oklch[1]);
+		let clipped = clipped_of(current);
+		if (delta_e_ok(xyz_to_oklab(from_space(clipped)), current) < just_noticeable) return clipped;
+
+		let minimum = 0;
+		let maximum = origin_oklch[1];
+		let minimum_in_gamut = true;
+
+		while (maximum - minimum > precision) {
+			const chroma = (minimum + maximum) / 2;
+			current = oklab_of_chroma(chroma);
+
+			if (minimum_in_gamut && in_gamut(to_space(oklab_to_xyz(current)))) {
+				minimum = chroma;
+				continue;
+			}
+
+			clipped = clipped_of(current);
+			const error = delta_e_ok(xyz_to_oklab(from_space(clipped)), current);
+
+			if (error < just_noticeable) {
+				if (just_noticeable - error < precision) return clipped;
+				minimum_in_gamut = false;
+				minimum = chroma;
+			}
+			else maximum = chroma;
+		}
+
+		return clipped;
+	}
+
+	/* ---------- parsing ---------- */
+
+	const number_pattern = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(%|deg|grad|rad|turn)?$/i;
+	const angle_units = { deg: 1, grad: 0.9, rad: 180 / Math.PI, turn: 360 };
+	const reserved_keywords = ["currentcolor", "inherit", "initial", "unset", "revert"];
+
+	function clamp(value, minimum, maximum) {
+		return Math.min(maximum, Math.max(minimum, value));
+	}
+
+	function read_token(token) {
+		const match = number_pattern.exec(token);
+		if (!match) throw new Error("Not a number: " + token);
+		return { value: parseFloat(match[1]), unit: (match[2] || "").toLowerCase() };
+	}
+
+	/* percent_scale is what 100% means for this channel */
+	function read_channel(token, percent_scale) {
+		if (token.toLowerCase() === "none") return 0;
+		const parsed = read_token(token);
+		if (parsed.unit === "%") return parsed.value / 100 * percent_scale;
+		if (parsed.unit !== "") throw new Error("Unexpected unit: " + token);
+		return parsed.value;
+	}
+
+	function read_hue(token) {
+		if (token.toLowerCase() === "none") return null;
+		const parsed = read_token(token);
+		if (parsed.unit === "%") throw new Error("A hue cannot be a percentage");
+		const degrees = parsed.unit === "" ? parsed.value : parsed.value * angle_units[parsed.unit];
+		return normalize_hue(degrees);
+	}
+
+	function read_alpha(token) {
+		if (token === undefined) return 1;
+		return clamp(read_channel(token, 1), 0, 1);
+	}
+
+	function split_arguments(body) {
+		if (body.includes(",")) {
+			if (body.includes("/")) throw new Error("Mixed syntax");
+			const parts = body.split(",").map(function (part) {
+				return part.trim();
+			});
+			if (parts.some(function (part) { return part === "" || /\s/.test(part); })) throw new Error("Bad list");
+			if (parts.length === 3) return { channels: parts, alpha: undefined };
+			if (parts.length === 4) return { channels: parts.slice(0, 3), alpha: parts[3] };
+			throw new Error("Wrong argument count");
+		}
+
+		const halves = body.split("/");
+		if (halves.length > 2) throw new Error("Too many slashes");
+
+		const channels = halves[0].trim().split(/\s+/).filter(Boolean);
+		let alpha;
+
+		if (halves.length === 2) {
+			alpha = halves[1].trim();
+			if (alpha === "" || /\s/.test(alpha)) throw new Error("Bad alpha");
+		}
+
+		return { channels: channels, alpha: alpha };
+	}
+
+	function expect_count(channels, count) {
+		if (channels.length !== count) throw new Error("Expected " + count + " values");
+	}
+
+	/* returns { rgb, alpha, hsl, hue_hint, lch_hue, oklch_hue } or throws */
+	function parse_color(text) {
+		const input = text.trim();
+		const hex_match = /^#?([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(input);
+
+		if (hex_match) {
+			let digits = hex_match[1];
+			if (digits.length <= 4) digits = digits.split("").map(function (digit) { return digit + digit; }).join("");
+			const bytes = digits.match(/../g).map(function (pair) { return parseInt(pair, 16); });
+			return {
+				rgb: [bytes[0] / 255, bytes[1] / 255, bytes[2] / 255],
+				alpha: bytes.length === 4 ? bytes[3] / 255 : 1
+			};
+		}
+
+		const function_match = /^([a-z-]+)\s*\(([^()]*)\)$/i.exec(input);
+
+		if (!function_match) {
+			const resolved = resolve_named(input);
+			if (resolved === null) throw new Error("Unknown color");
+			return parse_color(resolved);
+		}
+
+		const name = function_match[1].toLowerCase();
+		const parsed = split_arguments(function_match[2]);
+		const channels = parsed.channels;
+		const alpha = read_alpha(parsed.alpha);
+
+		if (name === "rgb" || name === "rgba") {
+			expect_count(channels, 3);
+			const rgb = channels.map(function (token) {
+				return clamp(read_channel(token, 255), 0, 255) / 255;
+			});
+			return { rgb: rgb, alpha: alpha };
+		}
+
+		if (name === "hsl" || name === "hsla") {
+			expect_count(channels, 3);
+			const hue = read_hue(channels[0]);
+			const saturation = clamp(read_channel(channels[1], 100), 0, 100) / 100;
+			const lightness = clamp(read_channel(channels[2], 100), 0, 100) / 100;
+			return {
+				rgb: hsl_to_srgb(hue, saturation, lightness),
+				alpha: alpha,
+				hsl: [hue, saturation, lightness]
+			};
+		}
+
+		if (name === "hwb") {
+			expect_count(channels, 3);
+			const hue = read_hue(channels[0]);
+			const whiteness = clamp(read_channel(channels[1], 100), 0, 100) / 100;
+			const blackness = clamp(read_channel(channels[2], 100), 0, 100) / 100;
+			return { rgb: hwb_to_srgb(hue, whiteness, blackness), alpha: alpha, hue_hint: hue };
+		}
+
+		if (name === "lab") {
+			expect_count(channels, 3);
+			const lab = [
+				clamp(read_channel(channels[0], 100), 0, 100),
+				read_channel(channels[1], 125),
+				read_channel(channels[2], 125)
+			];
+			return { rgb: xyz_to_srgb(lab_to_xyz(lab)), alpha: alpha };
+		}
+
+		if (name === "lch") {
+			expect_count(channels, 3);
+			const hue = read_hue(channels[2]);
+			const lch = [
+				clamp(read_channel(channels[0], 100), 0, 100),
+				Math.max(0, read_channel(channels[1], 150)),
+				hue
+			];
+			return { rgb: xyz_to_srgb(lab_to_xyz(from_polar(lch[0], lch[1], lch[2]))), alpha: alpha, lch_hue: hue };
+		}
+
+		if (name === "oklab") {
+			expect_count(channels, 3);
+			const oklab = [
+				clamp(read_channel(channels[0], 1), 0, 1),
+				read_channel(channels[1], 0.4),
+				read_channel(channels[2], 0.4)
+			];
+			return { rgb: xyz_to_srgb(oklab_to_xyz(oklab)), alpha: alpha };
+		}
+
+		if (name === "oklch") {
+			expect_count(channels, 3);
+			const hue = read_hue(channels[2]);
+			const oklch = [
+				clamp(read_channel(channels[0], 1), 0, 1),
+				Math.max(0, read_channel(channels[1], 0.4)),
+				hue
+			];
+			return { rgb: xyz_to_srgb(oklab_to_xyz(from_polar(oklch[0], oklch[1], oklch[2]))), alpha: alpha, oklch_hue: hue };
+		}
+
+		if (name === "color") {
+			expect_count(channels, 4);
+			const space = channels[0].toLowerCase();
+			const values = channels.slice(1).map(function (token) {
+				return read_channel(token, 1);
+			});
+			if (space === "srgb") return { rgb: values, alpha: alpha };
+			if (space === "display-p3") return { rgb: xyz_to_srgb(p3_to_xyz(values)), alpha: alpha };
+			throw new Error("Unsupported color space");
+		}
+
+		throw new Error("Unsupported function");
+	}
+
+	/* named colors are resolved by the browser, which knows the full list */
+	const probe = document.getElementById("probe");
+
+	function resolve_named(text) {
+		if (!/^[a-z]+$/i.test(text)) return null;
+		if (reserved_keywords.includes(text.toLowerCase())) return null;
+		probe.style.color = "";
+		probe.style.color = text;
+		if (probe.style.color === "") return null;
+		return getComputedStyle(probe).color;
+	}
+
+	/* ---------- formatting ---------- */
+
+	function format_number(value, decimals) {
+		const rounded = Number(value.toFixed(decimals));
+		return String(Object.is(rounded, -0) ? 0 : rounded);
+	}
+
+	function to_byte(value) {
+		return Math.round(clamp(value, 0, 1) * 255);
+	}
+
+	function alpha_text(alpha) {
+		return format_number(alpha, 3);
+	}
+
+	function modern(name, values, alpha) {
+		const suffix = alpha < 1 ? " / " + alpha_text(alpha) : "";
+		return name + "(" + values.join(" ") + suffix + ")";
+	}
+
+	function legacy(name, values, alpha) {
+		if (alpha < 1) return name + "a(" + values.concat(alpha_text(alpha)).join(", ") + ")";
+		return name + "(" + values.join(", ") + ")";
+	}
+
+	function format_hex(rgb, alpha) {
+		const bytes = rgb.map(to_byte);
+		const alpha_byte = to_byte(alpha);
+		if (alpha_byte < 255) bytes.push(alpha_byte);
+		return "#" + bytes.map(function (byte) {
+			return byte.toString(16).padStart(2, "0");
+		}).join("");
+	}
+
+	/* ---------- state ---------- */
+
+	const state = {
+		rgb: [0, 0, 0],
+		alpha: 1,
+		hue: 0,
+		saturation: 0,
+		lightness: 0,
+		lch_hue: 0,
+		oklch_hue: 0,
+		syntax: "modern",
+		view: null
+	};
+
+	/* source is the id of the control being edited, so it is not overwritten while typing */
+	function set_color(parsed, source) {
+		state.rgb = parsed.rgb;
+		state.alpha = parsed.alpha;
+
+		const xyz = srgb_to_xyz(state.rgb);
+		const srgb_inside = in_gamut(state.rgb);
+		const p3_inside = in_gamut(xyz_to_p3(xyz));
+		const display_rgb = srgb_inside ? clip(state.rgb) : gamut_map(xyz, xyz_to_srgb, srgb_to_xyz);
+		const display_p3 = gamut_map(xyz, xyz_to_p3, p3_to_xyz);
+
+		if (parsed.hsl) {
+			if (parsed.hsl[0] !== null) state.hue = parsed.hsl[0];
+			state.saturation = parsed.hsl[1];
+			state.lightness = parsed.hsl[2];
+		}
+		else {
+			const computed = srgb_to_hsl(display_rgb);
+			const extreme = computed[2] <= achromatic_epsilon || computed[2] >= 1 - achromatic_epsilon;
+			if (computed[0] !== null) state.hue = computed[0];
+			else if (parsed.hue_hint !== undefined && parsed.hue_hint !== null) state.hue = parsed.hue_hint;
+			if (!extreme) state.saturation = computed[1];
+			state.lightness = computed[2];
+		}
+
+		const lch = to_polar.apply(null, xyz_to_lab(xyz));
+		const oklch = to_polar.apply(null, xyz_to_oklab(xyz));
+
+		if (parsed.lch_hue !== undefined && parsed.lch_hue !== null) state.lch_hue = parsed.lch_hue;
+		else if (lch[2] !== null) state.lch_hue = lch[2];
+
+		if (parsed.oklch_hue !== undefined && parsed.oklch_hue !== null) state.oklch_hue = parsed.oklch_hue;
+		else if (oklch[2] !== null) state.oklch_hue = oklch[2];
+
+		state.view = {
+			xyz: xyz,
+			srgb_inside: srgb_inside,
+			p3_inside: p3_inside,
+			display_rgb: display_rgb,
+			display_p3: display_p3,
+			lab: xyz_to_lab(xyz),
+			lch: lch,
+			oklab: xyz_to_oklab(xyz),
+			oklch: oklch
+		};
+
+		render(source);
+	}
+
+	/* ---------- formats ---------- */
+
+	const formats = [
+		{ key: "hex", label: "hex", srgb_bound: true },
+		{ key: "rgb", label: "rgb", srgb_bound: true },
+		{ key: "hsl", label: "hsl", srgb_bound: true },
+		{ key: "hwb", label: "hwb", srgb_bound: true },
+		{ key: "lab", label: "lab" },
+		{ key: "lch", label: "lch" },
+		{ key: "oklab", label: "oklab" },
+		{ key: "oklch", label: "oklch" },
+		{ key: "p3", label: "p3", p3_bound: true }
+	];
+
+	function format_text(key) {
+		const view = state.view;
+		const alpha = state.alpha;
+		const pick = state.syntax === "legacy" ? legacy : modern;
+
+		if (key === "hex") return format_hex(view.display_rgb, alpha);
+
+		if (key === "rgb") {
+			return pick("rgb", view.display_rgb.map(function (value) {
+				return format_number(value * 255, 2);
+			}), alpha);
+		}
+
+		if (key === "hsl") {
+			return pick("hsl", [
+				format_number(state.hue, 2),
+				format_number(state.saturation * 100, 2) + "%",
+				format_number(state.lightness * 100, 2) + "%"
+			], alpha);
+		}
+
+		if (key === "hwb") {
+			const hwb = srgb_to_hwb(view.display_rgb);
+			return modern("hwb", [
+				format_number(state.hue, 2),
+				format_number(hwb[1] * 100, 2) + "%",
+				format_number(hwb[2] * 100, 2) + "%"
+			], alpha);
+		}
+
+		if (key === "lab") {
+			return modern("lab", view.lab.map(function (value) {
+				return format_number(value, 2);
+			}), alpha);
+		}
+
+		if (key === "lch") {
+			return modern("lch", [
+				format_number(view.lch[0], 2),
+				format_number(view.lch[1], 2),
+				format_number(state.lch_hue, 2)
+			], alpha);
+		}
+
+		if (key === "oklab") {
+			return modern("oklab", [
+				format_number(view.oklab[0] * 100, 2) + "%",
+				format_number(view.oklab[1], 4),
+				format_number(view.oklab[2], 4)
+			], alpha);
+		}
+
+		if (key === "oklch") {
+			return modern("oklch", [
+				format_number(view.oklch[0] * 100, 2) + "%",
+				format_number(view.oklch[1], 4),
+				format_number(state.oklch_hue, 2)
+			], alpha);
+		}
+
+		return modern("color", ["display-p3"].concat(view.display_p3.map(function (value) {
+			return format_number(value, 4);
+		})), alpha);
+	}
+
+	const format_list = document.getElementById("formats");
+	const format_rows = {};
+
+	formats.forEach(function (format) {
+		const row = document.createElement("li");
+		row.className = "format_row";
+
+		const name = document.createElement("label");
+		name.className = "format_name";
+		name.htmlFor = "format_" + format.key;
+		name.textContent = format.label;
+
+		const note = document.createElement("small");
+		note.hidden = true;
+		note.textContent = format.p3_bound ? "mapped to P3" : "mapped";
+		note.title = format.p3_bound ? "Outside Display P3, showing the nearest P3 color" : "Outside sRGB, showing the nearest sRGB color";
+		name.appendChild(note);
+
+		const input = document.createElement("input");
+		input.type = "text";
+		input.id = "format_" + format.key;
+		input.className = "format_input";
+		input.autocomplete = "off";
+		input.spellcheck = false;
+
+		const copy_button = document.createElement("button");
+		copy_button.type = "button";
+		copy_button.textContent = "Copy";
+		copy_button.setAttribute("aria-label", "Copy " + format.label);
+
+		input.addEventListener("input", function () {
+			let parsed;
+
+			try {
+				parsed = parse_color(input.value);
+			}
+			catch (error) {
+				input.classList.add("invalid");
+				return;
+			}
+
+			input.classList.remove("invalid");
+			set_color(parsed, input.id);
+		});
+
+		input.addEventListener("change", function () {
+			render(null);
+		});
+
+		input.addEventListener("keydown", function (event) {
+			if (event.key === "Enter") render(null);
+			if (event.key === "Escape") {
+				render(null);
+				input.blur();
+			}
+		});
+
+		copy_button.addEventListener("click", function () {
+			copy_text(format_text(format.key), copy_button);
+		});
+
+		row.append(name, input, copy_button);
+		format_list.appendChild(row);
+		format_rows[format.key] = { input: input, note: note, format: format };
+	});
+
+	function copy_text(text, button) {
+		navigator.clipboard.writeText(text).then(function () {
+			button.textContent = "Copied";
+		}).catch(function () {
+			button.textContent = "Failed";
+		}).finally(function () {
+			clearTimeout(button.reset_timer);
+			button.reset_timer = setTimeout(function () {
+				button.textContent = "Copy";
+			}, 1200);
+		});
+	}
+
+	/* ---------- sliders ---------- */
+
+	const sliders = {
+		hue: { range: document.getElementById("hue_range"), number: document.getElementById("hue_number"), maximum: 360 },
+		saturation: { range: document.getElementById("saturation_range"), number: document.getElementById("saturation_number"), maximum: 100 },
+		lightness: { range: document.getElementById("lightness_range"), number: document.getElementById("lightness_number"), maximum: 100 },
+		alpha: { range: document.getElementById("alpha_range"), number: document.getElementById("alpha_number"), maximum: 1 }
+	};
+
+	function slider_values() {
+		return {
+			hue: state.hue,
+			saturation: state.saturation * 100,
+			lightness: state.lightness * 100,
+			alpha: state.alpha
+		};
+	}
+
+	function apply_slider(channel, value, source) {
+		const values = slider_values();
+		values[channel] = clamp(value, 0, sliders[channel].maximum);
+
+		const hsl = [values.hue, values.saturation / 100, values.lightness / 100];
+		set_color({ rgb: hsl_to_srgb(hsl[0], hsl[1], hsl[2]), alpha: values.alpha, hsl: hsl }, source);
+	}
+
+	Object.keys(sliders).forEach(function (channel) {
+		const slider = sliders[channel];
+
+		slider.range.addEventListener("input", function () {
+			apply_slider(channel, parseFloat(slider.range.value), slider.range.id);
+		});
+
+		slider.number.addEventListener("input", function () {
+			const text = slider.number.value.trim().replace(/%$/, "");
+			const value = Number(text);
+
+			if (text === "" || !Number.isFinite(value)) {
+				slider.number.classList.add("invalid");
+				return;
+			}
+
+			slider.number.classList.remove("invalid");
+			apply_slider(channel, value, slider.number.id);
+		});
+
+		slider.number.addEventListener("change", function () {
+			slider.number.classList.remove("invalid");
+			render(null);
+		});
+
+		slider.number.addEventListener("keydown", function (event) {
+			if (event.key === "Enter") render(null);
+		});
+	});
+
+	function hsl_css(hue, saturation, lightness) {
+		return "hsl(" + format_number(hue, 3) + " " + format_number(saturation, 3) + "% " + format_number(lightness, 3) + "%)";
+	}
+
+	function paint_tracks() {
+		const values = slider_values();
+		const hue_stops = [];
+
+		for (let degrees = 0; degrees <= 360; degrees += 30) {
+			hue_stops.push(hsl_css(degrees, values.saturation, values.lightness));
+		}
+
+		sliders.hue.range.style.backgroundImage = "linear-gradient(to right, " + hue_stops.join(", ") + ")";
+
+		sliders.saturation.range.style.backgroundImage = "linear-gradient(to right, " +
+			hsl_css(values.hue, 0, values.lightness) + ", " +
+			hsl_css(values.hue, 100, values.lightness) + ")";
+
+		sliders.lightness.range.style.backgroundImage = "linear-gradient(to right, " +
+			hsl_css(values.hue, values.saturation, 0) + ", " +
+			hsl_css(values.hue, values.saturation, 50) + ", " +
+			hsl_css(values.hue, values.saturation, 100) + ")";
+
+		const bytes = state.view.display_rgb.map(to_byte).join(", ");
+		sliders.alpha.range.style.backgroundImage = "linear-gradient(to right, rgba(" + bytes + ", 0), rgb(" + bytes + ")), var(--checker)";
+	}
+
+	/* ---------- rendering ---------- */
+
+	const swatch_fill = document.getElementById("swatch_fill");
+	const gamut_status = document.getElementById("gamut_status");
+	const contrast_white = document.getElementById("contrast_white");
+	const contrast_black = document.getElementById("contrast_black");
+
+	function relative_luminance(rgb) {
+		const linear = linearize(rgb);
+		return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+	}
+
+	/* the color is composited over the background first, as a browser would */
+	function contrast_ratio(background) {
+		const mixed = state.view.display_rgb.map(function (value, index) {
+			return value * state.alpha + background[index] * (1 - state.alpha);
+		});
+		const first = relative_luminance(mixed);
+		const second = relative_luminance(background);
+		const ratio = (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+		return (Math.floor(ratio * 100) / 100).toFixed(2) + ":1";
+	}
+
+	/* the hash holds hex when hex is exact, otherwise full precision color(srgb) */
+	function hash_text() {
+		const exact = state.view.srgb_inside && state.rgb.concat(state.alpha).every(function (value) {
+			return Math.abs(value * 255 - Math.round(value * 255)) < 1e-9;
+		});
+		if (exact) return format_hex(state.rgb, state.alpha).slice(1);
+		const values = state.rgb.map(function (value) {
+			return format_number(value, 6);
+		});
+		return encodeURIComponent(modern("color", ["srgb"].concat(values), state.alpha));
+	}
+
+	function render(source) {
+		const view = state.view;
+
+		Object.keys(format_rows).forEach(function (key) {
+			const row = format_rows[key];
+			if (row.input.id !== source) {
+				row.input.value = format_text(key);
+				row.input.classList.remove("invalid");
+			}
+			if (row.format.srgb_bound) row.note.hidden = view.srgb_inside;
+			if (row.format.p3_bound) row.note.hidden = view.p3_inside;
+		});
+
+		const values = slider_values();
+
+		Object.keys(sliders).forEach(function (channel) {
+			const slider = sliders[channel];
+			const decimals = channel === "alpha" ? 3 : 2;
+			if (slider.range.id !== source) slider.range.value = values[channel];
+			if (slider.number.id !== source) {
+				slider.number.value = format_number(values[channel], decimals);
+				slider.number.classList.remove("invalid");
+			}
+		});
+
+		paint_tracks();
+
+		/* full precision, unclamped, so wide gamut screens show the real color */
+		swatch_fill.style.backgroundColor = modern("color", ["srgb"].concat(state.rgb.map(function (value) {
+			return format_number(value, 6);
+		})), state.alpha);
+
+		if (view.srgb_inside) {
+			gamut_status.textContent = "Inside sRGB.";
+			gamut_status.classList.remove("outside");
+		}
+		else if (view.p3_inside) {
+			gamut_status.textContent = "Outside sRGB, inside Display P3. Screens without wide gamut show it clipped.";
+			gamut_status.classList.add("outside");
+		}
+		else {
+			gamut_status.textContent = "Outside Display P3 as well. No common screen can show this exact color.";
+			gamut_status.classList.add("outside");
+		}
+
+		contrast_white.textContent = contrast_ratio([1, 1, 1]);
+		contrast_black.textContent = contrast_ratio([0, 0, 0]);
+
+		history.replaceState(null, "", "#" + hash_text());
+	}
+
+	/* ---------- toolbar ---------- */
+
+	const syntax_group = document.getElementById("syntax_group");
+
+	syntax_group.addEventListener("click", function (event) {
+		const button = event.target.closest("button");
+		if (!button) return;
+		state.syntax = button.dataset.syntax;
+		syntax_group.querySelectorAll("button").forEach(function (item) {
+			item.classList.toggle("on", item === button);
+		});
+		render(null);
+	});
+
+	const eyedropper_button = document.getElementById("eyedropper_button");
+
+	if ("EyeDropper" in window) {
+		eyedropper_button.hidden = false;
+		eyedropper_button.addEventListener("click", function () {
+			new window.EyeDropper().open().then(function (result) {
+				set_color(parse_color(result.sRGBHex), null);
+			}).catch(function () {});
+		});
+	}
+
+	/* ---------- start ---------- */
+
+	function load_from_hash() {
+		const text = decodeURIComponent(location.hash.slice(1));
+
+		try {
+			if (text !== "") {
+				set_color(parse_color(text), null);
+				return;
+			}
+		}
+		catch (error) {}
+
+		set_color(parse_color("hsl(211 64% 52%)"), null);
+	}
+
+	window.addEventListener("hashchange", load_from_hash);
+	load_from_hash();
+</script>
+</body>
+</html>
