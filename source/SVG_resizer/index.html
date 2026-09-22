@@ -247,6 +247,27 @@ select:focus-visible {
 
 .presets button:hover { border-color: var(--accent); color: var(--accent); }
 
+.check_row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 14px 0 0;
+	font-size: 13px;
+	color: var(--ink);
+	cursor: pointer;
+}
+
+.check_row input {
+	margin: 0;
+	accent-color: var(--accent);
+}
+
+.hint {
+	margin: 4px 0 0;
+	font-size: 12px;
+	color: var(--ink_soft);
+}
+
 .backdrop {
 	display: flex;
 	gap: 6px;
@@ -408,6 +429,11 @@ select {
 				<button data-width="512" disabled>512w</button>
 				<button data-width="1024" disabled>1024w</button>
 			</div>
+			<label class="check_row">
+				<input type="checkbox" id="normalize_input" disabled>
+				<span>Rewrite coordinates to the new size</span>
+			</label>
+			<p class="hint">Sets the viewBox to 0 0 width height and scales the drawing's numbers to match, for tools that expect a matching grid.</p>
 		</div>
 
 		<div class="group">
@@ -437,7 +463,7 @@ select {
 	</aside>
 </div>
 
-<p class="note">A resize changes the width and height the SVG asks for on screen. The drawing itself keeps its coordinates, and the viewBox maps them onto the new box — so the result stays sharp at any size.</p>
+<p class="note">A resize changes the width and height the SVG asks for on screen. The drawing itself keeps its coordinates, and the viewBox maps them onto the new box — so the result stays sharp at any size. Turn on “Rewrite coordinates” when another tool needs the viewBox itself to match, such as 0 0 24 24 for an icon set.</p>
 
 <script>
 var stage = document.getElementById("stage");
@@ -449,6 +475,7 @@ var width_input = document.getElementById("width_input");
 var height_input = document.getElementById("height_input");
 var scale_input = document.getElementById("scale_input");
 var lock_button = document.getElementById("lock_button");
+var normalize_input = document.getElementById("normalize_input");
 var save_svg_button = document.getElementById("save_svg_button");
 var save_png_button = document.getElementById("save_png_button");
 var png_density = document.getElementById("png_density");
@@ -545,7 +572,7 @@ function read_markup(markup, name) {
 }
 
 function enable_controls(on) {
-	var controls = [width_input, height_input, scale_input, save_svg_button, save_png_button, png_density, copy_button, reset_button];
+	var controls = [width_input, height_input, scale_input, normalize_input, save_svg_button, save_png_button, png_density, copy_button, reset_button];
 	controls.forEach(function (control) {
 		control.disabled = !on;
 	});
@@ -562,8 +589,512 @@ function sync_inputs() {
 	dim_v.textContent = target_height + " px";
 }
 
+/* ---------- coordinate normalization ----------
+Maps the drawing from its old viewBox onto a new "0 0 width height" one.
+Simple drawings get their numbers rewritten ("baked"). Anything this code
+can't rewrite safely gets wrapped in a scaling <g> instead, which renders
+the same but keeps the old numbers inside. */
+
+var svg_namespace = "http://www.w3.org/2000/svg";
+var xlink_namespace = "http://www.w3.org/1999/xlink";
+var geometry_places = 3;
+var transform_places = 6;
+var number_source = "[-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][-+]?\\d+)?";
+var number_pattern = new RegExp(number_source, "y");
+var number_pattern_all = new RegExp(number_source, "g");
+var plain_length_pattern = new RegExp("^\\s*(" + number_source + ")(px)?\\s*$");
+var stroke_length_names = ["stroke-width", "stroke-dasharray", "stroke-dashoffset"];
+var ignored_elements = ["title", "desc", "metadata"];
+var container_elements = ["g", "defs", "a"];
+var last_normalize = null;
+
+function unsupported(reason) {
+	var error = new Error(reason);
+	error.is_unsupported = true;
+	return error;
+}
+
+function format_number(value, places) {
+	var factor = Math.pow(10, places);
+	return String(Math.round(value * factor) / factor);
+}
+
+function read_view_box(svg) {
+	var parts = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(parseFloat);
+	if (parts.length !== 4 || !parts.every(isFinite) || parts[2] <= 0 || parts[3] <= 0) {
+		return null;
+	}
+	return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+}
+
+function align_offset(free_space, align, min_key, max_key) {
+	if (align.indexOf(max_key) !== -1) {
+		return free_space;
+	}
+	if (align.indexOf(min_key) !== -1) {
+		return 0;
+	}
+	return free_space / 2;
+}
+
+// Reproduces how the browser fits the viewBox into width × height
+// (preserveAspectRatio), so the rewritten file draws in the same place.
+function compute_mapping(view_box, width, height, aspect) {
+	var sx = width / view_box.width;
+	var sy = height / view_box.height;
+	var words = (aspect || "").trim().split(/\s+/);
+	var align = words[0] || "xMidYMid";
+
+	if (align === "none") {
+		return { sx: sx, sy: sy, tx: -view_box.x * sx, ty: -view_box.y * sy };
+	}
+
+	var scale = words[1] === "slice" ? Math.max(sx, sy) : Math.min(sx, sy);
+	var offset_x = align_offset(width - view_box.width * scale, align, "xMin", "xMax");
+	var offset_y = align_offset(height - view_box.height * scale, align, "YMin", "YMax");
+	return { sx: scale, sy: scale, tx: offset_x - view_box.x * scale, ty: offset_y - view_box.y * scale };
+}
+
+function is_uniform(mapping) {
+	return Math.abs(mapping.sx - mapping.sy) <= 1e-9 * Math.max(mapping.sx, mapping.sy);
+}
+
+function point_text(mapping, x, y) {
+	return format_number(x * mapping.sx + mapping.tx, geometry_places) + " " + format_number(y * mapping.sy + mapping.ty, geometry_places);
+}
+
+function length_text(mapping, value) {
+	return format_number(value * mapping.sx, geometry_places);
+}
+
+function transform_text(mapping) {
+	var scale = format_number(mapping.sx, transform_places);
+	if (!is_uniform(mapping)) {
+		scale += " " + format_number(mapping.sy, transform_places);
+	}
+	var text = "scale(" + scale + ")";
+	if (mapping.tx !== 0 || mapping.ty !== 0) {
+		text = "translate(" + format_number(mapping.tx, transform_places) + " " + format_number(mapping.ty, transform_places) + ") " + text;
+	}
+	return text;
+}
+
+/* path data */
+
+function skip_separators(reader) {
+	while (reader.index < reader.text.length && /[\s,]/.test(reader.text[reader.index])) {
+		reader.index += 1;
+	}
+}
+
+function read_number(reader) {
+	skip_separators(reader);
+	number_pattern.lastIndex = reader.index;
+	var match = number_pattern.exec(reader.text);
+	if (!match) {
+		throw unsupported("its path data couldn't be read");
+	}
+	reader.index = number_pattern.lastIndex;
+	return parseFloat(match[0]);
+}
+
+// Arc flags are single characters and may touch the next number ("a1 1 0 01 5 5").
+function read_flag(reader) {
+	skip_separators(reader);
+	var character = reader.text[reader.index];
+	if (character !== "0" && character !== "1") {
+		throw unsupported("its path data couldn't be read");
+	}
+	reader.index += 1;
+	return character;
+}
+
+// Turns any path into absolute M, L, C, A and Z segments.
+// Relative commands become absolute, H and V become L,
+// S gets its reflected control point, and Q and T become exact cubics.
+function parse_path(text) {
+	var reader = { text: text, index: 0 };
+	var segments = [];
+	var command = "";
+	var x = 0;
+	var y = 0;
+	var start_x = 0;
+	var start_y = 0;
+	var cubic_control = null;
+	var quad_control = null;
+
+	skip_separators(reader);
+	while (reader.index < reader.text.length) {
+		var character = reader.text[reader.index];
+		if (/[A-Za-z]/.test(character)) {
+			command = character;
+			reader.index += 1;
+		} else if (!command || command === "Z" || command === "z") {
+			throw unsupported("its path data couldn't be read");
+		}
+		if (segments.length === 0 && command !== "M" && command !== "m") {
+			throw unsupported("its path data doesn't start with a move command");
+		}
+
+		var type = command.toUpperCase();
+		var relative = command !== type;
+		var base_x = relative ? x : 0;
+		var base_y = relative ? y : 0;
+		var next_cubic = null;
+		var next_quad = null;
+
+		if (type === "M") {
+			x = base_x + read_number(reader);
+			y = base_y + read_number(reader);
+			start_x = x;
+			start_y = y;
+			segments.push({ type: "M", values: [x, y] });
+			// Extra pairs after a move are line segments.
+			command = relative ? "l" : "L";
+		} else if (type === "L") {
+			x = base_x + read_number(reader);
+			y = base_y + read_number(reader);
+			segments.push({ type: "L", values: [x, y] });
+		} else if (type === "H") {
+			x = base_x + read_number(reader);
+			segments.push({ type: "L", values: [x, y] });
+		} else if (type === "V") {
+			y = base_y + read_number(reader);
+			segments.push({ type: "L", values: [x, y] });
+		} else if (type === "C" || type === "S") {
+			var first_x = x;
+			var first_y = y;
+			if (type === "C") {
+				first_x = base_x + read_number(reader);
+				first_y = base_y + read_number(reader);
+			} else if (cubic_control) {
+				first_x = 2 * x - cubic_control[0];
+				first_y = 2 * y - cubic_control[1];
+			}
+			var second_x = base_x + read_number(reader);
+			var second_y = base_y + read_number(reader);
+			x = base_x + read_number(reader);
+			y = base_y + read_number(reader);
+			segments.push({ type: "C", values: [first_x, first_y, second_x, second_y, x, y] });
+			next_cubic = [second_x, second_y];
+		} else if (type === "Q" || type === "T") {
+			var control_x = x;
+			var control_y = y;
+			if (type === "Q") {
+				control_x = base_x + read_number(reader);
+				control_y = base_y + read_number(reader);
+			} else if (quad_control) {
+				control_x = 2 * x - quad_control[0];
+				control_y = 2 * y - quad_control[1];
+			}
+			var end_x = base_x + read_number(reader);
+			var end_y = base_y + read_number(reader);
+			// A quadratic is a cubic whose control points sit 2/3 of the way toward its single control point.
+			segments.push({ type: "C", values: [
+				x + 2 / 3 * (control_x - x),
+				y + 2 / 3 * (control_y - y),
+				end_x + 2 / 3 * (control_x - end_x),
+				end_y + 2 / 3 * (control_y - end_y),
+				end_x,
+				end_y
+			] });
+			x = end_x;
+			y = end_y;
+			next_quad = [control_x, control_y];
+		} else if (type === "A") {
+			var radius_x = Math.abs(read_number(reader));
+			var radius_y = Math.abs(read_number(reader));
+			var rotation = read_number(reader);
+			var large_arc = read_flag(reader);
+			var sweep = read_flag(reader);
+			x = base_x + read_number(reader);
+			y = base_y + read_number(reader);
+			segments.push({ type: "A", values: [radius_x, radius_y, rotation, large_arc, sweep, x, y] });
+		} else if (type === "Z") {
+			x = start_x;
+			y = start_y;
+			segments.push({ type: "Z", values: [] });
+		} else {
+			throw unsupported("its path data has an unknown command \"" + command + "\"");
+		}
+
+		cubic_control = next_cubic;
+		quad_control = next_quad;
+		skip_separators(reader);
+	}
+
+	return segments;
+}
+
+// Only valid for a uniform scale: arcs keep their rotation and flags, radii just scale.
+function serialize_path(segments, mapping) {
+	return segments.map(function (segment) {
+		var values = segment.values;
+		if (segment.type === "Z") {
+			return "Z";
+		}
+		if (segment.type === "A") {
+			return "A" + [
+				length_text(mapping, values[0]),
+				length_text(mapping, values[1]),
+				format_number(values[2], geometry_places),
+				values[3],
+				values[4],
+				point_text(mapping, values[5], values[6])
+			].join(" ");
+		}
+		var points = [];
+		for (var index = 0; index < values.length; index += 2) {
+			points.push(point_text(mapping, values[index], values[index + 1]));
+		}
+		return segment.type + points.join(" ");
+	}).join("");
+}
+
+/* shape attributes */
+
+function read_length(element, name, fallback) {
+	var raw = element.getAttribute(name);
+	if (raw === null || raw.trim() === "") {
+		return fallback;
+	}
+	var match = plain_length_pattern.exec(raw);
+	if (!match) {
+		throw unsupported("a <" + element.localName + "> has " + name + "=\"" + raw + "\"");
+	}
+	return parseFloat(match[1]);
+}
+
+function bake_position(element, x_name, y_name, mapping) {
+	var x = read_length(element, x_name, 0);
+	var y = read_length(element, y_name, 0);
+	element.setAttribute(x_name, format_number(x * mapping.sx + mapping.tx, geometry_places));
+	element.setAttribute(y_name, format_number(y * mapping.sy + mapping.ty, geometry_places));
+}
+
+function bake_sizes(element, names, mapping) {
+	names.forEach(function (name) {
+		if (element.getAttribute(name) === "auto") {
+			return;
+		}
+		var value = read_length(element, name, null);
+		if (value !== null) {
+			element.setAttribute(name, length_text(mapping, value));
+		}
+	});
+}
+
+function bake_points(element, mapping) {
+	var numbers = (element.getAttribute("points") || "").match(number_pattern_all) || [];
+	var pairs = [];
+	for (var index = 0; index + 1 < numbers.length; index += 2) {
+		pairs.push(point_text(mapping, parseFloat(numbers[index]), parseFloat(numbers[index + 1])).replace(" ", ","));
+	}
+	element.setAttribute("points", pairs.join(" "));
+}
+
+// Gradients in user space follow the drawing through their own transform.
+function bake_gradient(element, mapping) {
+	if (element.hasAttribute("href") || element.hasAttributeNS(xlink_namespace, "href")) {
+		throw unsupported("a gradient borrows settings from another gradient");
+	}
+	if (element.getAttribute("gradientUnits") !== "userSpaceOnUse") {
+		return;
+	}
+	var existing = element.getAttribute("gradientTransform");
+	element.setAttribute("gradientTransform", transform_text(mapping) + (existing ? " " + existing : ""));
+}
+
+/* stroke widths live in the same units as the geometry, so they scale too */
+
+function scale_stroke_value(value, mapping, name) {
+	var trimmed = value.trim();
+	if (trimmed === "" || trimmed === "none" || trimmed === "inherit") {
+		return value;
+	}
+	return trimmed.split(/[\s,]+/).map(function (piece) {
+		var match = plain_length_pattern.exec(piece);
+		if (!match) {
+			throw unsupported("it has " + name + " set to \"" + trimmed + "\"");
+		}
+		return length_text(mapping, parseFloat(match[1]));
+	}).join(" ");
+}
+
+function bake_stroke(element, mapping) {
+	stroke_length_names.forEach(function (name) {
+		if (element.hasAttribute(name)) {
+			element.setAttribute(name, scale_stroke_value(element.getAttribute(name), mapping, name));
+		}
+	});
+
+	var style = element.getAttribute("style");
+	if (!style) {
+		return;
+	}
+	var declarations = style.split(";").map(function (declaration) {
+		var colon = declaration.indexOf(":");
+		if (colon === -1) {
+			return declaration;
+		}
+		var name = declaration.slice(0, colon).trim().toLowerCase();
+		if (name === "transform" || name === "vector-effect") {
+			throw unsupported("a style attribute sets " + name);
+		}
+		if (stroke_length_names.indexOf(name) === -1) {
+			return declaration;
+		}
+		return declaration.slice(0, colon + 1) + scale_stroke_value(declaration.slice(colon + 1), mapping, name);
+	});
+	element.setAttribute("style", declarations.join(";"));
+}
+
+function paints_stroke(svg) {
+	var elements = [svg].concat(Array.prototype.slice.call(svg.getElementsByTagName("*")));
+	return elements.some(function (element) {
+		var value = element.getAttribute("stroke");
+		var match = /(?:^|;)\s*stroke\s*:([^;]*)/i.exec(element.getAttribute("style") || "");
+		if (match) {
+			value = match[1];
+		}
+		return value !== null && value.trim() !== "" && value.trim() !== "none";
+	});
+}
+
+function sets_stroke_width(element) {
+	return element.hasAttribute("stroke-width") || /(?:^|;)\s*stroke-width\s*:/i.test(element.getAttribute("style") || "");
+}
+
+/* tree walk */
+
+function bake_children(element, mapping) {
+	Array.prototype.forEach.call(element.children, function (child) {
+		bake_element(child, mapping);
+	});
+}
+
+// Throws for anything it doesn't know how to rewrite; the caller then wraps instead.
+function bake_element(element, mapping) {
+	var name = element.localName;
+	if (element.namespaceURI !== svg_namespace || ignored_elements.indexOf(name) !== -1) {
+		return;
+	}
+	if (element.hasAttribute("transform")) {
+		throw unsupported("a <" + name + "> has its own transform");
+	}
+	if (element.hasAttribute("vector-effect")) {
+		throw unsupported("a <" + name + "> uses vector-effect");
+	}
+	bake_stroke(element, mapping);
+
+	if (container_elements.indexOf(name) !== -1) {
+		bake_children(element, mapping);
+	} else if (name === "path") {
+		if (element.hasAttribute("d")) {
+			element.setAttribute("d", serialize_path(parse_path(element.getAttribute("d")), mapping));
+		}
+	} else if (name === "rect") {
+		bake_position(element, "x", "y", mapping);
+		bake_sizes(element, ["width", "height", "rx", "ry"], mapping);
+	} else if (name === "circle") {
+		bake_position(element, "cx", "cy", mapping);
+		bake_sizes(element, ["r"], mapping);
+	} else if (name === "ellipse") {
+		bake_position(element, "cx", "cy", mapping);
+		bake_sizes(element, ["rx", "ry"], mapping);
+	} else if (name === "line") {
+		bake_position(element, "x1", "y1", mapping);
+		bake_position(element, "x2", "y2", mapping);
+	} else if (name === "polyline" || name === "polygon") {
+		bake_points(element, mapping);
+	} else if (name === "linearGradient" || name === "radialGradient") {
+		bake_gradient(element, mapping);
+	} else if (name === "clipPath") {
+		// Bounding-box clip paths are already relative to the shape they clip.
+		if (element.getAttribute("clipPathUnits") !== "objectBoundingBox") {
+			bake_children(element, mapping);
+		}
+	} else {
+		throw unsupported("it contains a <" + name + "> element");
+	}
+}
+
+function bake_tree(svg, mapping) {
+	bake_stroke(svg, mapping);
+	bake_children(svg, mapping);
+	// An unset stroke-width means 1 old unit; pin it so strokes keep their look.
+	if (paints_stroke(svg) && !sets_stroke_width(svg)) {
+		svg.setAttribute("stroke-width", length_text(mapping, 1));
+	}
+}
+
+function wrap_children(svg, mapping) {
+	var group = svg.ownerDocument.createElementNS(svg_namespace, "g");
+	group.setAttribute("transform", transform_text(mapping));
+	Array.prototype.slice.call(svg.childNodes).forEach(function (node) {
+		var stays_on_root = node.nodeType === 1 && (node.localName === "title" || node.localName === "desc");
+		if (!stays_on_root) {
+			group.appendChild(node);
+		}
+	});
+	svg.appendChild(group);
+}
+
+function normalize_svg(svg, width, height) {
+	var view_box = read_view_box(svg);
+	if (!view_box) {
+		return { svg: svg, method: "skipped", reason: "its viewBox couldn't be read" };
+	}
+
+	var mapping = compute_mapping(view_box, width, height, svg.getAttribute("preserveAspectRatio"));
+	var result = { svg: svg, method: "baked", reason: "" };
+
+	if (!is_uniform(mapping)) {
+		result.method = "wrapped";
+		result.reason = "the new width and height stretch the drawing unevenly";
+	} else {
+		// Bake a copy, so a failure halfway leaves the original untouched for wrapping.
+		try {
+			var baked = svg.cloneNode(true);
+			bake_tree(baked, mapping);
+			result.svg = baked;
+		} catch (error) {
+			result.method = "wrapped";
+			result.reason = error.is_unsupported ? error.message : "part of it couldn't be rewritten";
+		}
+	}
+
+	if (result.method === "wrapped") {
+		wrap_children(svg, mapping);
+	}
+	result.svg.setAttribute("viewBox", "0 0 " + width + " " + height);
+	result.svg.removeAttribute("preserveAspectRatio");
+	return result;
+}
+
+function describe_normalize() {
+	if (!last_normalize) {
+		return "";
+	}
+	var view_box = "0 0 " + target_width + " " + target_height;
+	if (last_normalize.method === "baked") {
+		return "Coordinates rewritten to a viewBox of " + view_box + ".";
+	}
+	if (last_normalize.method === "wrapped") {
+		return "The viewBox is now " + view_box + ", but the drawing was wrapped in a scaling group instead of rewritten, because " + last_normalize.reason + ".";
+	}
+	return "Coordinates left as they are, because " + last_normalize.reason + ".";
+}
+
+/* ---------- output ---------- */
+
 function build_markup() {
 	var clone = source_svg.cloneNode(true);
+	last_normalize = null;
+	if (normalize_input.checked) {
+		last_normalize = normalize_svg(clone, target_width, target_height);
+		clone = last_normalize.svg;
+	}
 	clone.setAttribute("width", String(target_width));
 	clone.setAttribute("height", String(target_height));
 	return new XMLSerializer().serializeToString(clone);
@@ -652,7 +1183,7 @@ function base_name() {
 function save_svg() {
 	var blob = new Blob([build_markup()], { type: "image/svg+xml;charset=utf-8" });
 	save_blob(blob, base_name() + "-" + target_width + "x" + target_height + ".svg");
-	set_status("Saved SVG at " + target_width + " × " + target_height + ".");
+	set_status(("Saved SVG at " + target_width + " × " + target_height + ". " + describe_normalize()).trim());
 }
 
 function save_png() {
@@ -788,6 +1319,11 @@ document.querySelectorAll("#backdrop button").forEach(function (button) {
 			canvas.classList.add(button.dataset.backdrop);
 		}
 	});
+});
+
+normalize_input.addEventListener("change", function () {
+	render_preview();
+	set_status(normalize_input.checked ? describe_normalize() : "Coordinates left as they are. Only width and height change.");
 });
 
 save_svg_button.addEventListener("click", save_svg);
