@@ -1,0 +1,4745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERD generator</title>
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e0f12">
+
+<link rel="stylesheet" href="../../styles/core.css">
+<style>
+	html,
+	body {
+		height: 100%;
+	}
+
+	body {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.workspace {
+		flex: 1 1 auto;
+		display: grid;
+		grid-template-columns: var(--editor_width, 380px) 7px minmax(0, 1fr);
+		min-height: 0;
+	}
+
+	.workspace.collapsed {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.workspace.collapsed .editor_pane,
+	.workspace.collapsed .splitter {
+		display: none;
+	}
+
+	/* ---------- splitter ---------- */
+
+	.splitter {
+		position: relative;
+		background: var(--page);
+		cursor: col-resize;
+		touch-action: none;
+	}
+
+	.splitter::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 3px;
+		width: 1px;
+		background: var(--line);
+	}
+
+	.splitter:hover::before,
+	.splitter:focus-visible::before,
+	.workspace.resizing .splitter::before {
+		left: 2px;
+		width: 3px;
+		background: var(--ink_faint);
+	}
+
+	.splitter:focus-visible {
+		outline: 0;
+	}
+
+	.workspace.resizing,
+	.workspace.resizing .viewport {
+		cursor: col-resize;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+
+	/* ---------- editor pane ---------- */
+
+	.editor_pane {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		min-height: 0;
+	}
+
+	.masthead {
+		padding: 18px 16px 12px;
+	}
+
+	.masthead h1 {
+		font-size: 20px;
+	}
+
+	.masthead p {
+		margin: 4px 0 0;
+		color: var(--ink_soft);
+		font-size: 13px;
+	}
+
+	.sources {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		padding: 0 16px 8px;
+	}
+
+	.source_tab {
+		display: inline-flex;
+		align-items: center;
+		border-radius: var(--radius);
+		background: var(--surface);
+	}
+
+	.source_tab:hover {
+		background: var(--raised);
+	}
+
+	.source_tab button,
+	.source_tab button:hover {
+		background: transparent;
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	.source_tab .source_name {
+		padding: 5px 4px 5px 9px;
+	}
+
+	.source_tab .source_close {
+		padding: 5px 8px 5px 5px;
+		color: var(--ink_faint);
+	}
+
+	.source_tab .source_close:hover {
+		color: var(--ink);
+	}
+
+	.source_tab.on {
+		background: var(--ink);
+	}
+
+	.source_tab.on .source_name {
+		color: var(--page);
+		font-weight: 600;
+	}
+
+	.source_tab.on .source_close {
+		color: var(--ink_faint);
+	}
+
+	.source_tab.on .source_close:hover {
+		color: var(--page);
+	}
+
+	.source_tab .source_rename {
+		width: 16ch;
+		margin: 2px;
+		padding: 3px 6px;
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	.editor {
+		flex: 1 1 auto;
+		min-height: 0;
+		margin: 0 16px;
+	}
+
+	.editor textarea {
+		display: block;
+		width: 100%;
+		height: 100%;
+		padding: 12px;
+		resize: none;
+		font-family: var(--mono);
+		font-size: 12.5px;
+		line-height: 1.6;
+		tab-size: 4;
+		white-space: pre;
+		overflow: auto;
+	}
+
+	.workspace.dropping .editor textarea {
+		outline: 2px dashed var(--ink);
+		outline-offset: -8px;
+	}
+
+	.pane_actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		padding: 10px 16px 0;
+	}
+
+	.report {
+		padding: 10px 16px 16px;
+	}
+
+	.summary {
+		margin: 0;
+		color: var(--ink_soft);
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	.issues {
+		max-height: 168px;
+		margin: 6px 0 0;
+		padding: 0;
+		list-style: none;
+		overflow: auto;
+	}
+
+	.issues button {
+		display: block;
+		width: 100%;
+		padding: 5px 6px;
+		background: transparent;
+		text-align: left;
+		font-size: 12.5px;
+	}
+
+	.issues button:hover {
+		background: var(--surface);
+	}
+
+	.issues .where {
+		margin-right: 8px;
+		color: var(--warn);
+		font-family: var(--mono);
+		font-size: 11.5px;
+	}
+
+	.issues .error .where {
+		color: var(--danger);
+	}
+
+	/* ---------- diagram pane ---------- */
+
+	.diagram_pane {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		min-height: 0;
+	}
+
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		align-items: center;
+		padding: 8px 10px;
+		background: var(--surface);
+	}
+
+	.toolbar .spacer {
+		flex: 1 1 auto;
+	}
+
+	.toolbar .group {
+		display: flex;
+		gap: 2px;
+	}
+
+	.toolbar button {
+		background: var(--page);
+	}
+
+	.toolbar button:hover {
+		background: var(--raised);
+	}
+
+	.toolbar button.on {
+		background: var(--ink);
+		color: var(--page);
+		font-weight: 600;
+	}
+
+	#zoom_label {
+		min-width: 58px;
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	#find_table {
+		width: 170px;
+		background: var(--page);
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	.viewport {
+		position: relative;
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow: hidden;
+		background-color: var(--well);
+		background-image: radial-gradient(circle, var(--line_strong) 1px, transparent 1.3px);
+		background-size: 22px 22px;
+		cursor: grab;
+		touch-action: none;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+
+	.viewport:focus-visible {
+		outline-offset: -2px;
+	}
+
+	.viewport.panning {
+		cursor: grabbing;
+	}
+
+	.world {
+		position: absolute;
+		left: 0;
+		top: 0;
+		transform-origin: 0 0;
+	}
+
+	.links {
+		position: absolute;
+		overflow: visible;
+		pointer-events: none;
+	}
+
+	.link_hit {
+		fill: none;
+		stroke: transparent;
+		stroke-width: 12;
+		pointer-events: stroke;
+		cursor: pointer;
+	}
+
+	.link_line,
+	.link_mark {
+		fill: none;
+		stroke: var(--ink_faint);
+		stroke-width: 1.5;
+	}
+
+	.link_dot {
+		fill: var(--well);
+		stroke: var(--ink_faint);
+		stroke-width: 1.5;
+	}
+
+	.link.on .link_line,
+	.link.on .link_mark,
+	.link.on .link_dot {
+		stroke: var(--ink);
+	}
+
+	.world.focusing .link:not(.near):not(.on) {
+		opacity: 0.12;
+	}
+
+	.entity {
+		position: absolute;
+		min-width: 170px;
+		background: var(--surface);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow);
+		font-family: var(--mono);
+		font-size: 12px;
+		cursor: default;
+	}
+
+	.entity.dragging {
+		box-shadow: var(--shadow_deep);
+		cursor: grabbing;
+	}
+
+	.entity.selected {
+		box-shadow: 0 0 0 2px var(--ink), var(--shadow);
+	}
+
+	.entity.related {
+		box-shadow: 0 0 0 1px var(--ink_faint), var(--shadow);
+	}
+
+	.world.focusing .entity:not(.selected):not(.related) {
+		opacity: 0.35;
+	}
+
+	.entity_head {
+		display: flex;
+		align-items: baseline;
+		padding: 7px 10px;
+		border-radius: var(--radius) var(--radius) 0 0;
+		background: var(--raised);
+		font-size: 12.5px;
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: move;
+	}
+
+	.entity_schema {
+		color: var(--ink_faint);
+		font-weight: 400;
+	}
+
+	.entity_note {
+		margin-left: 8px;
+		color: var(--ink_faint);
+		font-weight: 400;
+	}
+
+	.entity_rows {
+		margin: 0;
+		padding: 3px 0 4px;
+		list-style: none;
+	}
+
+	.row {
+		display: grid;
+		grid-template-columns: 32px 1fr auto;
+		column-gap: 16px;
+		align-items: baseline;
+		padding: 1px 10px;
+		line-height: 1.65;
+		white-space: nowrap;
+	}
+
+	.row.lit {
+		background: var(--accent_wash);
+	}
+
+	.row_mark {
+		color: var(--ink_faint);
+		font-size: 10px;
+	}
+
+	.row_name {
+		color: var(--ink_soft);
+	}
+
+	.row.pk .row_name {
+		color: var(--ink);
+		font-weight: 600;
+	}
+
+	.row_type {
+		color: var(--ink_faint);
+	}
+
+	.row.more {
+		display: block;
+		color: var(--ink_faint);
+		font-size: 11px;
+	}
+
+	.tooltip {
+		position: absolute;
+		z-index: 5;
+		max-width: 360px;
+		padding: 7px 9px;
+		border-radius: var(--radius);
+		background: var(--raised);
+		box-shadow: var(--shadow);
+		color: var(--ink_soft);
+		font-family: var(--mono);
+		font-size: 11.5px;
+		line-height: 1.5;
+		white-space: pre-line;
+		pointer-events: none;
+	}
+
+	.tooltip[hidden],
+	.empty[hidden] {
+		display: none;
+	}
+
+	.empty {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 24px;
+		text-align: center;
+		pointer-events: none;
+	}
+
+	.empty p {
+		max-width: 44ch;
+		margin: 0;
+		color: var(--ink_faint);
+	}
+
+	.empty .actions {
+		display: flex;
+		gap: 6px;
+		pointer-events: auto;
+	}
+
+	.hint {
+		position: absolute;
+		left: 10px;
+		bottom: 8px;
+		margin: 0;
+		color: var(--ink_faint);
+		font-family: var(--mono);
+		font-size: 11px;
+		pointer-events: none;
+	}
+
+	/* ---------- toast ---------- */
+
+	.toast {
+		position: fixed;
+		left: 50%;
+		bottom: 18px;
+		z-index: 20;
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		max-width: calc(100vw - 32px);
+		padding: 8px 8px 8px 14px;
+		border-radius: var(--radius);
+		background: var(--raised);
+		box-shadow: var(--shadow_deep);
+		color: var(--ink_soft);
+		font-size: 13px;
+		transform: translateX(-50%);
+		transition: opacity 160ms ease, transform 160ms ease;
+	}
+
+	.toast[hidden] {
+		display: none;
+	}
+
+	.toast.leaving {
+		opacity: 0;
+		transform: translate(-50%, 6px);
+	}
+
+	.toast button {
+		background: var(--ink);
+		color: var(--page);
+		font-weight: 600;
+	}
+
+	.toast button:hover {
+		background: var(--ink);
+		color: var(--page);
+	}
+
+	@media (max-width: 820px) {
+		html,
+		body {
+			height: auto;
+		}
+
+		body {
+			overflow: auto;
+		}
+
+		.workspace {
+			display: flex;
+			flex-direction: column;
+		}
+
+		.splitter {
+			display: none;
+		}
+
+		/* stacked layout: drag the corner of the editor to change its height */
+		.editor {
+			flex: none;
+			height: 240px;
+			min-height: 120px;
+			overflow: hidden;
+			resize: vertical;
+		}
+
+		.diagram_pane {
+			height: 78vh;
+		}
+
+		.hint {
+			display: none;
+		}
+	}
+</style>
+</head>
+<body>
+
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>ERD_generator</strong>
+</nav>
+
+<div class="workspace" id="workspace">
+
+	<section class="editor_pane" aria-label="SQL sources">
+		<header class="masthead">
+			<h1>ERD generator</h1>
+			<p>Paste or drop .sql files. Tables and foreign keys are drawn as you type. Nothing is uploaded.</p>
+		</header>
+
+		<div class="sources" id="source_tabs"></div>
+
+		<div class="editor">
+			<textarea id="sql" spellcheck="false" autocomplete="off" aria-label="SQL for the selected file" placeholder="CREATE TABLE &quot;users&quot; (&#10;&#9;id bigint PRIMARY KEY,&#10;&#9;email text NOT NULL UNIQUE&#10;);"></textarea>
+		</div>
+
+		<div class="pane_actions">
+			<button type="button" id="open_button">Open .sql files</button>
+			<button type="button" id="new_button">New file</button>
+			<button type="button" id="example_button">Load example</button>
+			<input type="file" id="file_input" accept=".sql,.txt,.ddl,.psql,text/plain,application/sql" multiple hidden>
+		</div>
+
+		<div class="report">
+			<p class="summary" id="summary">No tables yet.</p>
+			<ul class="issues" id="issues"></ul>
+		</div>
+	</section>
+
+	<div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize the editor" tabindex="0" title="Drag to resize. Double-click to reset."></div>
+
+	<section class="diagram_pane" aria-label="Diagram">
+		<div class="toolbar">
+			<button type="button" id="editor_toggle">Hide editor</button>
+			<input type="search" id="find_table" list="table_names" placeholder="Find a table" autocomplete="off" spellcheck="false" aria-label="Find a table">
+			<datalist id="table_names"></datalist>
+			<span class="spacer"></span>
+			<button type="button" id="keys_button" title="Show only primary key, foreign key and referenced columns">Keys only</button>
+			<button type="button" id="layout_button" title="Discard manual positions and arrange every table again">Auto layout</button>
+			<div class="group">
+				<button type="button" id="zoom_out" aria-label="Zoom out">&minus;</button>
+				<button type="button" id="zoom_label" title="Reset to 100%">100%</button>
+				<button type="button" id="zoom_in" aria-label="Zoom in">+</button>
+			</div>
+			<button type="button" id="fit_button">Fit</button>
+			<div class="group">
+				<button type="button" id="svg_button">Export SVG</button>
+				<button type="button" id="png_button">Export PNG</button>
+			</div>
+		</div>
+
+		<div class="viewport" id="viewport" tabindex="0" aria-label="Diagram canvas. Arrow keys pan, plus and minus zoom, 0 fits.">
+			<div class="world" id="world">
+				<svg class="links" id="links" xmlns="http://www.w3.org/2000/svg"></svg>
+				<div id="entities"></div>
+			</div>
+
+			<div class="empty" id="empty">
+				<p>Paste CREATE TABLE statements on the left, or drop .sql files anywhere on this page. Foreign keys from ALTER TABLE in other files are picked up too.</p>
+				<div class="actions">
+					<button type="button" class="primary" id="empty_example_button">Load example</button>
+					<button type="button" id="empty_open_button">Open .sql files</button>
+				</div>
+			</div>
+
+			<p class="hint">Drag to pan. Ctrl + scroll to zoom. Double-click a table to open its SQL.</p>
+			<div class="tooltip" id="tooltip" hidden></div>
+		</div>
+	</section>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+	<span id="toast_message"></span>
+	<button type="button" id="toast_undo">Undo</button>
+</div>
+
+<script>
+	/* ---------- tokenizer ---------- */
+
+	/* Turns SQL text into words, quoted identifiers, strings, numbers and symbols.
+	   Comments disappear here, so the parser never sees them. Every token keeps
+	   its start offset, which is how issues point back to a line. */
+
+	const word_pattern = /[A-Za-z_\u00C0-\uFFFF][A-Za-z0-9_$\u00C0-\uFFFF]*/y;
+	const number_pattern = /(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y;
+	const dollar_pattern = /\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/y;
+
+	function tokenize(text) {
+		const tokens = [];
+		const problems = [];
+		const length = text.length;
+		let index = 0;
+
+		function read_quoted(open, quote, backslash_escapes) {
+			let cursor = open + 1;
+			let value = "";
+
+			while (cursor < length) {
+				const char = text[cursor];
+
+				if (backslash_escapes && char === "\\" && cursor + 1 < length) {
+					value += text[cursor + 1];
+					cursor += 2;
+					continue;
+				}
+
+				if (char === quote) {
+					if (text[cursor + 1] === quote) {
+						value += quote;
+						cursor += 2;
+						continue;
+					}
+
+					return { value: value, end: cursor + 1 };
+				}
+
+				value += char;
+				cursor++;
+			}
+
+			problems.push({ message: "Unterminated " + (quote === "'" ? "string" : "quoted name") + " starts here.", offset: open });
+
+			return { value: value, end: length };
+		}
+
+		function at_line_start(position) {
+			let cursor = position - 1;
+
+			while (cursor >= 0 && (text[cursor] === " " || text[cursor] === "\t")) {
+				cursor--;
+			}
+
+			return cursor < 0 || text[cursor] === "\n";
+		}
+
+		while (index < length) {
+			const char = text[index];
+			const next = text[index + 1];
+
+			if (char === " " || char === "\t" || char === "\n" || char === "\r" || char === "\f" || char === "\v") {
+				index++;
+				continue;
+			}
+
+			if (char === "-" && next === "-") {
+				const end = text.indexOf("\n", index);
+				index = end === -1 ? length : end;
+				continue;
+			}
+
+			if (char === "/" && next === "*") {
+				const start = index;
+				let depth = 1;
+				index += 2;
+
+				while (index < length && depth > 0) {
+					if (text[index] === "/" && text[index + 1] === "*") {
+						depth++;
+						index += 2;
+					}
+
+					else if (text[index] === "*" && text[index + 1] === "/") {
+						depth--;
+						index += 2;
+					}
+
+					else {
+						index++;
+					}
+				}
+
+				if (depth > 0) {
+					problems.push({ message: "Unterminated block comment starts here.", offset: start });
+				}
+
+				continue;
+			}
+
+			/* psql meta commands such as \connect or \restrict in pg_dump output */
+			if (char === "\\" && at_line_start(index)) {
+				const end = text.indexOf("\n", index);
+				tokens.push({ type: "symbol", value: ";", start: index, end: index });
+				index = end === -1 ? length : end;
+				continue;
+			}
+
+			if (char === "'") {
+				const read = read_quoted(index, "'", false);
+				tokens.push({ type: "string", value: read.value, start: index, end: read.end });
+				index = read.end;
+				continue;
+			}
+
+			if (next === "'" && "eEbBxXnN".indexOf(char) !== -1) {
+				const read = read_quoted(index + 1, "'", char === "e" || char === "E");
+				tokens.push({ type: "string", value: read.value, start: index, end: read.end });
+				index = read.end;
+				continue;
+			}
+
+			if ((char === "u" || char === "U") && next === "&" && text[index + 2] === "'") {
+				const read = read_quoted(index + 2, "'", false);
+				tokens.push({ type: "string", value: read.value, start: index, end: read.end });
+				index = read.end;
+				continue;
+			}
+
+			if (char === "\"" || char === "`") {
+				const read = read_quoted(index, char, false);
+				tokens.push({ type: "ident", value: read.value, start: index, end: read.end });
+				index = read.end;
+				continue;
+			}
+
+			if (char === "$") {
+				dollar_pattern.lastIndex = index;
+				const match = dollar_pattern.exec(text);
+
+				if (match !== null) {
+					const tag = match[0];
+					const close = text.indexOf(tag, index + tag.length);
+					const end = close === -1 ? length : close + tag.length;
+
+					if (close === -1) {
+						problems.push({ message: "Unterminated dollar quoted string starts here.", offset: index });
+					}
+
+					tokens.push({ type: "string", value: text.slice(index + tag.length, close === -1 ? length : close), start: index, end: end });
+					index = end;
+					continue;
+				}
+			}
+
+			word_pattern.lastIndex = index;
+			const word = word_pattern.exec(text);
+
+			if (word !== null) {
+				tokens.push({ type: "word", value: word[0], lower: word[0].toLowerCase(), start: index, end: index + word[0].length });
+				index += word[0].length;
+				continue;
+			}
+
+			if ((char >= "0" && char <= "9") || (char === "." && next >= "0" && next <= "9")) {
+				number_pattern.lastIndex = index;
+				const number = number_pattern.exec(text);
+				tokens.push({ type: "number", value: number[0], start: index, end: index + number[0].length });
+				index += number[0].length;
+				continue;
+			}
+
+			if (char === ":" && next === ":") {
+				tokens.push({ type: "symbol", value: "::", start: index, end: index + 2 });
+				index += 2;
+				continue;
+			}
+
+			tokens.push({ type: "symbol", value: char, start: index, end: index + 1 });
+			index++;
+		}
+
+		return { tokens: tokens, problems: problems };
+	}
+
+	function split_statements(tokens) {
+		const statements = [];
+		let current = [];
+
+		for (const token of tokens) {
+			if (token.type === "symbol" && token.value === ";") {
+				if (current.length > 0) {
+					statements.push(current);
+				}
+
+				current = [];
+				continue;
+			}
+
+			current.push(token);
+		}
+
+		if (current.length > 0) {
+			statements.push(current);
+		}
+
+		return statements;
+	}
+
+	/* ---------- cursor helpers ---------- */
+
+	function peek(cursor, offset) {
+		return cursor.tokens[cursor.index + (offset || 0)];
+	}
+
+	function take(cursor) {
+		const token = cursor.tokens[cursor.index];
+
+		if (token !== undefined) {
+			cursor.index++;
+		}
+
+		return token;
+	}
+
+	function at_end(cursor) {
+		return cursor.index >= cursor.tokens.length;
+	}
+
+	function is_word(token, word) {
+		return token !== undefined && token.type === "word" && token.lower === word;
+	}
+
+	function is_symbol(token, symbol) {
+		return token !== undefined && token.type === "symbol" && token.value === symbol;
+	}
+
+	function is_identifier(token) {
+		return token !== undefined && (token.type === "word" || token.type === "ident");
+	}
+
+	function identifier_name(token) {
+		return token.type === "ident" ? token.value : token.value.toLowerCase();
+	}
+
+	function accept_word(cursor, word) {
+		if (is_word(peek(cursor), word)) {
+			cursor.index++;
+			return true;
+		}
+
+		return false;
+	}
+
+	function accept_words(cursor) {
+		const words = Array.prototype.slice.call(arguments, 1);
+
+		for (let offset = 0; offset < words.length; offset++) {
+			if (!is_word(peek(cursor, offset), words[offset])) {
+				return false;
+			}
+		}
+
+		cursor.index += words.length;
+
+		return true;
+	}
+
+	function accept_one_of(cursor, words) {
+		const token = peek(cursor);
+
+		if (token !== undefined && token.type === "word" && words.indexOf(token.lower) !== -1) {
+			cursor.index++;
+			return true;
+		}
+
+		return false;
+	}
+
+	function accept_symbol(cursor, symbol) {
+		if (is_symbol(peek(cursor), symbol)) {
+			cursor.index++;
+			return true;
+		}
+
+		return false;
+	}
+
+	function describe_token(token) {
+		if (token === undefined) {
+			return "the end of the statement";
+		}
+
+		if (token.type === "string") {
+			return "a string";
+		}
+
+		return "\"" + token.value + "\"";
+	}
+
+	function fail(message, token) {
+		throw { erd_error: true, message: message, offset: token === undefined ? -1 : token.start };
+	}
+
+	function read_identifier(cursor, what) {
+		const token = peek(cursor);
+
+		if (!is_identifier(token)) {
+			fail("Expected " + what + ", found " + describe_token(token) + ".", token);
+		}
+
+		cursor.index++;
+
+		return identifier_name(token);
+	}
+
+	function read_qualified_name(cursor, what) {
+		const parts = [read_identifier(cursor, what)];
+
+		while (is_symbol(peek(cursor), ".") && is_identifier(peek(cursor, 1))) {
+			cursor.index++;
+			parts.push(identifier_name(take(cursor)));
+		}
+
+		return parts;
+	}
+
+	/* Consumes a parenthesised group and returns the tokens inside it. */
+	function take_group(cursor) {
+		const open = peek(cursor);
+
+		if (!is_symbol(open, "(")) {
+			fail("Expected an opening parenthesis, found " + describe_token(open) + ".", open);
+		}
+
+		cursor.index++;
+
+		const inside = [];
+		let depth = 1;
+
+		while (!at_end(cursor)) {
+			const token = take(cursor);
+
+			if (is_symbol(token, "(")) {
+				depth++;
+			}
+
+			else if (is_symbol(token, ")")) {
+				depth--;
+
+				if (depth === 0) {
+					return inside;
+				}
+			}
+
+			inside.push(token);
+		}
+
+		fail("Missing closing parenthesis for the group that opens here.", open);
+	}
+
+	/* Moves forward until one of the stop symbols appears outside any parentheses. */
+	function skip_to_top_level(cursor, stops) {
+		let depth = 0;
+
+		while (!at_end(cursor)) {
+			const token = peek(cursor);
+
+			if (depth === 0 && token.type === "symbol" && stops.indexOf(token.value) !== -1) {
+				return;
+			}
+
+			if (is_symbol(token, "(") || is_symbol(token, "[")) {
+				depth++;
+			}
+
+			else if (is_symbol(token, ")") || is_symbol(token, "]")) {
+				depth--;
+
+				if (depth < 0) {
+					return;
+				}
+			}
+
+			cursor.index++;
+		}
+	}
+
+	function split_top_level(tokens, symbol) {
+		const parts = [[]];
+		let depth = 0;
+
+		for (const token of tokens) {
+			if (is_symbol(token, "(") || is_symbol(token, "[")) {
+				depth++;
+			}
+
+			else if (is_symbol(token, ")") || is_symbol(token, "]")) {
+				depth--;
+			}
+
+			if (depth === 0 && is_symbol(token, symbol)) {
+				parts.push([]);
+				continue;
+			}
+
+			parts[parts.length - 1].push(token);
+		}
+
+		return parts;
+	}
+
+	/* ---------- formatting tokens back into text ---------- */
+
+	function token_text(token, quote_identifiers) {
+		if (token.type === "string") {
+			return "'" + token.value.replace(/'/g, "''") + "'";
+		}
+
+		if (token.type === "ident") {
+			return quote_identifiers ? "\"" + token.value + "\"" : token.value;
+		}
+
+		if (token.type === "word") {
+			return token.lower;
+		}
+
+		return token.value;
+	}
+
+	function format_tokens(tokens, quote_identifiers) {
+		const tight_after = ["(", "[", ".", "::"];
+		const tight_before = ["(", ")", "[", "]", ",", ".", "::"];
+		let out = "";
+		let previous = null;
+
+		for (const token of tokens) {
+			const text = token_text(token, quote_identifiers);
+
+			if (previous !== null) {
+				const glued = (previous.type === "symbol" && tight_after.indexOf(previous.value) !== -1) || (token.type === "symbol" && tight_before.indexOf(token.value) !== -1);
+
+				if (!glued) {
+					out += " ";
+				}
+			}
+
+			out += text;
+			previous = token;
+		}
+
+		return out;
+	}
+
+	function normalize_type(type) {
+		return type
+			.replace(/^pg_catalog\./, "")
+			.replace(/^public\./, "")
+			.replace(/^character varying/, "varchar")
+			.replace(/^character\(/, "char(")
+			.replace(/^timestamp(\(\d+\))? with time zone/, "timestamptz$1")
+			.replace(/^timestamp(\(\d+\))? without time zone/, "timestamp$1")
+			.replace(/^time(\(\d+\))? with time zone/, "timetz$1")
+			.replace(/^time(\(\d+\))? without time zone/, "time$1");
+	}
+
+	/* ---------- schema model ---------- */
+
+	function make_table_ref(parts, default_schema) {
+		if (parts.length >= 2) {
+			return { schema: parts[parts.length - 2], name: parts[parts.length - 1], qualified: true };
+		}
+
+		return { schema: default_schema, name: parts[0], qualified: false };
+	}
+
+	function ref_key(ref) {
+		return ref.schema + "." + ref.name;
+	}
+
+	function display_name(schema_name, name) {
+		return schema_name === "public" ? name : schema_name + "." + name;
+	}
+
+	/* Exact match first. An unqualified name that is not in the default schema
+	   falls back to a table of that name in any schema, if there is only one. */
+	function find_table(model, ref) {
+		const exact = model.tables.get(ref_key(ref));
+
+		if (exact !== undefined || ref.qualified) {
+			return exact;
+		}
+
+		let found;
+		let count = 0;
+
+		for (const table of model.tables.values()) {
+			if (table.name === ref.name) {
+				found = table;
+				count++;
+			}
+		}
+
+		return count === 1 ? found : undefined;
+	}
+
+	function find_column(table, name) {
+		for (const column of table.columns) {
+			if (column.name === name) {
+				return column;
+			}
+		}
+
+		return undefined;
+	}
+
+	function add_issue(context, level, message, offset) {
+		context.model.issues.push({ level: level, message: message, source_id: context.source.id, offset: offset });
+	}
+
+	function new_table(ref, context, offset) {
+		return {
+			key: ref_key(ref),
+			schema: ref.schema,
+			name: ref.name,
+			columns: [],
+			primary_key: null,
+			uniques: [],
+			foreign_keys: [],
+			comment: "",
+			source_id: context.source.id,
+			offset: offset
+		};
+	}
+
+	/* ---------- statements ---------- */
+
+	const table_constraint_words = ["constraint", "primary", "foreign", "unique", "check", "exclude"];
+
+	const column_stop_words = new Set([
+		"constraint", "not", "null", "primary", "unique", "default", "references", "check",
+		"generated", "collate", "auto_increment", "autoincrement", "comment", "deferrable",
+		"initially", "on", "using"
+	]);
+
+	const serial_types = ["serial", "serial4", "bigserial", "serial8", "smallserial", "serial2"];
+
+	function parse_statement(context) {
+		const cursor = { tokens: context.statement, index: 0 };
+
+		if (accept_word(cursor, "create")) {
+			accept_words(cursor, "or", "replace");
+
+			while (accept_one_of(cursor, ["global", "local", "temp", "temporary", "unlogged", "foreign"])) {
+				continue;
+			}
+
+			if (accept_word(cursor, "table")) {
+				parse_create_table(context, cursor);
+				return;
+			}
+
+			if (is_word(peek(cursor), "unique") || is_word(peek(cursor), "index")) {
+				parse_create_index(context, cursor);
+				return;
+			}
+
+			if (accept_word(cursor, "type")) {
+				parse_create_type(context, cursor);
+			}
+
+			return;
+		}
+
+		if (accept_words(cursor, "alter", "table")) {
+			parse_alter_table(context, cursor);
+			return;
+		}
+
+		if (accept_words(cursor, "comment", "on")) {
+			parse_comment(context, cursor);
+			return;
+		}
+
+		if (accept_word(cursor, "set")) {
+			accept_one_of(cursor, ["session", "local"]);
+
+			if (accept_word(cursor, "search_path")) {
+				if (!accept_word(cursor, "to")) {
+					accept_symbol(cursor, "=");
+				}
+
+				const token = peek(cursor);
+
+				if (is_identifier(token)) {
+					context.model.default_schema = identifier_name(token);
+				}
+
+				else if (token !== undefined && token.type === "string" && token.value.trim() !== "") {
+					context.model.default_schema = token.value.split(",")[0].trim().replace(/"/g, "");
+				}
+			}
+		}
+	}
+
+	function parse_create_table(context, cursor) {
+		const if_not_exists = accept_words(cursor, "if", "not", "exists");
+		const name_token = peek(cursor);
+		const ref = make_table_ref(read_qualified_name(cursor, "a table name after CREATE TABLE"), context.model.default_schema);
+
+		/* partitions, typed tables and CREATE TABLE AS carry no column list of their own */
+		if (is_word(peek(cursor), "partition") || is_word(peek(cursor), "of") || is_word(peek(cursor), "as")) {
+			return;
+		}
+
+		const table = new_table(ref, context, name_token.start);
+		const open = peek(cursor);
+
+		if (!is_symbol(open, "(")) {
+			fail("Expected \"(\" after the name of table " + display_name(ref.schema, ref.name) + ", found " + describe_token(open) + ".", open);
+		}
+
+		cursor.index++;
+
+		if (!accept_symbol(cursor, ")")) {
+			while (true) {
+				const element_start = cursor.index;
+
+				try {
+					parse_table_element(context, cursor, table);
+				}
+
+				catch (error) {
+					if (error.erd_error !== true) {
+						throw error;
+					}
+
+					add_issue(context, "warn", error.message, error.offset >= 0 ? error.offset : peek(cursor, -1).start);
+					cursor.index = element_start;
+					skip_to_top_level(cursor, [",", ")"]);
+				}
+
+				if (!is_symbol(peek(cursor), ",") && !is_symbol(peek(cursor), ")") && !at_end(cursor)) {
+					add_issue(context, "warn", "Skipped unexpected " + describe_token(peek(cursor)) + " in table " + table.name + ".", peek(cursor).start);
+					skip_to_top_level(cursor, [",", ")"]);
+				}
+
+				if (accept_symbol(cursor, ",")) {
+					continue;
+				}
+
+				if (accept_symbol(cursor, ")")) {
+					break;
+				}
+
+				add_issue(context, "warn", "Table " + table.name + " is missing its closing parenthesis.", open.start);
+				break;
+			}
+		}
+
+		if (accept_word(cursor, "inherits") && is_symbol(peek(cursor), "(")) {
+			const parents = split_top_level(take_group(cursor), ",");
+
+			for (const parent_tokens of parents) {
+				const parent = find_table(context.model, make_table_ref(parent_tokens.filter(is_identifier).map(identifier_name), context.model.default_schema));
+
+				if (parent !== undefined) {
+					copy_columns(parent, table);
+				}
+			}
+		}
+
+		const existing = context.model.tables.get(table.key);
+
+		if (existing !== undefined) {
+			if (if_not_exists) {
+				return;
+			}
+
+			add_issue(context, "warn", "Table " + display_name(table.schema, table.name) + " is defined more than once. The later definition is used.", name_token.start);
+		}
+
+		context.model.tables.set(table.key, table);
+	}
+
+	function copy_columns(from_table, to_table) {
+		for (const column of from_table.columns) {
+			if (find_column(to_table, column.name) === undefined) {
+				to_table.columns.push(Object.assign({}, column));
+			}
+		}
+	}
+
+	function parse_table_element(context, cursor, table) {
+		const token = peek(cursor);
+
+		if (token === undefined) {
+			fail("Table " + table.name + " ends before its column list is closed.", undefined);
+		}
+
+		if (token.type === "word" && table_constraint_words.indexOf(token.lower) !== -1) {
+			parse_table_constraint(context, cursor, table);
+			return;
+		}
+
+		/* MySQL style index lines: KEY name (col), INDEX (col), FULLTEXT KEY ... */
+		if (token.type === "word" && ["key", "index", "fulltext", "spatial"].indexOf(token.lower) !== -1) {
+			const after = peek(cursor, 1);
+			const group_head = is_symbol(after, "(") ? peek(cursor, 2) : peek(cursor, 3);
+			const opens_group = is_symbol(after, "(") || is_symbol(peek(cursor, 2), "(");
+
+			if (opens_group && is_identifier(group_head)) {
+				skip_to_top_level(cursor, [",", ")"]);
+				return;
+			}
+		}
+
+		if (is_word(token, "like")) {
+			cursor.index++;
+
+			const source_table = find_table(context.model, make_table_ref(read_qualified_name(cursor, "a table name after LIKE"), context.model.default_schema));
+
+			if (source_table !== undefined) {
+				copy_columns(source_table, table);
+			}
+
+			skip_to_top_level(cursor, [",", ")"]);
+			return;
+		}
+
+		if (!is_identifier(token)) {
+			fail("Expected a column name in table " + table.name + ", found " + describe_token(token) + ".", token);
+		}
+
+		parse_column_definition(context, cursor, table);
+	}
+
+	function read_type_tokens(cursor) {
+		const type_tokens = [];
+		let depth = 0;
+
+		while (!at_end(cursor)) {
+			const token = peek(cursor);
+
+			if (depth === 0) {
+				if (is_symbol(token, ",") || is_symbol(token, ")")) {
+					break;
+				}
+
+				if (token.type === "word" && column_stop_words.has(token.lower)) {
+					break;
+				}
+			}
+
+			if (is_symbol(token, "(") || is_symbol(token, "[")) {
+				depth++;
+			}
+
+			else if (is_symbol(token, ")") || is_symbol(token, "]")) {
+				depth--;
+			}
+
+			type_tokens.push(take(cursor));
+		}
+
+		return type_tokens;
+	}
+
+	function read_expression_tokens(cursor) {
+		const first = take(cursor);
+
+		if (first === undefined) {
+			return [];
+		}
+
+		if (is_symbol(first, "(")) {
+			cursor.index--;
+			const inside = take_group(cursor);
+			return [first].concat(inside, [{ type: "symbol", value: ")" }], read_type_tokens(cursor));
+		}
+
+		return [first].concat(read_type_tokens(cursor));
+	}
+
+	function parse_column_definition(context, cursor, table) {
+		const name_token = take(cursor);
+		const column = {
+			name: identifier_name(name_token),
+			type: "",
+			nullable: true,
+			default_value: "",
+			identity: false,
+			generated: false,
+			comment: ""
+		};
+
+		column.type = normalize_type(format_tokens(read_type_tokens(cursor), false));
+
+		if (serial_types.indexOf(column.type) !== -1) {
+			column.identity = true;
+			column.nullable = false;
+		}
+
+		let constraint_name = "";
+
+		while (!at_end(cursor)) {
+			const token = peek(cursor);
+
+			if (is_symbol(token, ",") || is_symbol(token, ")")) {
+				break;
+			}
+
+			if (accept_word(cursor, "constraint")) {
+				constraint_name = read_identifier(cursor, "a constraint name");
+				continue;
+			}
+
+			if (accept_words(cursor, "not", "null")) {
+				column.nullable = false;
+			}
+
+			else if (accept_words(cursor, "not", "deferrable")) {
+				continue;
+			}
+
+			else if (accept_word(cursor, "null")) {
+				column.nullable = true;
+			}
+
+			else if (accept_words(cursor, "primary", "key")) {
+				accept_one_of(cursor, ["asc", "desc"]);
+				accept_one_of(cursor, ["autoincrement", "auto_increment"]);
+				table.primary_key = { name: constraint_name, columns: [column.name] };
+				column.nullable = false;
+			}
+
+			else if (accept_word(cursor, "unique")) {
+				if (accept_word(cursor, "nulls")) {
+					accept_word(cursor, "not");
+					accept_word(cursor, "distinct");
+				}
+
+				accept_word(cursor, "key");
+				table.uniques.push({ name: constraint_name, columns: [column.name] });
+			}
+
+			else if (accept_word(cursor, "default")) {
+				column.default_value = format_tokens(read_expression_tokens(cursor), true);
+			}
+
+			else if (accept_word(cursor, "references")) {
+				const reference = parse_reference(context, cursor);
+				table.foreign_keys.push(Object.assign({ name: constraint_name, columns: [column.name], source_id: context.source.id, offset: token.start }, reference));
+			}
+
+			else if (accept_word(cursor, "check")) {
+				if (is_symbol(peek(cursor), "(")) {
+					take_group(cursor);
+				}
+
+				accept_words(cursor, "no", "inherit");
+			}
+
+			else if (accept_word(cursor, "generated")) {
+				if (!accept_word(cursor, "always")) {
+					accept_words(cursor, "by", "default");
+				}
+
+				accept_word(cursor, "as");
+
+				if (accept_word(cursor, "identity")) {
+					column.identity = true;
+					column.nullable = false;
+
+					if (is_symbol(peek(cursor), "(")) {
+						take_group(cursor);
+					}
+				}
+
+				else if (is_symbol(peek(cursor), "(")) {
+					take_group(cursor);
+					column.generated = true;
+					accept_one_of(cursor, ["stored", "virtual"]);
+				}
+			}
+
+			else if (accept_word(cursor, "collate")) {
+				read_qualified_name(cursor, "a collation name");
+			}
+
+			else if (accept_one_of(cursor, ["auto_increment", "autoincrement"])) {
+				column.identity = true;
+				column.nullable = false;
+			}
+
+			else if (accept_word(cursor, "comment")) {
+				if (peek(cursor) !== undefined && peek(cursor).type === "string") {
+					column.comment = take(cursor).value;
+				}
+			}
+
+			else if (accept_word(cursor, "initially")) {
+				take(cursor);
+			}
+
+			else if (is_symbol(token, "(")) {
+				take_group(cursor);
+			}
+
+			else {
+				cursor.index++;
+			}
+
+			constraint_name = "";
+		}
+
+		const existing = find_column(table, column.name);
+
+		if (existing !== undefined) {
+			table.columns[table.columns.indexOf(existing)] = column;
+		}
+
+		else {
+			table.columns.push(column);
+		}
+	}
+
+	function read_action(cursor) {
+		if (accept_words(cursor, "no", "action")) {
+			return "no action";
+		}
+
+		if (accept_word(cursor, "set")) {
+			const what = take(cursor);
+
+			if (is_symbol(peek(cursor), "(")) {
+				take_group(cursor);
+			}
+
+			return "set " + (what === undefined ? "" : token_text(what, false));
+		}
+
+		const token = take(cursor);
+
+		return token === undefined ? "" : token_text(token, false);
+	}
+
+	function read_column_names(tokens) {
+		const names = [];
+		let simple = true;
+
+		for (const element of split_top_level(tokens, ",")) {
+			if (element.length === 0) {
+				continue;
+			}
+
+			if (!is_identifier(element[0]) || is_symbol(element[1], "(") || is_symbol(element[1], ".")) {
+				simple = false;
+				continue;
+			}
+
+			names.push(identifier_name(element[0]));
+		}
+
+		return { names: names, simple: simple };
+	}
+
+	function read_column_list(cursor) {
+		return read_column_names(take_group(cursor)).names;
+	}
+
+	function parse_reference(context, cursor) {
+		const parts = read_qualified_name(cursor, "a table name after REFERENCES");
+		const reference = {
+			target_parts: parts,
+			target_columns: [],
+			default_schema: context.model.default_schema,
+			on_delete: "",
+			on_update: ""
+		};
+
+		if (is_symbol(peek(cursor), "(")) {
+			reference.target_columns = read_column_list(cursor);
+		}
+
+		while (!at_end(cursor)) {
+			if (accept_word(cursor, "match")) {
+				take(cursor);
+			}
+
+			else if (accept_words(cursor, "on", "delete")) {
+				reference.on_delete = read_action(cursor);
+			}
+
+			else if (accept_words(cursor, "on", "update")) {
+				reference.on_update = read_action(cursor);
+			}
+
+			else if (accept_words(cursor, "not", "deferrable") || accept_word(cursor, "deferrable")) {
+				continue;
+			}
+
+			else if (accept_word(cursor, "initially")) {
+				take(cursor);
+			}
+
+			else {
+				break;
+			}
+		}
+
+		return reference;
+	}
+
+	function parse_table_constraint(context, cursor, table) {
+		const start = peek(cursor);
+		let name = "";
+
+		if (accept_word(cursor, "constraint")) {
+			name = read_identifier(cursor, "a constraint name");
+		}
+
+		if (accept_words(cursor, "primary", "key")) {
+			table.primary_key = { name: name, columns: read_column_list(cursor) };
+		}
+
+		else if (accept_word(cursor, "unique")) {
+			if (accept_word(cursor, "nulls")) {
+				accept_word(cursor, "not");
+				accept_word(cursor, "distinct");
+			}
+
+			accept_one_of(cursor, ["key", "index"]);
+
+			if (is_identifier(peek(cursor))) {
+				cursor.index++;
+			}
+
+			table.uniques.push({ name: name, columns: read_column_list(cursor) });
+		}
+
+		else if (accept_words(cursor, "foreign", "key")) {
+			if (is_identifier(peek(cursor))) {
+				cursor.index++;
+			}
+
+			const columns = read_column_list(cursor);
+
+			if (!accept_word(cursor, "references")) {
+				fail("Expected REFERENCES after FOREIGN KEY in table " + table.name + ", found " + describe_token(peek(cursor)) + ".", peek(cursor));
+			}
+
+			const reference = parse_reference(context, cursor);
+			table.foreign_keys.push(Object.assign({ name: name, columns: columns, source_id: context.source.id, offset: start.start }, reference));
+		}
+
+		skip_to_top_level(cursor, [",", ")"]);
+	}
+
+	function parse_create_index(context, cursor) {
+		const unique = accept_word(cursor, "unique");
+
+		if (!accept_word(cursor, "index")) {
+			return;
+		}
+
+		accept_word(cursor, "concurrently");
+		accept_words(cursor, "if", "not", "exists");
+
+		if (!is_word(peek(cursor), "on")) {
+			read_qualified_name(cursor, "an index name");
+		}
+
+		if (!accept_word(cursor, "on")) {
+			return;
+		}
+
+		accept_word(cursor, "only");
+
+		const name_token = peek(cursor);
+		const ref = make_table_ref(read_qualified_name(cursor, "a table name after ON"), context.model.default_schema);
+
+		if (accept_word(cursor, "using")) {
+			take(cursor);
+		}
+
+		if (!unique || !is_symbol(peek(cursor), "(")) {
+			return;
+		}
+
+		const elements = read_column_names(take_group(cursor));
+		const partial = cursor.tokens.slice(cursor.index).some(function (token) { return is_word(token, "where"); });
+
+		if (!elements.simple || partial || elements.names.length === 0) {
+			return;
+		}
+
+		with_table(context, ref, name_token, "CREATE UNIQUE INDEX", function (table) {
+			table.uniques.push({ name: "", columns: elements.names });
+		});
+	}
+
+	function parse_create_type(context, cursor) {
+		const ref = make_table_ref(read_qualified_name(cursor, "a type name"), context.model.default_schema);
+
+		if (!accept_words(cursor, "as", "enum") || !is_symbol(peek(cursor), "(")) {
+			return;
+		}
+
+		const values = take_group(cursor)
+			.filter(function (token) { return token.type === "string"; })
+			.map(function (token) { return token.value; });
+
+		context.model.enums.set(ref_key(ref), { schema: ref.schema, name: ref.name, values: values });
+	}
+
+	function parse_comment(context, cursor) {
+		let kind = "";
+
+		if (accept_word(cursor, "table")) {
+			kind = "table";
+		}
+
+		else if (accept_word(cursor, "column")) {
+			kind = "column";
+		}
+
+		else {
+			return;
+		}
+
+		const name_token = peek(cursor);
+		const parts = read_qualified_name(cursor, "a name after COMMENT ON");
+
+		if (!accept_word(cursor, "is")) {
+			return;
+		}
+
+		const value_token = peek(cursor);
+		const value = value_token !== undefined && value_token.type === "string" ? value_token.value : "";
+
+		if (kind === "table") {
+			with_table(context, make_table_ref(parts, context.model.default_schema), name_token, "COMMENT ON TABLE", function (table) {
+				table.comment = value;
+			});
+
+			return;
+		}
+
+		if (parts.length < 2) {
+			return;
+		}
+
+		const column_name = parts.pop();
+
+		with_table(context, make_table_ref(parts, context.model.default_schema), name_token, "COMMENT ON COLUMN", function (table) {
+			const column = find_column(table, column_name);
+
+			if (column !== undefined) {
+				column.comment = value;
+			}
+		});
+	}
+
+	/* ALTER TABLE usually lives in a later migration file. When the table is not
+	   known yet, the change waits until every file has been read. */
+	function with_table(context, ref, token, label, apply) {
+		const table = find_table(context.model, ref);
+
+		if (table !== undefined) {
+			apply(table);
+			return;
+		}
+
+		context.model.deferred.push({ context: context, ref: ref, token: token, label: label, apply: apply });
+	}
+
+	function parse_alter_table(context, cursor) {
+		accept_words(cursor, "if", "exists");
+		accept_word(cursor, "only");
+
+		const name_token = peek(cursor);
+		const ref = make_table_ref(read_qualified_name(cursor, "a table name after ALTER TABLE"), context.model.default_schema);
+
+		accept_symbol(cursor, "*");
+
+		const actions = split_top_level(cursor.tokens.slice(cursor.index), ",");
+
+		with_table(context, ref, name_token, "ALTER TABLE", function (table) {
+			for (const action of actions) {
+				try {
+					apply_alter_action(context, table, { tokens: action, index: 0 });
+				}
+
+				catch (error) {
+					if (error.erd_error !== true) {
+						throw error;
+					}
+
+					add_issue(context, "warn", error.message, error.offset >= 0 ? error.offset : name_token.start);
+				}
+			}
+		});
+	}
+
+	function apply_alter_action(context, table, cursor) {
+		const model = context.model;
+
+		if (accept_word(cursor, "add")) {
+			const token = peek(cursor);
+
+			if (token !== undefined && token.type === "word" && table_constraint_words.indexOf(token.lower) !== -1) {
+				parse_table_constraint(context, cursor, table);
+				return;
+			}
+
+			accept_word(cursor, "column");
+			accept_words(cursor, "if", "not", "exists");
+
+			if (is_identifier(peek(cursor))) {
+				parse_column_definition(context, cursor, table);
+			}
+
+			return;
+		}
+
+		if (accept_word(cursor, "drop")) {
+			if (accept_words(cursor, "primary", "key")) {
+				table.primary_key = null;
+				return;
+			}
+
+			if (accept_words(cursor, "foreign", "key") || accept_word(cursor, "constraint")) {
+				accept_words(cursor, "if", "exists");
+				drop_constraint(table, read_identifier(cursor, "a constraint name"));
+				return;
+			}
+
+			accept_word(cursor, "column");
+			accept_words(cursor, "if", "exists");
+
+			if (is_identifier(peek(cursor))) {
+				drop_column(model, table, identifier_name(take(cursor)));
+			}
+
+			return;
+		}
+
+		if (accept_word(cursor, "alter")) {
+			accept_word(cursor, "column");
+
+			if (!is_identifier(peek(cursor))) {
+				return;
+			}
+
+			const column = find_column(table, identifier_name(take(cursor)));
+
+			if (column === undefined) {
+				return;
+			}
+
+			if (accept_words(cursor, "set", "not", "null")) {
+				column.nullable = false;
+			}
+
+			else if (accept_words(cursor, "drop", "not", "null")) {
+				column.nullable = true;
+			}
+
+			else if (accept_words(cursor, "set", "default")) {
+				column.default_value = format_tokens(cursor.tokens.slice(cursor.index), true);
+			}
+
+			else if (accept_words(cursor, "drop", "default")) {
+				column.default_value = "";
+			}
+
+			else if (accept_words(cursor, "set", "data", "type") || accept_word(cursor, "type")) {
+				column.type = normalize_type(format_tokens(read_type_tokens(cursor), false));
+			}
+
+			else if (accept_word(cursor, "add") && accept_word(cursor, "generated")) {
+				column.identity = true;
+				column.nullable = false;
+			}
+
+			return;
+		}
+
+		if (accept_word(cursor, "rename")) {
+			if (accept_word(cursor, "to")) {
+				rename_table(model, table, read_identifier(cursor, "a new table name"));
+				return;
+			}
+
+			if (accept_word(cursor, "constraint")) {
+				const old_name = read_identifier(cursor, "a constraint name");
+
+				if (accept_word(cursor, "to")) {
+					rename_constraint(table, old_name, read_identifier(cursor, "a new constraint name"));
+				}
+
+				return;
+			}
+
+			accept_word(cursor, "column");
+
+			const old_name = read_identifier(cursor, "a column name");
+
+			if (accept_word(cursor, "to")) {
+				rename_column(model, table, old_name, read_identifier(cursor, "a new column name"));
+			}
+		}
+	}
+
+	function resolve_target(model, foreign_key) {
+		return find_table(model, make_table_ref(foreign_key.target_parts, foreign_key.default_schema));
+	}
+
+	function each_foreign_key(model, callback) {
+		for (const table of model.tables.values()) {
+			for (const foreign_key of table.foreign_keys.slice()) {
+				callback(table, foreign_key);
+			}
+		}
+	}
+
+	function drop_constraint(table, name) {
+		if (table.primary_key !== null && table.primary_key.name === name) {
+			table.primary_key = null;
+		}
+
+		table.uniques = table.uniques.filter(function (unique) { return unique.name !== name; });
+		table.foreign_keys = table.foreign_keys.filter(function (foreign_key) { return foreign_key.name !== name; });
+	}
+
+	function rename_constraint(table, old_name, new_name) {
+		const groups = [table.uniques, table.foreign_keys, table.primary_key === null ? [] : [table.primary_key]];
+
+		for (const group of groups) {
+			for (const constraint of group) {
+				if (constraint.name === old_name) {
+					constraint.name = new_name;
+				}
+			}
+		}
+	}
+
+	function drop_column(model, table, name) {
+		function keeps(list) {
+			return list.indexOf(name) === -1;
+		}
+
+		table.columns = table.columns.filter(function (column) { return column.name !== name; });
+
+		if (table.primary_key !== null && !keeps(table.primary_key.columns)) {
+			table.primary_key = null;
+		}
+
+		table.uniques = table.uniques.filter(function (unique) { return keeps(unique.columns); });
+		table.foreign_keys = table.foreign_keys.filter(function (foreign_key) { return keeps(foreign_key.columns); });
+
+		/* dropping a referenced column needs CASCADE, which drops those foreign keys */
+		each_foreign_key(model, function (owner, foreign_key) {
+			if (resolve_target(model, foreign_key) === table && !keeps(foreign_key.target_columns)) {
+				owner.foreign_keys.splice(owner.foreign_keys.indexOf(foreign_key), 1);
+			}
+		});
+	}
+
+	function rename_column(model, table, old_name, new_name) {
+		function swap(list) {
+			for (let index = 0; index < list.length; index++) {
+				if (list[index] === old_name) {
+					list[index] = new_name;
+				}
+			}
+		}
+
+		const column = find_column(table, old_name);
+
+		if (column !== undefined) {
+			column.name = new_name;
+		}
+
+		if (table.primary_key !== null) {
+			swap(table.primary_key.columns);
+		}
+
+		for (const unique of table.uniques) {
+			swap(unique.columns);
+		}
+
+		for (const foreign_key of table.foreign_keys) {
+			swap(foreign_key.columns);
+		}
+
+		each_foreign_key(model, function (owner, foreign_key) {
+			if (resolve_target(model, foreign_key) === table) {
+				swap(foreign_key.target_columns);
+			}
+		});
+	}
+
+	function rename_table(model, table, new_name) {
+		const referencing = [];
+
+		each_foreign_key(model, function (owner, foreign_key) {
+			if (resolve_target(model, foreign_key) === table) {
+				referencing.push(foreign_key);
+			}
+		});
+
+		const renamed = new Map();
+
+		for (const entry of model.tables) {
+			if (entry[1] === table) {
+				table.name = new_name;
+				table.key = table.schema + "." + new_name;
+				renamed.set(table.key, table);
+			}
+
+			else {
+				renamed.set(entry[0], entry[1]);
+			}
+		}
+
+		model.tables = renamed;
+
+		for (const foreign_key of referencing) {
+			foreign_key.target_parts = [table.schema, new_name];
+		}
+	}
+
+	/* ---------- whole schema ---------- */
+
+	function is_unique_set(table, columns) {
+		const keys = table.uniques.map(function (unique) { return unique.columns; });
+
+		if (table.primary_key !== null) {
+			keys.push(table.primary_key.columns);
+		}
+
+		return keys.some(function (key) {
+			return key.length > 0 && key.every(function (name) { return columns.indexOf(name) !== -1; });
+		});
+	}
+
+	function parse_sources(source_list) {
+		const model = { tables: new Map(), enums: new Map(), issues: [], deferred: [], default_schema: "public" };
+
+		for (const source of source_list) {
+			const scan = tokenize(source.text);
+
+			model.default_schema = "public";
+
+			for (const problem of scan.problems) {
+				model.issues.push({ level: "error", message: problem.message, source_id: source.id, offset: problem.offset });
+			}
+
+			for (const statement of split_statements(scan.tokens)) {
+				const context = { model: model, source: source, statement: statement };
+
+				try {
+					parse_statement(context);
+				}
+
+				catch (error) {
+					if (error.erd_error !== true) {
+						throw error;
+					}
+
+					add_issue(context, "error", error.message, error.offset >= 0 ? error.offset : statement[0].start);
+				}
+			}
+		}
+
+		for (const waiting of model.deferred) {
+			const table = find_table(model, waiting.ref);
+
+			if (table === undefined) {
+				add_issue(waiting.context, "warn", waiting.label + " targets " + display_name(waiting.ref.schema, waiting.ref.name) + ", which no file defines.", waiting.token.start);
+				continue;
+			}
+
+			waiting.apply(table);
+		}
+
+		const tables = Array.from(model.tables.values());
+
+		for (const table of tables) {
+			if (table.primary_key !== null) {
+				for (const name of table.primary_key.columns) {
+					const column = find_column(table, name);
+
+					if (column !== undefined) {
+						column.nullable = false;
+					}
+				}
+			}
+		}
+
+		const relations = [];
+
+		for (const table of tables) {
+			for (const foreign_key of table.foreign_keys) {
+				const context = { model: model, source: { id: foreign_key.source_id } };
+				const from_label = table.name + "(" + foreign_key.columns.join(", ") + ")";
+				const target = resolve_target(model, foreign_key);
+
+				if (target === undefined) {
+					const target_ref = make_table_ref(foreign_key.target_parts, foreign_key.default_schema);
+					add_issue(context, "warn", from_label + " references " + display_name(target_ref.schema, target_ref.name) + ", which no file defines.", foreign_key.offset);
+					continue;
+				}
+
+				let target_columns = foreign_key.target_columns;
+
+				if (target_columns.length === 0) {
+					target_columns = target.primary_key === null ? [] : target.primary_key.columns.slice();
+				}
+
+				if (target_columns.length === 0) {
+					add_issue(context, "warn", from_label + " references " + target.name + " without naming columns, and " + target.name + " has no primary key.", foreign_key.offset);
+				}
+
+				for (const name of foreign_key.columns) {
+					if (find_column(table, name) === undefined) {
+						add_issue(context, "warn", "Foreign key column " + table.name + "." + name + " does not exist.", foreign_key.offset);
+					}
+				}
+
+				for (const name of target_columns) {
+					if (find_column(target, name) === undefined) {
+						add_issue(context, "warn", from_label + " references " + target.name + "." + name + ", which does not exist.", foreign_key.offset);
+					}
+				}
+
+				const optional = foreign_key.columns.some(function (name) {
+					const column = find_column(table, name);
+					return column !== undefined && column.nullable;
+				});
+
+				relations.push({
+					id: "r" + relations.length,
+					from_key: table.key,
+					from_columns: foreign_key.columns,
+					to_key: target.key,
+					to_columns: target_columns,
+					name: foreign_key.name,
+					on_delete: foreign_key.on_delete,
+					on_update: foreign_key.on_update,
+					one_to_one: is_unique_set(table, foreign_key.columns),
+					optional: optional
+				});
+			}
+		}
+
+		const table_map = new Map();
+
+		for (const table of tables) {
+			table_map.set(table.key, table);
+		}
+
+		return { tables: tables, table_map: table_map, enums: model.enums, relations: relations, issues: model.issues };
+	}
+
+	/* ---------- layout ---------- */
+
+	/* Layered layout: tables that reference nothing sit on the left, tables that
+	   reference them move right, one column per level. Order inside a column is
+	   improved with barycenter sweeps to cut crossings, then each table is nudged
+	   toward the tables it connects to. Separate groups are packed into shelves. */
+
+	const layer_gap = 120;
+	const node_gap = 36;
+	const block_gap = 90;
+
+	function compute_layout(keys, size_of, relations) {
+		const key_set = new Set(keys);
+		const parents = {};
+		const neighbors = {};
+
+		for (const key of keys) {
+			parents[key] = [];
+			neighbors[key] = new Set();
+		}
+
+		for (const relation of relations) {
+			const child = relation.from_key;
+			const parent = relation.to_key;
+
+			if (child === parent || !key_set.has(child) || !key_set.has(parent)) {
+				continue;
+			}
+
+			if (parents[child].indexOf(parent) === -1) {
+				parents[child].push(parent);
+			}
+
+			neighbors[child].add(parent);
+			neighbors[parent].add(child);
+		}
+
+		const seen = new Set();
+		const blocks = [];
+
+		for (const key of keys) {
+			if (seen.has(key)) {
+				continue;
+			}
+
+			const members = [];
+			const queue = [key];
+			seen.add(key);
+
+			while (queue.length > 0) {
+				const current = queue.shift();
+				members.push(current);
+
+				for (const other of neighbors[current]) {
+					if (!seen.has(other)) {
+						seen.add(other);
+						queue.push(other);
+					}
+				}
+			}
+
+			blocks.push(layout_block(members, size_of, parents, neighbors));
+		}
+
+		return pack_blocks(blocks);
+	}
+
+	function layout_block(members, size_of, parents, neighbors) {
+		if (members.length === 1) {
+			const size = size_of(members[0]);
+			const single = {};
+			single[members[0]] = { x: 0, y: 0 };
+
+			return { positions: single, width: size.width, height: size.height, count: 1, first: members[0] };
+		}
+
+		/* drop back edges so cycles cannot make ranks grow forever */
+		const state = {};
+		const dag_parents = {};
+		const dag_children = {};
+
+		for (const key of members) {
+			dag_parents[key] = [];
+			dag_children[key] = [];
+		}
+
+		function visit(key) {
+			state[key] = 1;
+
+			for (const parent of parents[key]) {
+				if (state[parent] === 1) {
+					continue;
+				}
+
+				dag_parents[key].push(parent);
+				dag_children[parent].push(key);
+
+				if (state[parent] !== 2) {
+					visit(parent);
+				}
+			}
+
+			state[key] = 2;
+		}
+
+		for (const key of members) {
+			if (state[key] === undefined) {
+				visit(key);
+			}
+		}
+
+		const rank = {};
+
+		function rank_of(key) {
+			if (rank[key] === undefined) {
+				let highest = -1;
+
+				for (const parent of dag_parents[key]) {
+					highest = Math.max(highest, rank_of(parent));
+				}
+
+				rank[key] = highest + 1;
+			}
+
+			return rank[key];
+		}
+
+		for (const key of members) {
+			rank_of(key);
+		}
+
+		/* a table nobody depends on is pulled next to its closest child */
+		for (const key of members) {
+			if (dag_parents[key].length === 0 && dag_children[key].length > 0) {
+				let nearest = Infinity;
+
+				for (const child of dag_children[key]) {
+					nearest = Math.min(nearest, rank[child]);
+				}
+
+				rank[key] = Math.max(0, nearest - 1);
+			}
+		}
+
+		const layers = [];
+
+		for (const key of members) {
+			while (layers.length <= rank[key]) {
+				layers.push([]);
+			}
+
+			layers[rank[key]].push(key);
+		}
+
+		const index_in_layer = {};
+
+		function reindex(layer) {
+			for (let index = 0; index < layer.length; index++) {
+				index_in_layer[layer[index]] = index;
+			}
+		}
+
+		function order_value(key) {
+			return (index_in_layer[key] + 0.5) / layers[rank[key]].length;
+		}
+
+		for (const layer of layers) {
+			reindex(layer);
+		}
+
+		for (let sweep = 0; sweep < 12; sweep++) {
+			const downward = sweep % 2 === 0;
+
+			for (let step = 1; step < layers.length; step++) {
+				const layer_index = downward ? step : layers.length - 1 - step;
+				const layer = layers[layer_index];
+				const weights = new Map();
+
+				for (const key of layer) {
+					let total = 0;
+					let count = 0;
+
+					for (const other of neighbors[key]) {
+						const other_rank = rank[other];
+
+						if (downward ? other_rank < layer_index : other_rank > layer_index) {
+							total += order_value(other);
+							count++;
+						}
+					}
+
+					weights.set(key, count > 0 ? total / count : order_value(key));
+				}
+
+				layer.sort(function (left, right) { return weights.get(left) - weights.get(right); });
+				reindex(layer);
+			}
+		}
+
+		const layer_x = [];
+		let x = 0;
+
+		for (const layer of layers) {
+			layer_x.push(x);
+
+			let widest = 0;
+
+			for (const key of layer) {
+				widest = Math.max(widest, size_of(key).width);
+			}
+
+			x += widest + layer_gap;
+		}
+
+		const top = {};
+
+		for (const layer of layers) {
+			let total = 0;
+
+			for (const key of layer) {
+				total += size_of(key).height + node_gap;
+			}
+
+			let y = -total / 2;
+
+			for (const key of layer) {
+				top[key] = y;
+				y += size_of(key).height + node_gap;
+			}
+		}
+
+		function center(key) {
+			return top[key] + size_of(key).height / 2;
+		}
+
+		for (let pass = 0; pass < 10; pass++) {
+			for (const layer of layers) {
+				const desired = layer.map(function (key) {
+					let total = 0;
+					let count = 0;
+
+					for (const other of neighbors[key]) {
+						total += center(other);
+						count++;
+					}
+
+					const goal = count > 0 ? total / count : center(key);
+
+					return goal - size_of(key).height / 2;
+				});
+
+				const forward = [];
+				let floor = -Infinity;
+
+				for (let index = 0; index < layer.length; index++) {
+					forward.push(Math.max(desired[index], floor));
+					floor = forward[index] + size_of(layer[index]).height + node_gap;
+				}
+
+				const backward = [];
+				let ceiling = Infinity;
+
+				for (let index = layer.length - 1; index >= 0; index--) {
+					backward[index] = Math.min(desired[index], ceiling - size_of(layer[index]).height);
+					ceiling = backward[index] - node_gap;
+				}
+
+				floor = -Infinity;
+
+				for (let index = 0; index < layer.length; index++) {
+					const settled = Math.max((forward[index] + backward[index]) / 2, floor);
+					top[layer[index]] = settled;
+					floor = settled + size_of(layer[index]).height + node_gap;
+				}
+			}
+		}
+
+		const positions = {};
+		let min_y = Infinity;
+		let max_x = 0;
+		let max_y = -Infinity;
+
+		for (const key of members) {
+			min_y = Math.min(min_y, top[key]);
+		}
+
+		for (let layer_index = 0; layer_index < layers.length; layer_index++) {
+			for (const key of layers[layer_index]) {
+				const size = size_of(key);
+				positions[key] = { x: layer_x[layer_index], y: top[key] - min_y };
+				max_x = Math.max(max_x, layer_x[layer_index] + size.width);
+				max_y = Math.max(max_y, top[key] - min_y + size.height);
+			}
+		}
+
+		return { positions: positions, width: max_x, height: max_y, count: members.length, first: members[0] };
+	}
+
+	function pack_blocks(blocks) {
+		const groups = blocks.filter(function (block) { return block.count > 1; });
+		const singles = blocks.filter(function (block) { return block.count === 1; });
+
+		groups.sort(function (left, right) { return right.count - left.count; });
+
+		const ordered = groups.concat(singles);
+		let area = 0;
+		let widest = 0;
+
+		for (const block of ordered) {
+			area += (block.width + block_gap) * (block.height + block_gap);
+			widest = Math.max(widest, block.width);
+		}
+
+		const limit = Math.max(widest, Math.sqrt(area) * 1.7);
+		const positions = {};
+		let x = 0;
+		let y = 0;
+		let shelf_height = 0;
+
+		for (const block of ordered) {
+			if (x > 0 && x + block.width > limit) {
+				x = 0;
+				y += shelf_height + block_gap;
+				shelf_height = 0;
+			}
+
+			for (const key in block.positions) {
+				positions[key] = { x: block.positions[key].x + x, y: block.positions[key].y + y };
+			}
+
+			x += block.width + block_gap;
+			shelf_height = Math.max(shelf_height, block.height);
+		}
+
+		return positions;
+	}
+
+	/* ---------- elements and state ---------- */
+
+	const workspace = document.getElementById("workspace");
+	const source_tabs = document.getElementById("source_tabs");
+	const sql_box = document.getElementById("sql");
+	const summary_box = document.getElementById("summary");
+	const issue_list = document.getElementById("issues");
+	const file_input = document.getElementById("file_input");
+	const viewport = document.getElementById("viewport");
+	const world = document.getElementById("world");
+	const link_layer = document.getElementById("links");
+	const entity_layer = document.getElementById("entities");
+	const empty_box = document.getElementById("empty");
+	const tooltip_box = document.getElementById("tooltip");
+	const zoom_label = document.getElementById("zoom_label");
+	const keys_button = document.getElementById("keys_button");
+	const editor_toggle = document.getElementById("editor_toggle");
+	const find_box = document.getElementById("find_table");
+	const table_names = document.getElementById("table_names");
+	const splitter = document.getElementById("splitter");
+
+	const storage_key = "web_tools:ERD_generator";
+	const svg_namespace = "http://www.w3.org/2000/svg";
+
+	let sources = [];
+	let active_source_id = "";
+	let source_counter = 0;
+	let saved_positions = {};
+	let keys_only = false;
+	let editor_hidden = false;
+	let editor_width = 380;
+
+	const editor_default_width = 380;
+	const editor_min_width = 260;
+	const diagram_min_width = 320;
+
+	let schema = { tables: [], table_map: new Map(), enums: new Map(), relations: [], issues: [] };
+	let positions = {};
+	let sizes = {};
+	let row_centers = {};
+	let entity_elements = {};
+	let link_elements = {};
+	let lit_rows = [];
+
+	let view = { x: 40, y: 40, scale: 1 };
+	let selected_key = "";
+	let hover = null;
+	let fit_pending = true;
+	let parse_timer = 0;
+	let link_frame = 0;
+
+	/* ---------- storage ---------- */
+
+	function save_state() {
+		try {
+			localStorage.setItem(storage_key, JSON.stringify({
+				sources: sources,
+				active_source_id: active_source_id,
+				positions: saved_positions,
+				keys_only: keys_only,
+				editor_hidden: editor_hidden,
+				editor_width: editor_width
+			}));
+		}
+
+		catch (error) {
+			/* storage full or disabled: the page still works for this visit */
+		}
+	}
+
+	function load_state() {
+		try {
+			const raw = localStorage.getItem(storage_key);
+
+			if (raw === null) {
+				return false;
+			}
+
+			const state = JSON.parse(raw);
+
+			if (!Array.isArray(state.sources) || state.sources.length === 0) {
+				return false;
+			}
+
+			sources = state.sources.filter(function (source) {
+				return source !== null && typeof source.id === "string" && typeof source.text === "string";
+			}).map(function (source) {
+				return { id: source.id, name: String(source.name || "untitled.sql"), text: source.text };
+			});
+
+			if (sources.length === 0) {
+				return false;
+			}
+
+			active_source_id = sources.some(function (source) { return source.id === state.active_source_id; }) ? state.active_source_id : sources[0].id;
+			saved_positions = state.positions !== null && typeof state.positions === "object" ? state.positions : {};
+			keys_only = state.keys_only === true;
+			editor_hidden = state.editor_hidden === true;
+
+			if (typeof state.editor_width === "number" && isFinite(state.editor_width)) {
+				editor_width = state.editor_width;
+			}
+
+			return true;
+		}
+
+		catch (error) {
+			return false;
+		}
+	}
+
+	/* ---------- sources ---------- */
+
+	function new_source_id() {
+		source_counter++;
+
+		return "s" + Date.now().toString(36) + source_counter;
+	}
+
+	function unique_source_name(base) {
+		const taken = new Set(sources.map(function (source) { return source.name; }));
+
+		if (!taken.has(base)) {
+			return base;
+		}
+
+		const dot = base.lastIndexOf(".");
+		const stem = dot > 0 ? base.slice(0, dot) : base;
+		const extension = dot > 0 ? base.slice(dot) : "";
+		let number = 2;
+
+		while (taken.has(stem + "_" + number + extension)) {
+			number++;
+		}
+
+		return stem + "_" + number + extension;
+	}
+
+	function active_source() {
+		for (const source of sources) {
+			if (source.id === active_source_id) {
+				return source;
+			}
+		}
+
+		return sources[0];
+	}
+
+	function source_by_id(id) {
+		for (const source of sources) {
+			if (source.id === id) {
+				return source;
+			}
+		}
+
+		return undefined;
+	}
+
+	function render_tabs() {
+		source_tabs.textContent = "";
+
+		for (const source of sources) {
+			const tab = document.createElement("div");
+			tab.className = "source_tab" + (source.id === active_source_id ? " on" : "");
+			tab.dataset.id = source.id;
+
+			const name = document.createElement("button");
+			name.type = "button";
+			name.className = "source_name";
+			name.textContent = source.name;
+			name.title = "Double-click to rename";
+			name.addEventListener("click", function () { activate_source(source.id); });
+			name.addEventListener("dblclick", function () { start_rename(tab, name, source); });
+
+			const close = document.createElement("button");
+			close.type = "button";
+			close.className = "source_close";
+			close.textContent = "\u00d7";
+			close.setAttribute("aria-label", "Remove " + source.name);
+			close.addEventListener("click", function () { remove_source(source.id); });
+
+			tab.appendChild(name);
+			tab.appendChild(close);
+			source_tabs.appendChild(tab);
+		}
+	}
+
+	/* Only the classes change, so a double-click that starts on a tab still
+	   lands on the same element and can open the rename field. */
+	function activate_source(id) {
+		const switching = active_source_id !== id;
+
+		active_source_id = id;
+
+		if (switching || sql_box.value !== active_source().text) {
+			sql_box.value = active_source().text;
+			sql_box.scrollTop = 0;
+		}
+
+		const known = Array.from(source_tabs.children).map(function (tab) { return tab.dataset.id; });
+		const matches = sources.length === known.length && sources.every(function (source, index) { return known[index] === source.id; });
+
+		if (!matches) {
+			render_tabs();
+		}
+
+		for (const tab of source_tabs.children) {
+			tab.classList.toggle("on", tab.dataset.id === id);
+		}
+
+		save_state();
+	}
+
+	function add_source(name, text) {
+		const source = { id: new_source_id(), name: unique_source_name(name), text: text };
+		sources.push(source);
+
+		return source;
+	}
+
+	/* The tab name turns into a text field in place. Enter or leaving the field
+	   keeps the new name, Escape keeps the old one, an empty name is ignored. */
+	function start_rename(tab, name_button, source) {
+		const field = document.createElement("input");
+		let finished = false;
+
+		field.type = "text";
+		field.className = "source_rename";
+		field.value = source.name;
+		field.spellcheck = false;
+		field.setAttribute("aria-label", "File name");
+
+		function finish(keep) {
+			if (finished) {
+				return;
+			}
+
+			finished = true;
+
+			const value = field.value.trim();
+
+			if (keep && value !== "" && value !== source.name) {
+				source.name = value;
+				render_report();
+				save_state();
+			}
+
+			render_tabs();
+		}
+
+		field.addEventListener("keydown", function (event) {
+			if (event.key === "Enter") {
+				event.preventDefault();
+				finish(true);
+			}
+
+			else if (event.key === "Escape") {
+				event.preventDefault();
+				finish(false);
+			}
+		});
+
+		field.addEventListener("blur", function () { finish(true); });
+
+		tab.replaceChild(field, name_button);
+		field.focus();
+		field.select();
+	}
+
+	/* ---------- undo ---------- */
+
+	/* Destructive actions happen at once and offer an undo instead of asking
+	   first. A snapshot holds everything those actions can change. */
+
+	const toast_box = document.getElementById("toast");
+	const toast_message = document.getElementById("toast_message");
+	const toast_undo = document.getElementById("toast_undo");
+	const toast_duration = 6000;
+
+	let undo_snapshot = null;
+	let toast_timer = 0;
+
+	function take_snapshot() {
+		return JSON.parse(JSON.stringify({
+			sources: sources,
+			active_source_id: active_source_id,
+			saved_positions: saved_positions
+		}));
+	}
+
+	function restore_snapshot(snapshot) {
+		sources = snapshot.sources;
+		active_source_id = snapshot.active_source_id;
+		saved_positions = snapshot.saved_positions;
+		selected_key = "";
+		sql_box.value = active_source().text;
+		render_tabs();
+		refresh();
+		save_state();
+	}
+
+	function offer_undo(message, snapshot, on_undo) {
+		undo_snapshot = { snapshot: snapshot, on_undo: on_undo };
+		toast_message.textContent = message;
+		toast_box.classList.remove("leaving");
+		toast_box.hidden = false;
+		clearTimeout(toast_timer);
+		toast_timer = setTimeout(hide_toast, toast_duration);
+	}
+
+	function hide_toast() {
+		clearTimeout(toast_timer);
+		undo_snapshot = null;
+		toast_box.classList.add("leaving");
+		toast_timer = setTimeout(function () { toast_box.hidden = true; }, 170);
+	}
+
+	toast_undo.addEventListener("click", function () {
+		if (undo_snapshot === null) {
+			return;
+		}
+
+		const pending = undo_snapshot;
+
+		hide_toast();
+		restore_snapshot(pending.snapshot);
+
+		if (pending.on_undo !== undefined) {
+			pending.on_undo();
+		}
+	});
+
+	/* hovering or focusing the toast pauses its countdown */
+	toast_box.addEventListener("pointerenter", function () { clearTimeout(toast_timer); });
+	toast_box.addEventListener("focusin", function () { clearTimeout(toast_timer); });
+
+	toast_box.addEventListener("pointerleave", function () {
+		if (undo_snapshot !== null) {
+			toast_timer = setTimeout(hide_toast, toast_duration / 2);
+		}
+	});
+
+	function remove_source(id) {
+		const source = source_by_id(id);
+		const snapshot = take_snapshot();
+
+		sources = sources.filter(function (item) { return item.id !== id; });
+
+		if (sources.length === 0) {
+			add_source("schema.sql", "");
+		}
+
+		if (active_source_id === id) {
+			active_source_id = sources[sources.length - 1].id;
+			sql_box.value = active_source().text;
+		}
+
+		render_tabs();
+		refresh();
+		save_state();
+
+		if (source.text.trim() !== "") {
+			offer_undo("Removed " + source.name + ".", snapshot);
+		}
+	}
+
+	async function add_files(file_list) {
+		let last = null;
+
+		for (const file of Array.from(file_list)) {
+			const text = await file.text();
+			const existing = sources.find(function (source) { return source.name === file.name; });
+			const blank = sources.length === 1 && sources[0].text.trim() === "";
+
+			if (existing !== undefined) {
+				existing.text = text;
+				last = existing;
+			}
+
+			else if (blank) {
+				sources[0].name = file.name;
+				sources[0].text = text;
+				last = sources[0];
+			}
+
+			else {
+				last = add_source(file.name, text);
+			}
+		}
+
+		if (last === null) {
+			return;
+		}
+
+		fit_pending = true;
+		activate_source(last.id);
+		refresh();
+	}
+
+	function schedule_parse() {
+		clearTimeout(parse_timer);
+		parse_timer = setTimeout(function () {
+			refresh();
+			save_state();
+		}, 220);
+	}
+
+	/* ---------- report ---------- */
+
+	function line_of(text, offset) {
+		let line = 1;
+		let index = text.indexOf("\n");
+
+		while (index !== -1 && index < offset) {
+			line++;
+			index = text.indexOf("\n", index + 1);
+		}
+
+		return line;
+	}
+
+	function plural(count, word) {
+		return count + " " + word + (count === 1 ? "" : "s");
+	}
+
+	function render_report() {
+		const parts = [plural(schema.tables.length, "table"), plural(schema.relations.length, "relationship")];
+
+		if (schema.enums.size > 0) {
+			parts.push(plural(schema.enums.size, "enum"));
+		}
+
+		const has_text = sources.some(function (source) { return source.text.trim() !== ""; });
+
+		if (schema.tables.length === 0) {
+			summary_box.textContent = has_text ? "No CREATE TABLE statements found yet." : "No tables yet.";
+		}
+
+		else {
+			summary_box.textContent = parts.join(", ");
+		}
+
+		issue_list.textContent = "";
+
+		for (const issue of schema.issues) {
+			const source = source_by_id(issue.source_id);
+
+			if (source === undefined) {
+				continue;
+			}
+
+			const item = document.createElement("li");
+			item.className = issue.level;
+
+			const button = document.createElement("button");
+			button.type = "button";
+
+			const where = document.createElement("span");
+			where.className = "where";
+			where.textContent = source.name + ":" + line_of(source.text, issue.offset);
+
+			button.appendChild(where);
+			button.appendChild(document.createTextNode(issue.message));
+			button.addEventListener("click", function () { jump_to(source.id, issue.offset); });
+
+			item.appendChild(button);
+			issue_list.appendChild(item);
+		}
+	}
+
+	function jump_to(source_id, offset) {
+		if (editor_hidden) {
+			set_editor_hidden(false);
+		}
+
+		if (active_source_id !== source_id) {
+			activate_source(source_id);
+		}
+
+		const text = sql_box.value;
+		let end = text.indexOf("\n", offset);
+
+		if (end === -1) {
+			end = text.length;
+		}
+
+		const line_height = parseFloat(getComputedStyle(sql_box).lineHeight) || 20;
+
+		sql_box.focus({ preventScroll: true });
+		sql_box.setSelectionRange(offset, end);
+		sql_box.scrollTop = Math.max(0, (line_of(text, offset) - 4) * line_height);
+	}
+
+	/* ---------- diagram rendering ---------- */
+
+	function refresh() {
+		schema = parse_sources(sources);
+
+		if (selected_key !== "" && !schema.table_map.has(selected_key)) {
+			selected_key = "";
+		}
+
+		hover = null;
+		render_report();
+		render_diagram();
+	}
+
+	function column_roles() {
+		const roles = {};
+
+		function mark(key, column, role) {
+			const id = key + "\u0000" + column;
+
+			if (roles[id] === undefined) {
+				roles[id] = {};
+			}
+
+			roles[id][role] = true;
+		}
+
+		for (const table of schema.tables) {
+			if (table.primary_key !== null) {
+				for (const name of table.primary_key.columns) {
+					mark(table.key, name, "pk");
+				}
+			}
+
+			for (const unique of table.uniques) {
+				if (unique.columns.length === 1) {
+					mark(table.key, unique.columns[0], "unique");
+				}
+			}
+
+			for (const foreign_key of table.foreign_keys) {
+				for (const name of foreign_key.columns) {
+					mark(table.key, name, "fk");
+				}
+			}
+		}
+
+		for (const relation of schema.relations) {
+			for (const name of relation.to_columns) {
+				mark(relation.to_key, name, "referenced");
+			}
+		}
+
+		return function (key, column) {
+			return roles[key + "\u0000" + column] || {};
+		};
+	}
+
+	function build_entity(table, roles_of) {
+		const element = document.createElement("div");
+		element.className = "entity";
+		element.dataset.key = table.key;
+
+		const head = document.createElement("div");
+		head.className = "entity_head";
+
+		if (table.schema !== "public") {
+			const schema_part = document.createElement("span");
+			schema_part.className = "entity_schema";
+			schema_part.textContent = table.schema + ".";
+			head.appendChild(schema_part);
+		}
+
+		const name = document.createElement("span");
+		name.className = "entity_name";
+		name.textContent = table.name;
+		head.appendChild(name);
+
+		const list = document.createElement("ul");
+		list.className = "entity_rows";
+
+		const rows = {};
+		let hidden = 0;
+
+		for (const column of table.columns) {
+			const roles = roles_of(table.key, column.name);
+
+			if (keys_only && !roles.pk && !roles.fk && !roles.referenced) {
+				hidden++;
+				continue;
+			}
+
+			const row = document.createElement("li");
+			row.className = "row" + (roles.pk ? " pk" : "") + (roles.fk ? " fk" : "");
+			row.dataset.column = column.name;
+
+			const marks = [];
+
+			if (roles.pk) {
+				marks.push("pk");
+			}
+
+			if (roles.fk) {
+				marks.push("fk");
+			}
+
+			if (marks.length === 0 && roles.unique) {
+				marks.push("uq");
+			}
+
+			const mark = document.createElement("span");
+			mark.className = "row_mark";
+			mark.textContent = marks.join(" ");
+
+			const column_name = document.createElement("span");
+			column_name.className = "row_name";
+			column_name.textContent = column.name;
+
+			const type = document.createElement("span");
+			type.className = "row_type";
+			type.textContent = column.type;
+
+			row.appendChild(mark);
+			row.appendChild(column_name);
+			row.appendChild(type);
+			list.appendChild(row);
+			rows[column.name] = row;
+		}
+
+		if (hidden > 0 || table.columns.length === 0) {
+			const more = document.createElement("li");
+			more.className = "row more";
+			more.textContent = table.columns.length === 0 ? "no columns" : plural(hidden, "more column");
+			list.appendChild(more);
+		}
+
+		element.appendChild(head);
+		element.appendChild(list);
+
+		return { element: element, head: head, rows: rows, table: table };
+	}
+
+	function render_diagram() {
+		entity_layer.textContent = "";
+		entity_elements = {};
+		sizes = {};
+		row_centers = {};
+
+		const roles_of = column_roles();
+
+		for (const table of schema.tables) {
+			const entry = build_entity(table, roles_of);
+			entity_layer.appendChild(entry.element);
+			entity_elements[table.key] = entry;
+		}
+
+		for (const table of schema.tables) {
+			const entry = entity_elements[table.key];
+			const centers = { "": entry.head.offsetHeight / 2 };
+
+			sizes[table.key] = { width: entry.element.offsetWidth, height: entry.element.offsetHeight };
+
+			for (const name in entry.rows) {
+				const row = entry.rows[name];
+				centers[name] = row.offsetTop + row.offsetHeight / 2;
+			}
+
+			row_centers[table.key] = centers;
+		}
+
+		place_entities();
+		draw_links();
+		apply_focus();
+		update_table_names();
+
+		empty_box.hidden = schema.tables.length > 0;
+
+		if (fit_pending && schema.tables.length > 0) {
+			fit_pending = false;
+			fit_view();
+		}
+	}
+
+	function size_of(key) {
+		return sizes[key];
+	}
+
+	/* Saved positions win. Once the user has arranged tables by hand, tables that
+	   appear later are laid out on their own and parked to the right. */
+	function place_entities() {
+		const keys = schema.tables.map(function (table) { return table.key; });
+		const unsaved = keys.filter(function (key) { return saved_positions[key] === undefined; });
+		const saved = keys.filter(function (key) { return saved_positions[key] !== undefined; });
+		const auto = compute_layout(unsaved, size_of, schema.relations);
+		let shift_x = 0;
+		let shift_y = 0;
+
+		if (saved.length > 0 && unsaved.length > 0) {
+			let right = -Infinity;
+			let top = Infinity;
+
+			for (const key of saved) {
+				right = Math.max(right, saved_positions[key].x + sizes[key].width);
+				top = Math.min(top, saved_positions[key].y);
+			}
+
+			shift_x = right + block_gap * 1.5;
+			shift_y = top;
+		}
+
+		positions = {};
+
+		for (const key of keys) {
+			const stored = saved_positions[key];
+
+			if (stored !== undefined) {
+				positions[key] = { x: stored.x, y: stored.y };
+			}
+
+			else {
+				positions[key] = { x: auto[key].x + shift_x, y: auto[key].y + shift_y };
+			}
+
+			move_entity(key);
+		}
+	}
+
+	function move_entity(key) {
+		const element = entity_elements[key].element;
+		element.style.left = positions[key].x + "px";
+		element.style.top = positions[key].y + "px";
+	}
+
+	function freeze_positions() {
+		for (const key in positions) {
+			saved_positions[key] = { x: Math.round(positions[key].x), y: Math.round(positions[key].y) };
+		}
+
+		save_state();
+	}
+
+	/* ---------- links ---------- */
+
+	const stub = 28;
+
+	function box_of(key) {
+		return { x: positions[key].x, y: positions[key].y, width: sizes[key].width, height: sizes[key].height };
+	}
+
+	function anchor_y(key, columns) {
+		const centers = row_centers[key];
+
+		for (const name of columns) {
+			if (centers[name] !== undefined) {
+				return positions[key].y + centers[name];
+			}
+		}
+
+		return positions[key].y + centers[""];
+	}
+
+	function round(value) {
+		return Math.round(value * 10) / 10;
+	}
+
+	function rounded_path(points, radius) {
+		const clean = [];
+
+		for (const point of points) {
+			const last = clean[clean.length - 1];
+
+			if (last !== undefined && Math.abs(last[0] - point[0]) < 0.5 && Math.abs(last[1] - point[1]) < 0.5) {
+				continue;
+			}
+
+			clean.push(point);
+		}
+
+		let d = "M " + round(clean[0][0]) + " " + round(clean[0][1]);
+
+		for (let index = 1; index < clean.length - 1; index++) {
+			const previous = clean[index - 1];
+			const point = clean[index];
+			const next = clean[index + 1];
+			const length_in = Math.hypot(point[0] - previous[0], point[1] - previous[1]);
+			const length_out = Math.hypot(next[0] - point[0], next[1] - point[1]);
+			const corner = Math.min(radius, length_in / 2, length_out / 2);
+			const enter_x = point[0] - (point[0] - previous[0]) / length_in * corner;
+			const enter_y = point[1] - (point[1] - previous[1]) / length_in * corner;
+			const exit_x = point[0] + (next[0] - point[0]) / length_out * corner;
+			const exit_y = point[1] + (next[1] - point[1]) / length_out * corner;
+
+			d += " L " + round(enter_x) + " " + round(enter_y) + " Q " + round(point[0]) + " " + round(point[1]) + " " + round(exit_x) + " " + round(exit_y);
+		}
+
+		const end = clean[clean.length - 1];
+
+		return d + " L " + round(end[0]) + " " + round(end[1]);
+	}
+
+	/* Crow's foot ends. The symbol nearest the table is the maximum (one or many),
+	   the outer one is the minimum (a bar for exactly one, a circle for zero). */
+	function end_marks(x, y, direction, many, zero, marks) {
+		function bar(distance) {
+			const bar_x = round(x + direction * distance);
+			marks.strokes += " M " + bar_x + " " + round(y - 6) + " V " + round(y + 6);
+		}
+
+		if (many) {
+			const tip = round(x + direction * 12);
+			marks.strokes += " M " + round(x) + " " + round(y - 7) + " L " + tip + " " + round(y) + " L " + round(x) + " " + round(y + 7);
+		}
+
+		else {
+			bar(9);
+		}
+
+		if (zero) {
+			marks.dots.push({ x: round(x + direction * 19), y: round(y) });
+		}
+
+		else {
+			bar(15);
+		}
+	}
+
+	function all_boxes() {
+		return schema.tables.map(function (table) {
+			const box = box_of(table.key);
+			box.key = table.key;
+			return box;
+		});
+	}
+
+	/* How many tables, other than the two being joined, an orthogonal path runs through. */
+	function count_crossings(points, boxes, from_key, to_key) {
+		const margin = 6;
+		let count = 0;
+
+		for (const box of boxes) {
+			if (box.key === from_key || box.key === to_key) {
+				continue;
+			}
+
+			for (let index = 1; index < points.length; index++) {
+				const start = points[index - 1];
+				const end = points[index];
+				const low_x = Math.min(start[0], end[0]);
+				const high_x = Math.max(start[0], end[0]);
+				const low_y = Math.min(start[1], end[1]);
+				const high_y = Math.max(start[1], end[1]);
+
+				if (high_x > box.x - margin && low_x < box.x + box.width + margin && high_y > box.y - margin && low_y < box.y + box.height + margin) {
+					count++;
+					break;
+				}
+			}
+		}
+
+		return count;
+	}
+
+	function link_geometry(relation, boxes) {
+		const source = box_of(relation.from_key);
+		const target = box_of(relation.to_key);
+		const self = relation.from_key === relation.to_key;
+		let from_y = anchor_y(relation.from_key, relation.from_columns);
+		let to_y = anchor_y(relation.to_key, relation.to_columns);
+		let from_x;
+		let to_x;
+		let from_direction;
+		let to_direction;
+		let points;
+
+		if (self && Math.abs(from_y - to_y) < 4) {
+			to_y = source.y + row_centers[relation.to_key][""];
+		}
+
+		if (!self && target.x - (source.x + source.width) >= stub * 2) {
+			from_x = source.x + source.width;
+			to_x = target.x;
+			from_direction = 1;
+			to_direction = -1;
+		}
+
+		else if (!self && source.x - (target.x + target.width) >= stub * 2) {
+			from_x = source.x;
+			to_x = target.x + target.width;
+			from_direction = -1;
+			to_direction = 1;
+		}
+
+		if (from_x !== undefined) {
+			/* the vertical run goes in whichever gap crosses the fewest tables,
+			   preferring the middle when there is a tie */
+			const span = to_x - from_x;
+			const inset = (stub + 6) * Math.sign(span);
+			const channels = [
+				from_x + span / 2,
+				to_x - inset,
+				from_x + inset,
+				from_x + span * 0.25,
+				from_x + span * 0.75
+			];
+			let best = Infinity;
+
+			for (const channel of channels) {
+				const candidate = [[from_x, from_y], [channel, from_y], [channel, to_y], [to_x, to_y]];
+				const crossings = count_crossings(candidate, boxes, relation.from_key, relation.to_key);
+
+				if (crossings < best) {
+					best = crossings;
+					points = candidate;
+				}
+			}
+		}
+
+		else {
+			const right = Math.max(source.x + source.width, target.x + target.width) + stub;
+			const left = Math.min(source.x, target.x) - stub;
+			const right_cost = (right - source.x - source.width) + (right - target.x - target.width);
+			const left_cost = (source.x - left) + (target.x - left);
+
+			if (right_cost <= left_cost) {
+				from_x = source.x + source.width;
+				to_x = target.x + target.width;
+				from_direction = 1;
+				to_direction = 1;
+				points = [[from_x, from_y], [right, from_y], [right, to_y], [to_x, to_y]];
+			}
+
+			else {
+				from_x = source.x;
+				to_x = target.x;
+				from_direction = -1;
+				to_direction = -1;
+				points = [[from_x, from_y], [left, from_y], [left, to_y], [to_x, to_y]];
+			}
+		}
+
+		const marks = { strokes: "", dots: [] };
+
+		/* child end: zero or many, or zero or one when the foreign key is unique */
+		end_marks(from_x, from_y, from_direction, !relation.one_to_one, true, marks);
+
+		/* parent end: exactly one, or zero or one when the foreign key is nullable */
+		end_marks(to_x, to_y, to_direction, false, relation.optional, marks);
+
+		return { line: rounded_path(points, 8), strokes: marks.strokes.trim(), dots: marks.dots, points: points };
+	}
+
+	function draw_links() {
+		let min_x = Infinity;
+		let min_y = Infinity;
+		let max_x = -Infinity;
+		let max_y = -Infinity;
+		let markup = "";
+
+		const boxes = all_boxes();
+
+		for (const relation of schema.relations) {
+			const geometry = link_geometry(relation, boxes);
+
+			for (const point of geometry.points) {
+				min_x = Math.min(min_x, point[0]);
+				min_y = Math.min(min_y, point[1]);
+				max_x = Math.max(max_x, point[0]);
+				max_y = Math.max(max_y, point[1]);
+			}
+
+			markup += "<g class=\"link\" data-id=\"" + relation.id + "\">";
+			markup += "<path class=\"link_hit\" d=\"" + geometry.line + "\"/>";
+			markup += "<path class=\"link_line\" d=\"" + geometry.line + "\"/>";
+			markup += "<path class=\"link_mark\" d=\"" + geometry.strokes + "\"/>";
+
+			for (const dot of geometry.dots) {
+				markup += "<circle class=\"link_dot\" cx=\"" + dot.x + "\" cy=\"" + dot.y + "\" r=\"4\"/>";
+			}
+
+			markup += "</g>";
+		}
+
+		if (markup === "") {
+			link_layer.innerHTML = "";
+			link_layer.style.display = "none";
+			link_elements = {};
+			return;
+		}
+
+		const margin = 30;
+		const left = Math.floor(min_x - margin);
+		const top = Math.floor(min_y - margin);
+		const width = Math.ceil(max_x - min_x + margin * 2);
+		const height = Math.ceil(max_y - min_y + margin * 2);
+
+		link_layer.style.display = "";
+		link_layer.style.left = left + "px";
+		link_layer.style.top = top + "px";
+		link_layer.setAttribute("width", width);
+		link_layer.setAttribute("height", height);
+		link_layer.setAttribute("viewBox", left + " " + top + " " + width + " " + height);
+		link_layer.innerHTML = markup;
+
+		link_elements = {};
+
+		for (const group of link_layer.querySelectorAll(".link")) {
+			link_elements[group.dataset.id] = group;
+		}
+	}
+
+	function schedule_links() {
+		if (link_frame !== 0) {
+			return;
+		}
+
+		link_frame = requestAnimationFrame(function () {
+			link_frame = 0;
+			draw_links();
+			apply_focus();
+		});
+	}
+
+	/* ---------- focus and hover ---------- */
+
+	function relation_is_hot(relation) {
+		if (hover === null) {
+			return false;
+		}
+
+		if (hover.kind === "link") {
+			return relation.id === hover.id;
+		}
+
+		if (hover.kind === "table") {
+			return relation.from_key === hover.key || relation.to_key === hover.key;
+		}
+
+		const from_hit = relation.from_key === hover.key && relation.from_columns.indexOf(hover.column) !== -1;
+		const to_hit = relation.to_key === hover.key && relation.to_columns.indexOf(hover.column) !== -1;
+
+		return from_hit || to_hit;
+	}
+
+	function apply_focus() {
+		const related = new Set();
+
+		for (const row of lit_rows) {
+			row.classList.remove("lit");
+		}
+
+		lit_rows = [];
+
+		function light(key, columns) {
+			const entry = entity_elements[key];
+
+			for (const name of columns) {
+				if (entry !== undefined && entry.rows[name] !== undefined) {
+					entry.rows[name].classList.add("lit");
+					lit_rows.push(entry.rows[name]);
+				}
+			}
+		}
+
+		for (const relation of schema.relations) {
+			const group = link_elements[relation.id];
+			const near = selected_key !== "" && (relation.from_key === selected_key || relation.to_key === selected_key);
+			const hot = relation_is_hot(relation);
+
+			if (near) {
+				related.add(relation.from_key);
+				related.add(relation.to_key);
+			}
+
+			if (hot) {
+				light(relation.from_key, relation.from_columns);
+				light(relation.to_key, relation.to_columns);
+			}
+
+			if (group !== undefined) {
+				group.classList.toggle("near", near);
+				group.classList.toggle("on", hot || near);
+			}
+		}
+
+		world.classList.toggle("focusing", selected_key !== "");
+
+		for (const key in entity_elements) {
+			const element = entity_elements[key].element;
+			element.classList.toggle("selected", key === selected_key);
+			element.classList.toggle("related", key !== selected_key && related.has(key));
+		}
+	}
+
+	function select_table(key) {
+		selected_key = key;
+		apply_focus();
+	}
+
+	function describe_relation(relation) {
+		const from_table = schema.table_map.get(relation.from_key);
+		const to_table = schema.table_map.get(relation.to_key);
+		const lines = [];
+
+		lines.push(from_table.name + "(" + relation.from_columns.join(", ") + ") \u2192 " + to_table.name + "(" + relation.to_columns.join(", ") + ")");
+		lines.push((relation.one_to_one ? "one to one" : "many to one") + ", " + (relation.optional ? "optional" : "required"));
+
+		if (relation.on_delete !== "") {
+			lines.push("on delete " + relation.on_delete);
+		}
+
+		if (relation.on_update !== "") {
+			lines.push("on update " + relation.on_update);
+		}
+
+		if (relation.name !== "") {
+			lines.push("constraint " + relation.name);
+		}
+
+		return lines.join("\n");
+	}
+
+	function find_enum(type) {
+		const bare = type.replace(/\[\]$/, "");
+		const key = bare.indexOf(".") === -1 ? "public." + bare : bare;
+
+		if (schema.enums.has(key)) {
+			return schema.enums.get(key);
+		}
+
+		for (const entry of schema.enums.values()) {
+			if (entry.name === bare) {
+				return entry;
+			}
+		}
+
+		return undefined;
+	}
+
+	function describe_column(table, column_name) {
+		const column = find_column(table, column_name);
+
+		if (column === undefined) {
+			return "";
+		}
+
+		const lines = [column.name + " " + column.type];
+		const flags = [];
+
+		if (table.primary_key !== null && table.primary_key.columns.indexOf(column.name) !== -1) {
+			flags.push(table.primary_key.columns.length > 1 ? "part of primary key" : "primary key");
+		}
+
+		if (table.uniques.some(function (unique) { return unique.columns.length === 1 && unique.columns[0] === column.name; })) {
+			flags.push("unique");
+		}
+
+		flags.push(column.nullable ? "nullable" : "not null");
+
+		if (column.identity) {
+			flags.push("identity");
+		}
+
+		if (column.generated) {
+			flags.push("generated");
+		}
+
+		lines.push(flags.join(", "));
+
+		if (column.default_value !== "") {
+			lines.push("default " + column.default_value);
+		}
+
+		for (const relation of schema.relations) {
+			if (relation.from_key === table.key && relation.from_columns.indexOf(column.name) !== -1) {
+				const target = schema.table_map.get(relation.to_key);
+				lines.push("references " + target.name + "(" + relation.to_columns.join(", ") + ")" + (relation.on_delete !== "" ? " on delete " + relation.on_delete : ""));
+			}
+		}
+
+		const enum_type = find_enum(column.type);
+
+		if (enum_type !== undefined) {
+			lines.push("one of " + enum_type.values.join(", "));
+		}
+
+		if (column.comment !== "") {
+			lines.push(column.comment);
+		}
+
+		return lines.join("\n");
+	}
+
+	function show_tooltip(text, event) {
+		const rect = viewport.getBoundingClientRect();
+
+		tooltip_box.textContent = text;
+		tooltip_box.hidden = false;
+
+		const width = tooltip_box.offsetWidth;
+		const height = tooltip_box.offsetHeight;
+		let left = event.clientX - rect.left + 14;
+		let top = event.clientY - rect.top + 16;
+
+		if (left + width > rect.width - 8) {
+			left = Math.max(8, event.clientX - rect.left - width - 14);
+		}
+
+		if (top + height > rect.height - 8) {
+			top = Math.max(8, event.clientY - rect.top - height - 12);
+		}
+
+		tooltip_box.style.left = left + "px";
+		tooltip_box.style.top = top + "px";
+	}
+
+	function hide_tooltip() {
+		tooltip_box.hidden = true;
+	}
+
+	function same_hover(left, right) {
+		if (left === null || right === null) {
+			return left === right;
+		}
+
+		return left.kind === right.kind && left.key === right.key && left.column === right.column && left.id === right.id;
+	}
+
+	function update_hover(event) {
+		const target = event.target;
+		const link = target.closest(".link");
+		const row = target.closest(".row[data-column]");
+		const entity = target.closest(".entity");
+		let next = null;
+		let text = "";
+
+		if (link !== null) {
+			const relation = schema.relations.find(function (item) { return item.id === link.dataset.id; });
+			next = { kind: "link", id: link.dataset.id };
+			text = relation === undefined ? "" : describe_relation(relation);
+		}
+
+		else if (row !== null && entity !== null) {
+			const table = schema.table_map.get(entity.dataset.key);
+			next = { kind: "column", key: entity.dataset.key, column: row.dataset.column };
+			text = describe_column(table, row.dataset.column);
+		}
+
+		else if (entity !== null) {
+			const table = schema.table_map.get(entity.dataset.key);
+			next = { kind: "table", key: entity.dataset.key };
+			text = table.comment;
+		}
+
+		if (!same_hover(hover, next)) {
+			hover = next;
+			apply_focus();
+		}
+
+		if (text !== "") {
+			show_tooltip(text, event);
+		}
+
+		else {
+			hide_tooltip();
+		}
+	}
+
+	/* ---------- view ---------- */
+
+	function apply_view() {
+		world.style.transform = "translate(" + view.x + "px, " + view.y + "px) scale(" + view.scale + ")";
+		let grid = 22 * view.scale;
+
+		/* keep the dots readable when zoomed far out */
+		while (grid < 11) {
+			grid *= 2;
+		}
+
+		viewport.style.backgroundSize = grid + "px " + grid + "px";
+		viewport.style.backgroundPosition = view.x + "px " + view.y + "px";
+		zoom_label.textContent = Math.round(view.scale * 100) + "%";
+	}
+
+	function clamp_scale(scale) {
+		return Math.min(3, Math.max(0.1, scale));
+	}
+
+	function zoom_at(factor, at_x, at_y) {
+		const scale = clamp_scale(view.scale * factor);
+		const ratio = scale / view.scale;
+
+		view.x = at_x - (at_x - view.x) * ratio;
+		view.y = at_y - (at_y - view.y) * ratio;
+		view.scale = scale;
+		apply_view();
+	}
+
+	function zoom_center(factor) {
+		const rect = viewport.getBoundingClientRect();
+		zoom_at(factor, rect.width / 2, rect.height / 2);
+	}
+
+	function diagram_bounds() {
+		let min_x = Infinity;
+		let min_y = Infinity;
+		let max_x = -Infinity;
+		let max_y = -Infinity;
+
+		for (const key in positions) {
+			min_x = Math.min(min_x, positions[key].x);
+			min_y = Math.min(min_y, positions[key].y);
+			max_x = Math.max(max_x, positions[key].x + sizes[key].width);
+			max_y = Math.max(max_y, positions[key].y + sizes[key].height);
+		}
+
+		if (min_x === Infinity) {
+			return null;
+		}
+
+		return { x: min_x - stub, y: min_y, width: max_x - min_x + stub * 2, height: max_y - min_y };
+	}
+
+	function fit_view() {
+		const bounds = diagram_bounds();
+		const rect = viewport.getBoundingClientRect();
+
+		if (bounds === null || rect.width === 0) {
+			view = { x: 40, y: 40, scale: 1 };
+			apply_view();
+			return;
+		}
+
+		const padding = 36;
+		const scale = clamp_scale(Math.min((rect.width - padding * 2) / bounds.width, (rect.height - padding * 2) / bounds.height, 1));
+
+		view.scale = scale;
+		view.x = (rect.width - bounds.width * scale) / 2 - bounds.x * scale;
+		view.y = (rect.height - bounds.height * scale) / 2 - bounds.y * scale;
+		apply_view();
+	}
+
+	function center_on(key) {
+		const rect = viewport.getBoundingClientRect();
+
+		if (view.scale < 0.6) {
+			view.scale = 0.9;
+		}
+
+		view.x = rect.width / 2 - (positions[key].x + sizes[key].width / 2) * view.scale;
+		view.y = rect.height / 2 - (positions[key].y + sizes[key].height / 2) * view.scale;
+		apply_view();
+	}
+
+	function to_world(client_x, client_y) {
+		const rect = viewport.getBoundingClientRect();
+
+		return { x: (client_x - rect.left - view.x) / view.scale, y: (client_y - rect.top - view.y) / view.scale };
+	}
+
+	function update_table_names() {
+		table_names.textContent = "";
+
+		for (const table of schema.tables) {
+			const option = document.createElement("option");
+			option.value = display_name(table.schema, table.name);
+			table_names.appendChild(option);
+		}
+	}
+
+	function find_and_focus() {
+		const wanted = find_box.value.trim().toLowerCase();
+
+		if (wanted === "") {
+			return;
+		}
+
+		const table = schema.tables.find(function (item) { return display_name(item.schema, item.name).toLowerCase() === wanted; })
+			|| schema.tables.find(function (item) { return item.name.toLowerCase().indexOf(wanted) !== -1; });
+
+		if (table === undefined) {
+			return;
+		}
+
+		select_table(table.key);
+		center_on(table.key);
+	}
+
+	/* ---------- pointer gestures ---------- */
+
+	const pointers = new Map();
+	let gesture = null;
+	let last_tap = { key: "", time: 0 };
+
+	function start_pinch() {
+		const points = Array.from(pointers.values());
+		const rect = viewport.getBoundingClientRect();
+
+		gesture = {
+			type: "pinch",
+			distance: Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) || 1,
+			anchor_x: ((points[0].x + points[1].x) / 2 - rect.left - view.x) / view.scale,
+			anchor_y: ((points[0].y + points[1].y) / 2 - rect.top - view.y) / view.scale,
+			scale: view.scale
+		};
+	}
+
+	viewport.addEventListener("pointerdown", function (event) {
+		if (event.pointerType === "mouse" && event.button !== 0) {
+			return;
+		}
+
+		if (event.target.closest("button") !== null) {
+			return;
+		}
+
+		viewport.focus({ preventScroll: true });
+		viewport.setPointerCapture(event.pointerId);
+		pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+		hide_tooltip();
+
+		if (pointers.size === 2) {
+			if (gesture !== null && gesture.type === "drag") {
+				entity_elements[gesture.key].element.classList.remove("dragging");
+			}
+
+			start_pinch();
+			return;
+		}
+
+		if (pointers.size > 2) {
+			return;
+		}
+
+		const entity = event.target.closest(".entity");
+
+		if (entity !== null) {
+			const key = entity.dataset.key;
+			const point = to_world(event.clientX, event.clientY);
+
+			gesture = {
+				type: "drag",
+				key: key,
+				offset_x: point.x - positions[key].x,
+				offset_y: point.y - positions[key].y,
+				start_x: event.clientX,
+				start_y: event.clientY,
+				moved: false
+			};
+
+			entity_layer.appendChild(entity);
+			entity.classList.add("dragging");
+			return;
+		}
+
+		gesture = { type: "pan", start_x: event.clientX, start_y: event.clientY, view_x: view.x, view_y: view.y, moved: false };
+		viewport.classList.add("panning");
+	});
+
+	viewport.addEventListener("pointermove", function (event) {
+		if (pointers.has(event.pointerId)) {
+			pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+		}
+
+		if (gesture === null) {
+			if (event.pointerType === "mouse") {
+				update_hover(event);
+			}
+
+			return;
+		}
+
+		if (gesture.type === "pinch") {
+			if (pointers.size < 2) {
+				return;
+			}
+
+			const points = Array.from(pointers.values());
+			const rect = viewport.getBoundingClientRect();
+			const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+			const middle_x = (points[0].x + points[1].x) / 2 - rect.left;
+			const middle_y = (points[0].y + points[1].y) / 2 - rect.top;
+
+			view.scale = clamp_scale(gesture.scale * distance / gesture.distance);
+			view.x = middle_x - gesture.anchor_x * view.scale;
+			view.y = middle_y - gesture.anchor_y * view.scale;
+			apply_view();
+			return;
+		}
+
+		const moved = Math.hypot(event.clientX - gesture.start_x, event.clientY - gesture.start_y) > 3;
+
+		if (moved) {
+			gesture.moved = true;
+		}
+
+		if (!gesture.moved) {
+			return;
+		}
+
+		if (gesture.type === "pan") {
+			view.x = gesture.view_x + event.clientX - gesture.start_x;
+			view.y = gesture.view_y + event.clientY - gesture.start_y;
+			apply_view();
+			return;
+		}
+
+		const point = to_world(event.clientX, event.clientY);
+
+		positions[gesture.key] = { x: point.x - gesture.offset_x, y: point.y - gesture.offset_y };
+		move_entity(gesture.key);
+		schedule_links();
+	});
+
+	function end_pointer(event) {
+		if (!pointers.has(event.pointerId)) {
+			return;
+		}
+
+		pointers.delete(event.pointerId);
+
+		if (gesture === null) {
+			return;
+		}
+
+		if (gesture.type === "pinch") {
+			if (pointers.size === 0) {
+				gesture = null;
+			}
+
+			return;
+		}
+
+		viewport.classList.remove("panning");
+
+		if (gesture.type === "drag") {
+			const key = gesture.key;
+
+			entity_elements[key].element.classList.remove("dragging");
+
+			if (gesture.moved) {
+				freeze_positions();
+			}
+
+			else if (event.type === "pointerup") {
+				const now = Date.now();
+
+				if (last_tap.key === key && now - last_tap.time < 380) {
+					const table = schema.table_map.get(key);
+					last_tap = { key: "", time: 0 };
+					jump_to(table.source_id, table.offset);
+				}
+
+				else {
+					last_tap = { key: key, time: now };
+					select_table(key);
+				}
+			}
+		}
+
+		else if (gesture.type === "pan" && !gesture.moved && event.type === "pointerup") {
+			select_table("");
+		}
+
+		gesture = null;
+	}
+
+	viewport.addEventListener("pointerup", end_pointer);
+	viewport.addEventListener("pointercancel", end_pointer);
+
+	viewport.addEventListener("pointerleave", function () {
+		if (gesture === null) {
+			hover = null;
+			apply_focus();
+			hide_tooltip();
+		}
+	});
+
+	viewport.addEventListener("wheel", function (event) {
+		event.preventDefault();
+		hide_tooltip();
+
+		let delta_x = event.deltaX;
+		let delta_y = event.deltaY;
+
+		if (event.deltaMode === 1) {
+			delta_x *= 16;
+			delta_y *= 16;
+		}
+
+		else if (event.deltaMode === 2) {
+			delta_x *= viewport.clientWidth;
+			delta_y *= viewport.clientHeight;
+		}
+
+		if (event.ctrlKey || event.metaKey) {
+			const rect = viewport.getBoundingClientRect();
+			const step = Math.max(-30, Math.min(30, delta_y));
+			zoom_at(Math.exp(-step * 0.01), event.clientX - rect.left, event.clientY - rect.top);
+			return;
+		}
+
+		if (event.shiftKey && delta_x === 0) {
+			delta_x = delta_y;
+			delta_y = 0;
+		}
+
+		view.x -= delta_x;
+		view.y -= delta_y;
+		apply_view();
+	}, { passive: false });
+
+	viewport.addEventListener("keydown", function (event) {
+		if (event.target !== viewport) {
+			return;
+		}
+
+		const pan = 60;
+		let handled = true;
+
+		if (event.key === "+" || event.key === "=") {
+			zoom_center(1.2);
+		}
+
+		else if (event.key === "-" || event.key === "_") {
+			zoom_center(1 / 1.2);
+		}
+
+		else if (event.key === "0") {
+			fit_view();
+		}
+
+		else if (event.key === "ArrowLeft") {
+			view.x += pan;
+			apply_view();
+		}
+
+		else if (event.key === "ArrowRight") {
+			view.x -= pan;
+			apply_view();
+		}
+
+		else if (event.key === "ArrowUp") {
+			view.y += pan;
+			apply_view();
+		}
+
+		else if (event.key === "ArrowDown") {
+			view.y -= pan;
+			apply_view();
+		}
+
+		else if (event.key === "Escape") {
+			select_table("");
+		}
+
+		else {
+			handled = false;
+		}
+
+		if (handled) {
+			event.preventDefault();
+		}
+	});
+
+	/* ---------- export ---------- */
+
+	function escape_xml(text) {
+		return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+	}
+
+	function token_color(name) {
+		return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+	}
+
+	/* Builds a standalone SVG from the live layout. Text positions are read from
+	   the rendered tables, so the export matches what is on screen. */
+	function build_export_svg() {
+		const bounds = diagram_bounds();
+
+		if (bounds === null) {
+			return null;
+		}
+
+		const colors = {
+			background: token_color("--page"),
+			surface: token_color("--surface"),
+			raised: token_color("--raised"),
+			ink: token_color("--ink"),
+			soft: token_color("--ink_soft"),
+			faint: token_color("--ink_faint")
+		};
+
+		const padding = 32;
+		const left = Math.floor(bounds.x - padding);
+		const top = Math.floor(bounds.y - padding);
+		const width = Math.ceil(bounds.width + padding * 2);
+		const height = Math.ceil(bounds.height + padding * 2);
+		const mono = getComputedStyle(document.documentElement).getPropertyValue("--mono").trim().replace(/"/g, "'");
+		const parts = [];
+
+		parts.push("<svg xmlns=\"" + svg_namespace + "\" width=\"" + width + "\" height=\"" + height + "\" viewBox=\"" + left + " " + top + " " + width + " " + height + "\" font-family=\"" + mono + "\" font-size=\"12\">");
+		parts.push("<rect x=\"" + left + "\" y=\"" + top + "\" width=\"" + width + "\" height=\"" + height + "\" fill=\"" + colors.background + "\"/>");
+
+		const boxes = all_boxes();
+
+		for (const relation of schema.relations) {
+			const geometry = link_geometry(relation, boxes);
+
+			parts.push("<path d=\"" + geometry.line + "\" fill=\"none\" stroke=\"" + colors.faint + "\" stroke-width=\"1.5\"/>");
+			parts.push("<path d=\"" + geometry.strokes + "\" fill=\"none\" stroke=\"" + colors.faint + "\" stroke-width=\"1.5\"/>");
+
+			for (const dot of geometry.dots) {
+				parts.push("<circle cx=\"" + dot.x + "\" cy=\"" + dot.y + "\" r=\"4\" fill=\"" + colors.background + "\" stroke=\"" + colors.faint + "\" stroke-width=\"1.5\"/>");
+			}
+		}
+
+		for (const table of schema.tables) {
+			const entry = entity_elements[table.key];
+			const position = positions[table.key];
+			const size = sizes[table.key];
+			const head_height = entry.head.offsetHeight;
+			const radius = 5;
+
+			parts.push("<g transform=\"translate(" + round(position.x) + " " + round(position.y) + ")\">");
+			parts.push("<rect width=\"" + size.width + "\" height=\"" + size.height + "\" rx=\"" + radius + "\" fill=\"" + colors.surface + "\"/>");
+			parts.push("<path d=\"M 0 " + head_height + " V " + radius + " Q 0 0 " + radius + " 0 H " + (size.width - radius) + " Q " + size.width + " 0 " + size.width + " " + radius + " V " + head_height + " Z\" fill=\"" + colors.raised + "\"/>");
+
+			let head_text = "";
+
+			if (table.schema !== "public") {
+				head_text += "<tspan fill=\"" + colors.faint + "\" font-weight=\"400\">" + escape_xml(table.schema + ".") + "</tspan>";
+			}
+
+			head_text += escape_xml(table.name);
+			parts.push("<text x=\"10\" y=\"" + round(head_height / 2) + "\" dominant-baseline=\"central\" font-size=\"12.5\" font-weight=\"600\" fill=\"" + colors.ink + "\">" + head_text + "</text>");
+
+			for (const row of entry.element.querySelectorAll(".row")) {
+				const center = round(row.offsetTop + row.offsetHeight / 2);
+
+				if (row.classList.contains("more")) {
+					parts.push("<text x=\"10\" y=\"" + center + "\" dominant-baseline=\"central\" font-size=\"11\" fill=\"" + colors.faint + "\">" + escape_xml(row.textContent) + "</text>");
+					continue;
+				}
+
+				const mark = row.querySelector(".row_mark");
+				const name = row.querySelector(".row_name");
+				const type = row.querySelector(".row_type");
+				const is_pk = row.classList.contains("pk");
+
+				if (mark.textContent !== "") {
+					parts.push("<text x=\"" + mark.offsetLeft + "\" y=\"" + center + "\" dominant-baseline=\"central\" font-size=\"10\" fill=\"" + colors.faint + "\">" + escape_xml(mark.textContent) + "</text>");
+				}
+
+				parts.push("<text x=\"" + name.offsetLeft + "\" y=\"" + center + "\" dominant-baseline=\"central\" fill=\"" + (is_pk ? colors.ink : colors.soft) + "\"" + (is_pk ? " font-weight=\"600\"" : "") + ">" + escape_xml(name.textContent) + "</text>");
+				parts.push("<text x=\"" + (type.offsetLeft + type.offsetWidth) + "\" y=\"" + center + "\" dominant-baseline=\"central\" text-anchor=\"end\" fill=\"" + colors.faint + "\">" + escape_xml(type.textContent) + "</text>");
+			}
+
+			parts.push("</g>");
+		}
+
+		parts.push("</svg>");
+
+		return { markup: parts.join("\n"), width: width, height: height };
+	}
+
+	function export_name(extension) {
+		const named = sources.find(function (source) { return source.text.trim() !== ""; });
+		const stem = named === undefined ? "schema" : named.name.replace(/\.[^.]+$/, "");
+
+		return stem.replace(/[^A-Za-z0-9_-]+/g, "_") + "_erd." + extension;
+	}
+
+	function download(blob, name) {
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+
+		link.href = url;
+		link.download = name;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+	}
+
+	function flash(button, label) {
+		const original = button.textContent;
+		button.textContent = label;
+		setTimeout(function () { button.textContent = original; }, 1400);
+	}
+
+	function export_svg() {
+		const built = build_export_svg();
+
+		if (built === null) {
+			flash(document.getElementById("svg_button"), "Nothing to export");
+			return;
+		}
+
+		download(new Blob([built.markup], { type: "image/svg+xml" }), export_name("svg"));
+	}
+
+	function export_png() {
+		const button = document.getElementById("png_button");
+		const built = build_export_svg();
+
+		if (built === null) {
+			flash(button, "Nothing to export");
+			return;
+		}
+
+		const scale = Math.min(2, 16000 / Math.max(built.width, built.height));
+		const image = new Image();
+		const url = URL.createObjectURL(new Blob([built.markup], { type: "image/svg+xml" }));
+
+		image.onload = function () {
+			const canvas = document.createElement("canvas");
+			canvas.width = Math.round(built.width * scale);
+			canvas.height = Math.round(built.height * scale);
+
+			const context = canvas.getContext("2d");
+			context.scale(scale, scale);
+			context.drawImage(image, 0, 0, built.width, built.height);
+			URL.revokeObjectURL(url);
+
+			canvas.toBlob(function (blob) {
+				if (blob === null) {
+					flash(button, "Too large");
+					return;
+				}
+
+				download(blob, export_name("png"));
+			}, "image/png");
+		};
+
+		image.onerror = function () {
+			URL.revokeObjectURL(url);
+			flash(button, "Export failed");
+		};
+
+		image.src = url;
+	}
+
+	/* ---------- example ---------- */
+
+	const example_schema = `-- Core tables. Foreign keys to tags live in the migration file.
+
+CREATE TYPE post_status AS ENUM ('draft', 'published', 'archived');
+
+CREATE TABLE "users" (
+	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	email text NOT NULL UNIQUE,
+	display_name text,
+	created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+CREATE TABLE "profiles" (
+	user_id bigint PRIMARY KEY REFERENCES "users" (id) ON DELETE CASCADE,
+	bio text,
+	avatar_url text
+);
+
+CREATE TABLE "sessions" (
+	id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+	user_id bigint NOT NULL REFERENCES "users" (id) ON DELETE CASCADE,
+	token_hash bytea NOT NULL,
+	expires_at timestamptz NOT NULL,
+	revoked_at timestamptz
+);
+
+CREATE TABLE "posts" (
+	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	author_id bigint NOT NULL REFERENCES "users" (id),
+	status post_status NOT NULL DEFAULT 'draft',
+	title text NOT NULL,
+	body text,
+	published_at timestamptz
+);
+
+COMMENT ON TABLE "posts" IS 'Blog posts, drafts included.';
+
+CREATE TABLE "comments" (
+	id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	post_id bigint NOT NULL REFERENCES "posts" (id) ON DELETE CASCADE,
+	author_id bigint REFERENCES "users" (id) ON DELETE SET NULL,
+	parent_id bigint REFERENCES "comments" (id),
+	body text NOT NULL,
+	created_at timestamptz NOT NULL DEFAULT now()
+);
+`;
+
+	const example_migration = `-- Tagging, added in a later migration.
+
+CREATE TABLE "tags" (
+	id serial PRIMARY KEY,
+	name character varying(64) NOT NULL UNIQUE
+);
+
+CREATE TABLE "post_tags" (
+	post_id bigint NOT NULL,
+	tag_id integer NOT NULL,
+	PRIMARY KEY (post_id, tag_id)
+);
+
+ALTER TABLE "post_tags"
+	ADD CONSTRAINT post_tags_post_fk FOREIGN KEY (post_id) REFERENCES "posts" (id) ON DELETE CASCADE,
+	ADD CONSTRAINT post_tags_tag_fk FOREIGN KEY (tag_id) REFERENCES "tags" (id);
+`;
+
+	function load_example() {
+		const has_text = sources.some(function (source) { return source.text.trim() !== ""; });
+		const snapshot = take_snapshot();
+
+		sources = [];
+		add_source("schema.sql", example_schema);
+		add_source("002_tags.sql", example_migration);
+		saved_positions = {};
+		selected_key = "";
+		fit_pending = true;
+		activate_source(sources[0].id);
+		refresh();
+
+		if (has_text) {
+			offer_undo("Replaced your files with the example.", snapshot, function () { fit_pending = true; refresh(); });
+		}
+	}
+
+	/* ---------- resizable editor ---------- */
+
+	/* The editor width is a CSS variable on the workspace grid, so the diagram
+	   pane simply takes whatever is left. The world keeps its own coordinates,
+	   which is why the diagram does not move while the split changes. */
+
+	function clamp_editor_width(width) {
+		const available = workspace.clientWidth - splitter.offsetWidth;
+		const max = Math.max(editor_min_width, available - diagram_min_width);
+
+		return Math.round(Math.min(max, Math.max(editor_min_width, width)));
+	}
+
+	function apply_editor_width(width) {
+		editor_width = clamp_editor_width(width);
+		workspace.style.setProperty("--editor_width", editor_width + "px");
+		splitter.setAttribute("aria-valuenow", String(editor_width));
+		splitter.setAttribute("aria-valuemin", String(editor_min_width));
+		splitter.setAttribute("aria-valuemax", String(clamp_editor_width(Infinity)));
+	}
+
+	let resize_gesture = null;
+
+	splitter.addEventListener("pointerdown", function (event) {
+		if (event.pointerType === "mouse" && event.button !== 0) {
+			return;
+		}
+
+		event.preventDefault();
+		splitter.setPointerCapture(event.pointerId);
+		resize_gesture = { start_x: event.clientX, start_width: editor_width };
+		workspace.classList.add("resizing");
+	});
+
+	splitter.addEventListener("pointermove", function (event) {
+		if (resize_gesture === null) {
+			return;
+		}
+
+		apply_editor_width(resize_gesture.start_width + event.clientX - resize_gesture.start_x);
+	});
+
+	function end_resize() {
+		if (resize_gesture === null) {
+			return;
+		}
+
+		resize_gesture = null;
+		workspace.classList.remove("resizing");
+		save_state();
+	}
+
+	splitter.addEventListener("pointerup", end_resize);
+	splitter.addEventListener("pointercancel", end_resize);
+
+	splitter.addEventListener("dblclick", function () {
+		apply_editor_width(editor_default_width);
+		save_state();
+	});
+
+	splitter.addEventListener("keydown", function (event) {
+		const step = event.shiftKey ? 80 : 20;
+		let handled = true;
+
+		if (event.key === "ArrowLeft") {
+			apply_editor_width(editor_width - step);
+		}
+
+		else if (event.key === "ArrowRight") {
+			apply_editor_width(editor_width + step);
+		}
+
+		else if (event.key === "Home") {
+			apply_editor_width(editor_min_width);
+		}
+
+		else if (event.key === "End") {
+			apply_editor_width(Infinity);
+		}
+
+		else if (event.key === "Enter") {
+			apply_editor_width(editor_default_width);
+		}
+
+		else {
+			handled = false;
+		}
+
+		if (handled) {
+			event.preventDefault();
+			save_state();
+		}
+	});
+
+	/* a narrower window must never squeeze the diagram below its minimum */
+	window.addEventListener("resize", function () {
+		if (!editor_hidden) {
+			apply_editor_width(editor_width);
+		}
+	});
+
+	/* ---------- wiring ---------- */
+
+	function set_editor_hidden(hidden) {
+		editor_hidden = hidden;
+		workspace.classList.toggle("collapsed", hidden);
+		editor_toggle.textContent = hidden ? "Show editor" : "Hide editor";
+
+		if (!hidden) {
+			apply_editor_width(editor_width);
+		}
+
+		save_state();
+	}
+
+	function set_keys_only(enabled) {
+		keys_only = enabled;
+		keys_button.classList.toggle("on", enabled);
+		keys_button.setAttribute("aria-pressed", enabled ? "true" : "false");
+	}
+
+	sql_box.addEventListener("input", function () {
+		active_source().text = sql_box.value;
+		schedule_parse();
+	});
+
+	document.getElementById("open_button").addEventListener("click", function () { file_input.click(); });
+	document.getElementById("empty_open_button").addEventListener("click", function () { file_input.click(); });
+	document.getElementById("example_button").addEventListener("click", load_example);
+	document.getElementById("empty_example_button").addEventListener("click", load_example);
+
+	document.getElementById("new_button").addEventListener("click", function () {
+		const source = add_source("untitled.sql", "");
+		activate_source(source.id);
+		sql_box.focus();
+	});
+
+	file_input.addEventListener("change", function () {
+		add_files(file_input.files);
+		file_input.value = "";
+	});
+
+	let drag_depth = 0;
+
+	function carries_files(event) {
+		return event.dataTransfer !== null && Array.from(event.dataTransfer.types).indexOf("Files") !== -1;
+	}
+
+	document.addEventListener("dragenter", function (event) {
+		if (!carries_files(event)) {
+			return;
+		}
+
+		drag_depth++;
+		workspace.classList.add("dropping");
+	});
+
+	document.addEventListener("dragleave", function (event) {
+		if (!carries_files(event)) {
+			return;
+		}
+
+		drag_depth = Math.max(0, drag_depth - 1);
+
+		if (drag_depth === 0) {
+			workspace.classList.remove("dropping");
+		}
+	});
+
+	document.addEventListener("dragover", function (event) {
+		if (carries_files(event)) {
+			event.preventDefault();
+		}
+	});
+
+	document.addEventListener("drop", function (event) {
+		if (!carries_files(event)) {
+			return;
+		}
+
+		event.preventDefault();
+		drag_depth = 0;
+		workspace.classList.remove("dropping");
+		add_files(event.dataTransfer.files);
+	});
+
+	editor_toggle.addEventListener("click", function () { set_editor_hidden(!editor_hidden); });
+
+	keys_button.addEventListener("click", function () {
+		set_keys_only(!keys_only);
+		render_diagram();
+		save_state();
+	});
+
+	document.getElementById("layout_button").addEventListener("click", function () {
+		const arranged = Object.keys(saved_positions).length > 0;
+		const snapshot = take_snapshot();
+
+		saved_positions = {};
+		render_diagram();
+		fit_view();
+		save_state();
+
+		if (arranged) {
+			offer_undo("Rearranged every table.", snapshot, fit_view);
+		}
+	});
+
+	document.getElementById("zoom_in").addEventListener("click", function () { zoom_center(1.2); });
+	document.getElementById("zoom_out").addEventListener("click", function () { zoom_center(1 / 1.2); });
+	zoom_label.addEventListener("click", function () { zoom_center(1 / view.scale); });
+	document.getElementById("fit_button").addEventListener("click", fit_view);
+	document.getElementById("svg_button").addEventListener("click", export_svg);
+	document.getElementById("png_button").addEventListener("click", export_png);
+
+	find_box.addEventListener("change", find_and_focus);
+
+	find_box.addEventListener("keydown", function (event) {
+		if (event.key === "Enter") {
+			event.preventDefault();
+			find_and_focus();
+		}
+	});
+
+	/* ---------- start ---------- */
+
+	if (!load_state()) {
+		sources = [];
+		add_source("schema.sql", "");
+		active_source_id = sources[0].id;
+	}
+
+	set_keys_only(keys_only);
+	workspace.classList.toggle("collapsed", editor_hidden);
+	editor_toggle.textContent = editor_hidden ? "Show editor" : "Hide editor";
+	apply_editor_width(editor_width);
+	sql_box.value = active_source().text;
+	render_tabs();
+	apply_view();
+	refresh();
+</script>
+
+</body>
+</html>
