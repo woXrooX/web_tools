@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Favicon generator</title>
+<title>Favicon and OGP generator</title>
+<meta name="description" content="Make a favicon set and Open Graph link previews from one logo. Preview how links look on Google, X, Slack, WhatsApp and more. Runs in your browser.">
+<link rel="canonical" href="https://woxroox.github.io/web_tools/source/favicon_and_OGP/">
 
 <link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
 <link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
@@ -11,6 +13,13 @@
 <link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
 <link rel="manifest" href="../../images/Favicon/site.webmanifest">
 <meta name="theme-color" content="#0e0f12">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="web_tools">
+<meta property="og:title" content="Favicon and OGP generator">
+<meta property="og:description" content="Make a favicon set and Open Graph link previews from one logo. Runs in your browser.">
+<meta property="og:url" content="https://woxroox.github.io/web_tools/source/favicon_and_OGP/">
+<meta name="twitter:card" content="summary">
 
 <link rel="stylesheet" href="../../styles/core.css">
 <style>
@@ -332,7 +341,6 @@ input:disabled {
 	gap: 32px;
 	align-items: end;
 	padding: 28px;
-	border-bottom: 1px solid var(--line);
 }
 
 .zoom {
@@ -403,6 +411,599 @@ input:disabled {
 
 .ladder_item .shape_circle {
 	border-radius: 50%;
+}
+
+/* Cards below the workspace */
+
+.card {
+	margin-top: 28px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: 14px;
+}
+
+.card_title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 600;
+}
+
+.card_lede {
+	max-width: 64ch;
+	margin: 4px 0 0;
+	color: var(--ink_soft);
+	font-size: 14px;
+}
+
+/* Social link previews */
+
+.ogp_header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 22px 28px;
+}
+
+.ogp_switch {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.ogp_switch input {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+}
+
+.ogp_workspace {
+	padding: 24px 28px 28px;
+	border-top: 1px solid var(--line);
+}
+
+.ogp_workspace[hidden] {
+	display: none;
+}
+
+.field_first {
+	padding-top: 0;
+	border-top: 0;
+}
+
+.field_label {
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.field .sub_label {
+	margin-top: 8px;
+	color: var(--ink_soft);
+	font-size: 13px;
+	font-weight: 400;
+}
+
+.field textarea,
+.field select {
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: var(--well);
+	color: inherit;
+	font: inherit;
+}
+
+.field textarea {
+	resize: vertical;
+	min-height: 72px;
+}
+
+.field_value.is_over {
+	color: var(--warn);
+}
+
+.choice_row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 18px;
+}
+
+.choice_row input[type="radio"] {
+	margin: 0;
+}
+
+#og_design_controls,
+#og_upload_controls {
+	display: grid;
+	gap: 6px;
+}
+
+#og_design_controls[hidden],
+#og_upload_controls[hidden] {
+	display: none;
+}
+
+.drop_zone_small {
+	min-height: 110px;
+	margin-top: 6px;
+	padding: 16px;
+	border-radius: 10px;
+}
+
+.drop_zone_small .drop_zone_title {
+	font-size: 15px;
+}
+
+.drop_zone_small.has_source {
+	border-style: solid;
+}
+
+.checks {
+	display: grid;
+	gap: 8px;
+	margin: 16px 0 0;
+	padding: 16px 0 0;
+	border-top: 1px solid var(--line);
+	list-style: none;
+	font-size: 13.5px;
+}
+
+.checks li {
+	display: grid;
+	grid-template-columns: 8px minmax(0, 1fr);
+	gap: 10px;
+	align-items: baseline;
+	color: var(--ink_soft);
+}
+
+.checks li::before {
+	content: "";
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--ink_faint);
+}
+
+.checks .check_warn::before {
+	background: var(--warn);
+}
+
+.checks .check_ok::before {
+	background: var(--ok);
+}
+
+.og_frame {
+	margin: 0;
+}
+
+.og_frame canvas {
+	display: block;
+	width: 100%;
+	height: auto;
+	border-radius: 8px;
+	box-shadow: 0 0 0 1px var(--line_strong);
+}
+
+.og_frame figcaption {
+	margin-top: 8px;
+	color: var(--ink_soft);
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+.preview_note {
+	margin-top: 24px;
+}
+
+.preview_note a {
+	color: var(--ink_soft);
+}
+
+/* Platform mockups. Each one copies its app's own colors, so they
+   sit on their own backgrounds rather than the site palette. */
+
+.platform_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+	gap: 24px 20px;
+	margin-top: 28px;
+	--embed_color: #2446d4;
+}
+
+.platform {
+	min-width: 0;
+	margin: 0;
+}
+
+.platform_name {
+	margin: 0 0 8px;
+	color: var(--ink_soft);
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.mock {
+	overflow: hidden;
+	padding: 14px;
+	border-radius: 10px;
+	font-family: var(--sans);
+	font-size: 14px;
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+.mock img {
+	display: block;
+	width: 100%;
+	aspect-ratio: 1200 / 630;
+	object-fit: cover;
+}
+
+.mock [hidden] {
+	display: none !important;
+}
+
+.one_line {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.clamp {
+	display: -webkit-box;
+	overflow: hidden;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+.mock_google {
+	background: #ffffff;
+	color: #4d5156;
+	font-family: Arial, var(--sans);
+}
+
+.g_source {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.g_favicon {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 28px;
+	height: 28px;
+	border: 1px solid #dadce0;
+	border-radius: 50%;
+	background: #f1f3f4;
+}
+
+.mock .g_favicon img {
+	width: 18px;
+	height: 18px;
+	aspect-ratio: auto;
+	object-fit: contain;
+}
+
+.g_source_text {
+	display: grid;
+	min-width: 0;
+}
+
+.g_site {
+	color: #202124;
+	font-size: 14px;
+}
+
+.g_url {
+	color: #4d5156;
+	font-size: 12px;
+}
+
+.g_title {
+	margin: 8px 0 3px;
+	color: #1a0dab;
+	font-size: 20px;
+	line-height: 1.3;
+}
+
+.g_description {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.58;
+}
+
+.mock_x {
+	background: #000000;
+	color: #e7e9ea;
+}
+
+.x_card {
+	position: relative;
+	overflow: hidden;
+	border: 1px solid #2f3336;
+	border-radius: 16px;
+}
+
+.x_title {
+	position: absolute;
+	bottom: 12px;
+	left: 12px;
+	max-width: calc(100% - 24px);
+	padding: 1px 6px;
+	border-radius: 4px;
+	background: rgba(0, 0, 0, 0.77);
+	color: #ffffff;
+	font-size: 13px;
+}
+
+.x_from {
+	margin-top: 6px;
+	color: #71767b;
+	font-size: 13px;
+}
+
+.mock_facebook {
+	padding: 0;
+	background: #ffffff;
+	border: 1px solid #dddfe2;
+}
+
+.fb_meta {
+	padding: 10px 12px;
+	background: #f0f2f5;
+}
+
+.fb_domain {
+	color: #65676b;
+	font-size: 12px;
+	text-transform: uppercase;
+}
+
+.fb_title {
+	margin-top: 2px;
+	color: #050505;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.fb_description {
+	margin-top: 2px;
+	color: #65676b;
+	font-size: 14px;
+}
+
+.mock_linkedin {
+	padding: 0;
+	background: #ffffff;
+	border: 1px solid #e0dfdc;
+}
+
+.li_meta {
+	padding: 8px 12px 10px;
+}
+
+.li_title {
+	color: rgba(0, 0, 0, 0.9);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.li_domain {
+	margin-top: 2px;
+	color: rgba(0, 0, 0, 0.6);
+	font-size: 12px;
+}
+
+.mock_slack {
+	display: grid;
+	grid-template-columns: 4px minmax(0, 1fr);
+	gap: 12px;
+	background: #ffffff;
+	color: #1d1c1d;
+	font-size: 15px;
+	line-height: 1.45;
+}
+
+.slack_bar {
+	border-radius: 4px;
+	background: #dddddd;
+}
+
+.slack_body {
+	min-width: 0;
+}
+
+.slack_site {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 700;
+}
+
+.mock .slack_favicon {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	aspect-ratio: auto;
+	border-radius: 3px;
+	object-fit: contain;
+}
+
+.slack_title {
+	color: #1264a3;
+	font-weight: 700;
+}
+
+.slack_description {
+	-webkit-line-clamp: 3;
+}
+
+.mock .slack_image {
+	max-width: 360px;
+	margin-top: 8px;
+	border-radius: 8px;
+}
+
+.mock_discord {
+	background: #313338;
+	color: #dbdee1;
+}
+
+.discord_embed {
+	padding: 10px 14px 14px 12px;
+	border-left: 4px solid var(--embed_color);
+	border-radius: 4px;
+	background: #2b2d31;
+}
+
+.discord_site {
+	color: #b5bac1;
+	font-size: 12px;
+}
+
+.discord_title {
+	margin: 6px 0 4px;
+	color: #00a8fc;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.discord_description {
+	font-size: 14px;
+	-webkit-line-clamp: 4;
+}
+
+.mock .discord_image {
+	margin-top: 14px;
+	border-radius: 4px;
+}
+
+.mock_whatsapp {
+	background: #efeae2;
+	color: #111b21;
+}
+
+.wa_bubble {
+	max-width: 92%;
+	margin-left: auto;
+	padding: 4px 4px 4px;
+	border-radius: 8px;
+	background: #d9fdd3;
+	box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13);
+}
+
+.wa_preview {
+	overflow: hidden;
+	border-radius: 6px;
+	background: #d1f4cc;
+}
+
+.wa_meta {
+	padding: 6px 10px 8px;
+}
+
+.wa_title {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.wa_description,
+.wa_domain {
+	color: #667781;
+	font-size: 13px;
+}
+
+.wa_domain {
+	margin-top: 2px;
+	font-size: 12px;
+}
+
+.wa_link {
+	padding: 6px 6px 0;
+	color: #027eb5;
+}
+
+.wa_time {
+	padding: 0 6px;
+	color: #667781;
+	font-size: 11px;
+	text-align: right;
+}
+
+.mock_telegram {
+	background: #b7cfa8;
+	color: #000000;
+}
+
+.tg_bubble {
+	max-width: 92%;
+	margin-left: auto;
+	padding: 8px 10px 10px;
+	border-radius: 12px;
+	background: #effdde;
+}
+
+.tg_link {
+	color: #168acd;
+}
+
+.tg_preview {
+	margin-top: 6px;
+	padding-left: 8px;
+	border-left: 3px solid #4fae4e;
+}
+
+.tg_site {
+	color: #4fae4e;
+	font-weight: 600;
+}
+
+.tg_title {
+	font-weight: 600;
+}
+
+.tg_description {
+	-webkit-line-clamp: 4;
+}
+
+.mock .tg_image {
+	margin-top: 6px;
+	border-radius: 6px;
+}
+
+.mock_imessage {
+	background: #ffffff;
+}
+
+.im_card {
+	overflow: hidden;
+	max-width: 290px;
+	margin-left: auto;
+	border-radius: 18px;
+	background: #e9e9eb;
+}
+
+.im_meta {
+	padding: 8px 12px 10px;
+}
+
+.im_title {
+	color: #000000;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.im_domain {
+	color: #8e8e93;
+	font-size: 12px;
 }
 
 /* Output */
@@ -578,7 +1179,13 @@ input:disabled {
 	}
 
 	.preview_body,
-	.output {
+	.output,
+	.ogp_workspace {
+		padding: 20px;
+	}
+
+	.ogp_header {
+		align-items: flex-start;
 		padding: 20px;
 	}
 
@@ -601,13 +1208,13 @@ input:disabled {
 <nav class="site_bar">
 	<a href="../../index.html">web_tools</a>
 	<span>/</span>
-	<strong>favicon_generator</strong>
+	<strong>favicon_and_OGP</strong>
 </nav>
 
 <main class="page">
 	<header class="page_header">
-		<h1>Favicon generator</h1>
-		<p>Drop in a PNG or SVG and download the icon files modern browsers and devices actually use, as one zip. Everything happens in this page. Nothing is uploaded.</p>
+		<h1>Favicon and OGP generator</h1>
+		<p>Drop in a PNG or SVG and download the icon files modern browsers and devices actually use, plus Open Graph tags and a share image if you want them, as one zip. Everything happens in this page. Nothing is uploaded.</p>
 	</header>
 
 	<div class="workspace">
@@ -705,7 +1312,7 @@ input:disabled {
 			</div>
 		</section>
 
-		<section class="preview" aria-label="Preview and download">
+		<section class="preview" aria-label="Icon preview">
 			<div class="tab_strip tab_strip_light" aria-hidden="true">
 				<div class="tab tab_active">
 					<canvas class="tab_icon" width="32" height="32"></canvas>
@@ -739,21 +1346,241 @@ input:disabled {
 				<div class="ladder" id="ladder"></div>
 			</div>
 
-			<div class="output">
-				<h2 class="output_title">Files in the zip</h2>
-				<div id="file_groups"></div>
-				<div class="actions">
-					<button type="button" class="button_primary" id="download_button" disabled>Download zip</button>
-					<span class="actions_hint" id="download_hint">Add an image to enable the download.</span>
-				</div>
-				<details class="snippet">
-					<summary>HTML for your page's head</summary>
-					<pre><code id="snippet_code"></code></pre>
-					<button type="button" class="button_secondary" id="copy_button">Copy HTML</button>
-				</details>
-			</div>
 		</section>
 	</div>
+
+	<section class="card ogp_panel" aria-labelledby="ogp_heading">
+		<div class="ogp_header">
+			<div>
+				<h2 class="card_title" id="ogp_heading">Social link previews</h2>
+				<p class="card_lede">Open Graph tags and a 1200 × 630 image, so a link to your site shows a title, description and picture in chats, feeds and search results.</p>
+			</div>
+			<label class="check_row ogp_switch">
+				<input type="checkbox" id="ogp_toggle">
+				Include
+			</label>
+		</div>
+
+		<div class="workspace ogp_workspace" id="ogp_workspace" hidden>
+			<section aria-label="Link preview settings">
+				<div class="field field_first">
+					<div class="field_row">
+						<label for="page_title_input">Page title</label>
+						<span class="field_value" id="page_title_count"></span>
+					</div>
+					<input type="text" id="page_title_input" placeholder="Same as site name" autocomplete="off">
+					<p class="field_note">Used for the title tag, og:title and the browser tab above.</p>
+				</div>
+
+				<div class="field">
+					<div class="field_row">
+						<label for="description_input">Description</label>
+						<span class="field_value" id="description_count"></span>
+					</div>
+					<textarea id="description_input" rows="3" placeholder="One or two sentences about the page"></textarea>
+				</div>
+
+				<div class="field">
+					<label for="page_url_input">Page URL</label>
+					<input type="text" id="page_url_input" inputmode="url" placeholder="https://example.com/" spellcheck="false" autocomplete="off">
+					<p class="field_note">The full address of the page. Platforms need it to find the image.</p>
+				</div>
+
+				<div class="field">
+					<label for="x_handle_input">X account</label>
+					<input type="text" id="x_handle_input" placeholder="@yourname, optional" spellcheck="false" autocomplete="off">
+				</div>
+
+				<div class="field">
+					<span class="field_label">Image</span>
+					<div class="choice_row">
+						<label class="check_row">
+							<input type="radio" name="og_image_mode" value="design" checked>
+							Design from logo
+						</label>
+						<label class="check_row">
+							<input type="radio" name="og_image_mode" value="upload">
+							Upload an image
+						</label>
+					</div>
+
+					<div id="og_design_controls">
+						<label class="sub_label" for="og_layout_input">Layout</label>
+						<select id="og_layout_input">
+							<option value="centered">Logo above title</option>
+							<option value="split">Logo beside text</option>
+							<option value="text">Text first</option>
+						</select>
+						<p class="field_note">Uses your logo, site name and theme color from above.</p>
+					</div>
+
+					<div id="og_upload_controls" hidden>
+						<label class="drop_zone drop_zone_small" id="og_drop_zone" tabindex="0">
+							<input type="file" id="og_file_input" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" hidden>
+							<span class="drop_zone_title" id="og_drop_title">Drop a PNG, JPG or WebP</span>
+							<span class="drop_zone_hint">Or click to choose. 1200 × 630 fits without cropping.</span>
+						</label>
+					</div>
+				</div>
+
+				<div class="field">
+					<label for="og_alt_input">Image description</label>
+					<input type="text" id="og_alt_input" placeholder="What the image shows" autocomplete="off">
+					<p class="field_note">Written to og:image:alt for screen readers.</p>
+				</div>
+
+				<ul class="checks" id="checks" aria-live="polite"></ul>
+			</section>
+
+			<section aria-label="Link previews">
+				<figure class="og_frame">
+					<canvas id="og_canvas" width="1200" height="630"></canvas>
+					<figcaption id="og_caption"></figcaption>
+				</figure>
+
+				<div class="platform_grid" id="platform_grid">
+					<article class="platform">
+						<h3 class="platform_name">Google Search</h3>
+						<div class="mock mock_google">
+							<div class="g_source">
+								<span class="g_favicon"><img data-bind="favicon" alt=""></span>
+								<span class="g_source_text">
+									<span class="g_site one_line" data-bind="site_name"></span>
+									<span class="g_url one_line" data-bind="display_url"></span>
+								</span>
+							</div>
+							<div class="g_title one_line" data-bind="title"></div>
+							<p class="g_description clamp" data-bind="description"></p>
+						</div>
+					</article>
+
+					<article class="platform">
+						<h3 class="platform_name">X</h3>
+						<div class="mock mock_x">
+							<div class="x_card">
+								<img data-bind="image" alt="">
+								<span class="x_title one_line" data-bind="title"></span>
+							</div>
+							<div class="x_from">From <span data-bind="domain"></span></div>
+						</div>
+					</article>
+
+					<article class="platform">
+						<h3 class="platform_name">Facebook</h3>
+						<div class="mock mock_facebook">
+							<img data-bind="image" alt="">
+							<div class="fb_meta">
+								<div class="fb_domain one_line" data-bind="domain"></div>
+								<div class="fb_title clamp" data-bind="title"></div>
+								<div class="fb_description one_line" data-bind="description"></div>
+							</div>
+						</div>
+					</article>
+
+					<article class="platform">
+						<h3 class="platform_name">LinkedIn</h3>
+						<div class="mock mock_linkedin">
+							<img data-bind="image" alt="">
+							<div class="li_meta">
+								<div class="li_title clamp" data-bind="title"></div>
+								<div class="li_domain one_line" data-bind="domain"></div>
+							</div>
+						</div>
+					</article>
+
+					<article class="platform">
+						<h3 class="platform_name">Slack</h3>
+						<div class="mock mock_slack">
+							<div class="slack_bar"></div>
+							<div class="slack_body">
+								<div class="slack_site">
+									<img class="slack_favicon" data-bind="favicon" alt="">
+									<span class="one_line" data-bind="site_name"></span>
+								</div>
+								<div class="slack_title" data-bind="title"></div>
+								<div class="slack_description clamp" data-bind="description"></div>
+								<img class="slack_image" data-bind="image" alt="">
+							</div>
+						</div>
+					</article>
+
+					<article class="platform">
+						<h3 class="platform_name">Discord</h3>
+						<div class="mock mock_discord">
+							<div class="discord_embed">
+								<div class="discord_site one_line" data-bind="site_name"></div>
+								<div class="discord_title" data-bind="title"></div>
+								<div class="discord_description clamp" data-bind="description"></div>
+								<img class="discord_image" data-bind="image" alt="">
+							</div>
+						</div>
+					</article>
+
+					<article class="platform">
+						<h3 class="platform_name">WhatsApp</h3>
+						<div class="mock mock_whatsapp">
+							<div class="wa_bubble">
+								<div class="wa_preview">
+									<img data-bind="image" alt="">
+									<div class="wa_meta">
+										<div class="wa_title clamp" data-bind="title"></div>
+										<div class="wa_description clamp" data-bind="description"></div>
+										<div class="wa_domain one_line" data-bind="domain"></div>
+									</div>
+								</div>
+								<div class="wa_link" data-bind="url"></div>
+								<div class="wa_time">12:04</div>
+							</div>
+						</div>
+					</article>
+
+					<article class="platform">
+						<h3 class="platform_name">Telegram</h3>
+						<div class="mock mock_telegram">
+							<div class="tg_bubble">
+								<div class="tg_link" data-bind="url"></div>
+								<div class="tg_preview">
+									<div class="tg_site one_line" data-bind="site_name"></div>
+									<div class="tg_title" data-bind="title"></div>
+									<div class="tg_description clamp" data-bind="description"></div>
+									<img class="tg_image" data-bind="image" alt="">
+								</div>
+							</div>
+						</div>
+					</article>
+
+					<article class="platform">
+						<h3 class="platform_name">iMessage</h3>
+						<div class="mock mock_imessage">
+							<div class="im_card">
+								<img data-bind="image" alt="">
+								<div class="im_meta">
+									<div class="im_title clamp" data-bind="title"></div>
+									<div class="im_domain one_line" data-bind="domain"></div>
+								</div>
+							</div>
+						</div>
+					</article>
+				</div>
+
+				<p class="field_note preview_note">Close approximations. Each app changes its layout from time to time, and caches a link's preview once it has fetched it. After you publish changes, refresh the cache with the <a href="https://developers.facebook.com/tools/debug/" target="_blank" rel="noopener">Facebook Sharing Debugger</a> or <a href="https://www.linkedin.com/post-inspector/" target="_blank" rel="noopener">LinkedIn Post Inspector</a>.</p>
+			</section>
+		</div>
+	</section>
+
+	<section class="card output" aria-labelledby="output_heading">
+		<h2 class="output_title" id="output_heading">Files in the zip</h2>
+		<div id="file_groups"></div>
+		<div class="actions">
+			<button type="button" class="button_primary" id="download_button" disabled>Download zip</button>
+			<span class="actions_hint" id="download_hint">Add an image to enable the download.</span>
+		</div>
+		<details class="snippet">
+			<summary>HTML for your page's head</summary>
+			<pre><code id="snippet_code"></code></pre>
+			<button type="button" class="button_secondary" id="copy_button">Copy HTML</button>
+		</details>
+	</section>
 </main>
 
 <script>
@@ -789,6 +1616,27 @@ const download_button = document.getElementById('download_button');
 const download_hint = document.getElementById('download_hint');
 const snippet_code = document.getElementById('snippet_code');
 const copy_button = document.getElementById('copy_button');
+const ogp_toggle = document.getElementById('ogp_toggle');
+const ogp_workspace = document.getElementById('ogp_workspace');
+const page_title_input = document.getElementById('page_title_input');
+const page_title_count = document.getElementById('page_title_count');
+const description_input = document.getElementById('description_input');
+const description_count = document.getElementById('description_count');
+const page_url_input = document.getElementById('page_url_input');
+const x_handle_input = document.getElementById('x_handle_input');
+const og_mode_inputs = document.querySelectorAll('input[name="og_image_mode"]');
+const og_design_controls = document.getElementById('og_design_controls');
+const og_upload_controls = document.getElementById('og_upload_controls');
+const og_layout_input = document.getElementById('og_layout_input');
+const og_drop_zone = document.getElementById('og_drop_zone');
+const og_drop_title = document.getElementById('og_drop_title');
+const og_file_input = document.getElementById('og_file_input');
+const og_alt_input = document.getElementById('og_alt_input');
+const og_canvas = document.getElementById('og_canvas');
+const og_caption = document.getElementById('og_caption');
+const checks_list = document.getElementById('checks');
+const platform_grid = document.getElementById('platform_grid');
+const bound_elements = platform_grid.querySelectorAll('[data-bind]');
 
 const text_encoder = new TextEncoder();
 
@@ -802,6 +1650,19 @@ let source_object_url = '';
 
 let render_pending = false;
 let drag_depth = 0;
+
+// Open Graph image state. The canvas is redrawn on every change, but encoding it to a file
+// is slower, so that waits until typing pauses. The encoded file feeds the platform previews.
+const og_width = 1200;
+const og_height = 630;
+const og_font_family = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+// WhatsApp is known to skip preview images above roughly this size.
+const og_size_limit = 300 * 1024;
+let og_upload = null;
+let og_blob_url = '';
+let og_byte_size = 0;
+let og_encode_timer = 0;
+let og_encoding = false;
 
 /* ---------- Output plan ---------- */
 
@@ -847,6 +1708,15 @@ const output_groups = [
 			png_file('icon_512', '_512x512.png', 512, 'favicon', 'Install prompts and splash screens'),
 			png_file('icon_512_maskable', '_512x512_maskable.png', 512, 'maskable', 'Launchers that crop icons into circles or other shapes'),
 			{ id: 'manifest', type: 'manifest', fixed_name: 'site.webmanifest', note: 'Name, colors and the icon list' }
+		]
+	},
+	{
+		key: 'ogp',
+		title: 'Social link previews',
+		optional: false,
+		description: 'The picture chats, feeds and search results show next to a link to your site.',
+		files: [
+			{ id: 'og_image', type: 'og_image', note: '1200 × 630, linked with og:image' }
 		]
 	}
 ];
@@ -897,7 +1767,8 @@ function get_file_path(file, settings) {
 	if (file.type === 'ico' && settings.ico_at_root) {
 		return 'favicon.ico';
 	}
-	const file_name = file.fixed_name || settings.file_prefix + file.suffix;
+	const suffix = file.type === 'og_image' ? '_og_1200x630.' + settings.ogp.extension : file.suffix;
+	const file_name = file.fixed_name || settings.file_prefix + suffix;
 	if (settings.folder === '') {
 		return file_name;
 	}
@@ -912,9 +1783,14 @@ function get_file_url(id, settings) {
 
 function read_settings() {
 	const site_name = site_name_input.value.trim() || 'My website';
+	const ogp = read_ogp_settings(site_name);
 	const groups = {};
 	for (const group of output_groups) {
-		groups[group.key] = !group.optional || group.checkbox.checked;
+		if (group.key === 'ogp') {
+			groups[group.key] = ogp.enabled;
+		} else {
+			groups[group.key] = !group.optional || group.checkbox.checked;
+		}
 	}
 	return {
 		site_name: site_name,
@@ -927,7 +1803,60 @@ function read_settings() {
 		transparent: transparent_input.checked,
 		padding: Number(padding_input.value),
 		radius: Number(radius_input.value),
-		groups: groups
+		groups: groups,
+		ogp: ogp
+	};
+}
+
+// Adds https:// when the scheme is missing, so "example.com/blog" still works. Returns a URL or null.
+function parse_page_url(value) {
+	const text = value.trim();
+	if (text === '') {
+		return null;
+	}
+	const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : 'https://' + text;
+	try {
+		const url = new URL(candidate);
+		if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname.includes('.')) {
+			return null;
+		}
+		return url;
+	} catch (error) {
+		return null;
+	}
+}
+
+// X usernames are 1 to 15 letters, digits or underscores. Returns "@name", "" when empty, or null when invalid.
+function normalize_x_handle(value) {
+	const text = value.trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, '');
+	if (text === '') {
+		return '';
+	}
+	return /^[A-Za-z0-9_]{1,15}$/.test(text) ? '@' + text : null;
+}
+
+function read_ogp_settings(site_name) {
+	const selected_mode = document.querySelector('input[name="og_image_mode"]:checked').value;
+	// Without an uploaded file yet, fall back to the designed image so there is always something to share.
+	const image_mode = selected_mode === 'upload' && og_upload ? 'upload' : 'design';
+	const page_url = parse_page_url(page_url_input.value);
+	return {
+		enabled: ogp_toggle.checked,
+		title_input: page_title_input.value.trim(),
+		title: page_title_input.value.trim() || site_name,
+		description: description_input.value.trim().replace(/\s+/g, ' '),
+		url_text: page_url_input.value.trim(),
+		page_url: page_url,
+		// Placeholder so the snippet stays readable before a URL is entered. The checks flag it.
+		effective_url: page_url || new URL('https://example.com/'),
+		x_handle: normalize_x_handle(x_handle_input.value),
+		selected_mode: selected_mode,
+		image_mode: image_mode,
+		layout: og_layout_input.value,
+		alt: og_alt_input.value.trim(),
+		// Flat designed art compresses best as PNG. Photos are far smaller as JPEG.
+		mime: image_mode === 'upload' ? 'image/jpeg' : 'image/png',
+		extension: image_mode === 'upload' ? 'jpg' : 'png'
 	};
 }
 
@@ -1116,13 +2045,19 @@ function update_file_groups(settings) {
 		}
 
 		const count_text = files.length + (files.length === 1 ? ' file' : ' files');
-		group.element.classList.toggle('is_excluded', !included);
-		if (!included) {
+		if (group.key === 'ogp') {
+			// Controlled by the toggle above, so it is shown or hidden instead of greyed out.
+			group.element.hidden = !included;
+			group.count_element.textContent = count_text;
+		} else if (!included) {
 			group.count_element.textContent = 'Not included';
 		} else if (group.optional) {
 			group.count_element.textContent = count_text;
 		} else {
 			group.count_element.textContent = count_text + ', always included';
+		}
+		if (group.key !== 'ogp') {
+			group.element.classList.toggle('is_excluded', !included);
 		}
 
 		if (included) {
@@ -1136,8 +2071,9 @@ function update_file_groups(settings) {
 function render_previews() {
 	const settings = read_settings();
 
+	// With link previews on, the tab shows the page title, just like the title tag will.
 	for (const title of tab_titles) {
-		title.textContent = settings.site_name;
+		title.textContent = settings.ogp.enabled ? settings.ogp.title : settings.site_name;
 	}
 	padding_value.textContent = settings.padding + '%';
 	radius_value.textContent = settings.radius + '%';
@@ -1147,6 +2083,15 @@ function render_previews() {
 
 	const total_files = update_file_groups(settings);
 	snippet_code.textContent = build_head_snippet(settings);
+	ogp_workspace.hidden = !settings.ogp.enabled;
+	og_design_controls.hidden = settings.ogp.selected_mode !== 'design';
+	og_upload_controls.hidden = settings.ogp.selected_mode !== 'upload';
+
+	if (settings.ogp.enabled) {
+		draw_og_image(og_canvas.getContext('2d'), settings);
+		schedule_og_encode();
+		update_ogp_panel(settings);
+	}
 
 	if (!source_image) {
 		return;
@@ -1164,6 +2109,360 @@ function render_previews() {
 	for (const item of ladder_items) {
 		paint(item.canvas, render_icon(item.width, item.height, styles[item.style_key]));
 	}
+}
+
+/* ---------- Open Graph ---------- */
+
+// Relative luminance per WCAG. Picks dark or light text for the theme color background.
+function get_ink_colors(hex) {
+	const channels = [1, 3, 5].map((start) => {
+		const value = parseInt(hex.slice(start, start + 2), 16) / 255;
+		return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+	});
+	const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+	if (luminance > 0.4) {
+		return { strong: '#111317', soft: 'rgba(17, 19, 23, 0.68)' };
+	}
+	return { strong: '#ffffff', soft: 'rgba(255, 255, 255, 0.72)' };
+}
+
+// Shortens a line until it fits with an ellipsis. Also handles single words wider than the line.
+function add_ellipsis(context, line, max_width) {
+	let text = line;
+	while (text.length > 0 && context.measureText(text + '…').width > max_width) {
+		text = text.slice(0, -1);
+	}
+	return text.trimEnd() + '…';
+}
+
+// Word wraps text into at most max_lines lines. The last line gets an ellipsis if text is left over.
+function wrap_lines(context, text, max_width, max_lines) {
+	const words = text.split(' ').filter((word) => word !== '');
+	const lines = [];
+	let line = '';
+	for (const word of words) {
+		const candidate = line === '' ? word : line + ' ' + word;
+		if (line !== '' && context.measureText(candidate).width > max_width) {
+			lines.push(line);
+			line = word;
+		} else {
+			line = candidate;
+		}
+	}
+	if (line !== '') {
+		lines.push(line);
+	}
+
+	const kept = lines.slice(0, max_lines).map((kept_line) => {
+		return context.measureText(kept_line).width > max_width ? add_ellipsis(context, kept_line, max_width) : kept_line;
+	});
+	if (lines.length > max_lines && !kept[max_lines - 1].endsWith('…')) {
+		kept[max_lines - 1] = add_ellipsis(context, kept[max_lines - 1] + ' ' + lines[max_lines], max_width);
+	}
+	return kept;
+}
+
+// A block of wrapped text, measured before drawing so layouts can center it.
+function make_text_block(context, text, font_size, weight, line_height, max_width, max_lines, color) {
+	const font = weight + ' ' + font_size + 'px ' + og_font_family;
+	context.font = font;
+	const lines = text === '' ? [] : wrap_lines(context, text, max_width, max_lines);
+	return { lines: lines, font: font, line_height: line_height, color: color, height: lines.length * line_height };
+}
+
+function draw_text_block(context, block, x, y, align) {
+	context.font = block.font;
+	context.fillStyle = block.color;
+	context.textAlign = align;
+	context.textBaseline = 'middle';
+	block.lines.forEach((line, index) => {
+		context.fillText(line, x, y + block.line_height * index + block.line_height / 2);
+	});
+}
+
+// Draws the logo as is, without the favicon padding or background, fitted inside a box.
+function draw_logo(context, x, y, box_size) {
+	const scale = Math.min(box_size / source_width, box_size / source_height);
+	const width = Math.round(source_width * scale);
+	const height = Math.round(source_height * scale);
+	draw_source(context, Math.round(x + (box_size - width) / 2), Math.round(y + (box_size - height) / 2), width, height);
+}
+
+// Blocks stacked vertically with gaps, centered as a group. Empty blocks take no space.
+function stack_height(blocks, gap) {
+	const visible = blocks.filter((block) => block.height > 0);
+	let total = 0;
+	for (const block of visible) {
+		total += block.height;
+	}
+	return total + gap * Math.max(0, visible.length - 1);
+}
+
+function draw_og_design(context, settings) {
+	const ogp = settings.ogp;
+	const ink = get_ink_colors(settings.theme_color);
+	const has_logo = Boolean(source_image);
+	const margin = 88;
+
+	context.fillStyle = settings.theme_color;
+	context.fillRect(0, 0, og_width, og_height);
+
+	if (ogp.layout === 'centered') {
+		const logo_size = 190;
+		const title = make_text_block(context, ogp.title, 66, 700, 80, og_width - margin * 2, 2, ink.strong);
+		const site = make_text_block(context, ogp.title === settings.site_name ? '' : settings.site_name, 30, 500, 40, og_width - margin * 2, 1, ink.soft);
+		const logo_block = { height: has_logo ? logo_size : 0 };
+		const blocks = [logo_block, title, site];
+		let y = (og_height - stack_height(blocks, 36)) / 2;
+		if (has_logo) {
+			draw_logo(context, (og_width - logo_size) / 2, y, logo_size);
+			y += logo_size + 36;
+		}
+		draw_text_block(context, title, og_width / 2, y, 'center');
+		y += title.height + (title.height > 0 ? 36 : 0);
+		draw_text_block(context, site, og_width / 2, y, 'center');
+		return;
+	}
+
+	if (ogp.layout === 'split') {
+		const logo_size = 300;
+		const text_x = has_logo ? margin + logo_size + 72 : margin;
+		const text_width = og_width - text_x - margin;
+		const site = make_text_block(context, settings.site_name, 28, 500, 38, text_width, 1, ink.soft);
+		const title = make_text_block(context, ogp.title, 58, 700, 70, text_width, 3, ink.strong);
+		const description = make_text_block(context, ogp.description, 29, 400, 42, text_width, 3, ink.soft);
+		const blocks = [site, title, description];
+		let y = (og_height - stack_height(blocks, 22)) / 2;
+		if (has_logo) {
+			draw_logo(context, margin, (og_height - logo_size) / 2, logo_size);
+		}
+		for (const block of blocks) {
+			if (block.height === 0) {
+				continue;
+			}
+			draw_text_block(context, block, text_x, y, 'left');
+			y += block.height + 22;
+		}
+		return;
+	}
+
+	// "text": title first, small brand line pinned to the top.
+	const text_width = og_width - margin * 2;
+	const brand_size = 64;
+	let brand_x = margin;
+	if (has_logo) {
+		draw_logo(context, margin, margin - 8, brand_size);
+		brand_x += brand_size + 20;
+	}
+	const brand = make_text_block(context, settings.site_name, 30, 600, 48, og_width - brand_x - margin, 1, ink.strong);
+	draw_text_block(context, brand, brand_x, margin - 8 + (brand_size - brand.line_height) / 2, 'left');
+
+	const title = make_text_block(context, ogp.title, 72, 700, 84, text_width, 2, ink.strong);
+	const description = make_text_block(context, ogp.description, 30, 400, 44, text_width, 2, ink.soft);
+	const blocks = [title, description];
+	const top = margin + brand_size;
+	let y = top + (og_height - margin + 8 - top - stack_height(blocks, 24)) / 2;
+	for (const block of blocks) {
+		if (block.height === 0) {
+			continue;
+		}
+		draw_text_block(context, block, margin, y, 'left');
+		y += block.height + 24;
+	}
+}
+
+// Uploaded images are scaled to cover 1200 × 630 and cropped from the center, like the platforms do.
+function draw_og_upload(context) {
+	const scale = Math.max(og_width / og_upload.width, og_height / og_upload.height);
+	const width = og_upload.width * scale;
+	const height = og_upload.height * scale;
+	context.imageSmoothingEnabled = true;
+	context.imageSmoothingQuality = 'high';
+	context.fillStyle = '#ffffff';
+	context.fillRect(0, 0, og_width, og_height);
+	context.drawImage(og_upload.image, (og_width - width) / 2, (og_height - height) / 2, width, height);
+}
+
+function draw_og_image(context, settings) {
+	context.clearRect(0, 0, og_width, og_height);
+	if (settings.ogp.image_mode === 'upload') {
+		draw_og_upload(context);
+	} else {
+		draw_og_design(context, settings);
+	}
+}
+
+function render_og_canvas(settings) {
+	const canvas = document.createElement('canvas');
+	canvas.width = og_width;
+	canvas.height = og_height;
+	draw_og_image(canvas.getContext('2d'), settings);
+	return canvas;
+}
+
+function canvas_to_blob(canvas, mime) {
+	return new Promise((resolve, reject) => {
+		canvas.toBlob((blob) => {
+			if (blob) {
+				resolve(blob);
+			} else {
+				reject(new Error('the browser could not encode the image.'));
+			}
+		}, mime, 0.86);
+	});
+}
+
+function schedule_og_encode() {
+	clearTimeout(og_encode_timer);
+	og_encoding = true;
+	og_encode_timer = setTimeout(encode_og_image, 250);
+}
+
+async function encode_og_image() {
+	const settings = read_settings();
+	if (!settings.ogp.enabled) {
+		return;
+	}
+	let blob;
+	try {
+		blob = await canvas_to_blob(og_canvas, settings.ogp.mime);
+	} catch (error) {
+		og_caption.textContent = 'The preview image could not be built: ' + error.message;
+		return;
+	}
+	if (og_blob_url) {
+		URL.revokeObjectURL(og_blob_url);
+	}
+	og_blob_url = URL.createObjectURL(blob);
+	og_byte_size = blob.size;
+	og_encoding = false;
+	update_ogp_panel(read_settings());
+}
+
+function format_kb(bytes) {
+	return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+}
+
+// "https://example.com/blog/post" becomes "https://example.com › blog › post", like Google shows it.
+function get_display_url(url) {
+	const segments = url.pathname.split('/').filter((segment) => segment !== '');
+	return [url.origin].concat(segments.map((segment) => decodeURIComponent(segment))).join(' › ');
+}
+
+function get_preview_values(settings) {
+	const ogp = settings.ogp;
+	const url = ogp.effective_url;
+	let favicon = '';
+	if (source_image) {
+		favicon = render_icon(32, 32, get_styles(settings).favicon).toDataURL('image/png');
+	}
+	return {
+		title: ogp.title,
+		description: ogp.description,
+		site_name: settings.site_name,
+		domain: url.hostname.replace(/^www\./, ''),
+		display_url: get_display_url(url),
+		url: url.href,
+		image: og_blob_url,
+		favicon: favicon
+	};
+}
+
+// Fills every element marked data-bind="key" in the mockups. Empty values hide the element,
+// the same way the apps leave out a missing description.
+function bind_previews(values, theme_color) {
+	for (const element of bound_elements) {
+		const value = values[element.dataset.bind];
+		element.hidden = value === '';
+		if (element.tagName === 'IMG') {
+			if (value !== '' && element.getAttribute('src') !== value) {
+				element.src = value;
+			}
+		} else if (element.textContent !== value) {
+			element.textContent = value;
+		}
+	}
+	// Discord colors the embed's side bar with the page's theme-color.
+	platform_grid.style.setProperty('--embed_color', theme_color);
+}
+
+function build_checks(settings) {
+	const ogp = settings.ogp;
+	const checks = [];
+	const add = (level, text) => checks.push({ level: level, text: text });
+
+	if (ogp.url_text === '') {
+		add('warn', 'Add the page URL. og:url and og:image must be full addresses, so example.com stands in for now.');
+	} else if (!ogp.page_url) {
+		add('warn', 'The page URL is not a valid web address. Enter something like https://example.com/.');
+	} else if (ogp.page_url.protocol === 'http:') {
+		add('warn', 'The page URL uses http. Some apps skip images that are not served over https.');
+	}
+
+	if (ogp.title_input === '') {
+		add('note', 'No page title, so the site name is used.');
+	} else if (ogp.title.length > 60) {
+		add('warn', 'Google often cuts titles longer than about 60 characters. This one has ' + ogp.title.length + '.');
+	}
+
+	if (ogp.description === '') {
+		add('warn', 'No description. Google, Facebook, Slack, WhatsApp and others show one under the title.');
+	} else if (ogp.description.length > 160) {
+		add('warn', 'Google often cuts descriptions after about 160 characters. This one has ' + ogp.description.length + '.');
+	}
+
+	if (ogp.x_handle === null) {
+		add('warn', 'The X account is not a valid username. Use 1 to 15 letters, digits or underscores.');
+	}
+
+	if (ogp.selected_mode === 'upload' && !og_upload) {
+		add('note', 'No image uploaded yet, so the designed image is used.');
+	}
+	if (ogp.image_mode === 'design' && !source_image) {
+		add('note', 'Add a logo at the top of the page to put it on the image.');
+	}
+	if (ogp.image_mode === 'upload') {
+		const ratio = og_upload.width / og_upload.height;
+		if (Math.abs(ratio - og_width / og_height) > 0.02) {
+			add('note', 'Your image is ' + og_upload.width + ' × ' + og_upload.height + ', so its edges are cropped to fit 1200 × 630.');
+		}
+		if (og_upload.width < og_width) {
+			add('warn', 'Your image is narrower than 1200 px, so it will look soft on large cards.');
+		}
+	}
+	if (!og_encoding && og_byte_size > og_size_limit) {
+		add('warn', 'The image is ' + format_kb(og_byte_size) + '. WhatsApp may skip preview images larger than about 300 KB.');
+	}
+
+	if (ogp.alt === '') {
+		add('note', 'No image description. Screen readers use it on apps that read og:image:alt.');
+	}
+
+	if (checks.every((check) => check.level !== 'warn')) {
+		checks.unshift({ level: 'ok', text: 'Ready to publish.' });
+	}
+	return checks;
+}
+
+function update_ogp_panel(settings) {
+	const ogp = settings.ogp;
+
+	page_title_count.textContent = ogp.title.length + ' / 60';
+	page_title_count.classList.toggle('is_over', ogp.title.length > 60);
+	description_count.textContent = ogp.description.length + ' / 160';
+	description_count.classList.toggle('is_over', ogp.description.length > 160);
+
+	const format = ogp.extension.toUpperCase();
+	og_caption.textContent = og_encoding || !og_byte_size ? '1200 × 630 ' + format : '1200 × 630 ' + format + ', ' + format_kb(og_byte_size);
+
+	checks_list.replaceChildren(...build_checks(settings).map((check) => {
+		const item = document.createElement('li');
+		item.className = 'check_' + check.level;
+		item.textContent = check.text;
+		return item;
+	}));
+
+	bind_previews(get_preview_values(settings), settings.theme_color);
 }
 
 function schedule_render() {
@@ -1318,6 +2617,28 @@ async function load_file(file) {
 	schedule_render();
 }
 
+async function load_og_file(file) {
+	const is_supported = /^image\/(png|jpeg|webp)$/.test(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name);
+	if (!is_supported) {
+		og_drop_title.textContent = file.name + ' is not a PNG, JPG or WebP';
+		return;
+	}
+	let result;
+	try {
+		result = await load_image(file);
+	} catch (error) {
+		og_drop_title.textContent = error.message;
+		return;
+	}
+	if (og_upload) {
+		URL.revokeObjectURL(og_upload.url);
+	}
+	og_upload = { image: result.image, url: result.url, width: result.image.naturalWidth, height: result.image.naturalHeight };
+	og_drop_zone.classList.add('has_source');
+	og_drop_title.textContent = file.name + ', ' + og_upload.width + ' × ' + og_upload.height + '. Drop another to replace it.';
+	schedule_render();
+}
+
 /* ---------- Text files ---------- */
 
 function build_manifest(settings) {
@@ -1343,9 +2664,30 @@ function build_manifest(settings) {
 	return JSON.stringify(manifest, null, '\t') + '\n';
 }
 
+// For attribute values and text inside tags.
+function escape_html(value) {
+	return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function meta_tag(attribute, key, value) {
+	return '<meta ' + attribute + '="' + key + '" content="' + escape_html(value) + '">';
+}
+
 function build_head_snippet(settings) {
+	const ogp = settings.ogp;
+	const lines = [];
+
+	if (ogp.enabled) {
+		lines.push('<title>' + escape_html(ogp.title) + '</title>');
+		if (ogp.description !== '') {
+			lines.push(meta_tag('name', 'description', ogp.description));
+		}
+		lines.push('<link rel="canonical" href="' + escape_html(ogp.effective_url.href) + '">');
+		lines.push('');
+	}
+
 	// sizes="32x32" instead of "any": with "any", Chrome downloads the ICO as well as the SVG.
-	const lines = ['<link rel="icon" href="' + get_file_url('ico', settings) + '" sizes="32x32">'];
+	lines.push('<link rel="icon" href="' + get_file_url('ico', settings) + '" sizes="32x32">');
 	lines.push('<link rel="icon" href="' + get_file_url('png_96', settings) + '" type="image/png" sizes="96x96">');
 	// The SVG goes last so browsers that pick the last matching icon still choose it.
 	if (source_is_svg) {
@@ -1358,6 +2700,32 @@ function build_head_snippet(settings) {
 		lines.push('<link rel="manifest" href="' + get_file_url('manifest', settings) + '">');
 	}
 	lines.push('<meta name="theme-color" content="' + settings.theme_color + '">');
+
+	if (ogp.enabled) {
+		// Platforms fetch the image from their own servers, so it needs a full URL, not a path.
+		const image_url = new URL(get_file_url('og_image', settings), ogp.effective_url.origin).href;
+		lines.push('');
+		lines.push(meta_tag('property', 'og:type', 'website'));
+		lines.push(meta_tag('property', 'og:site_name', settings.site_name));
+		lines.push(meta_tag('property', 'og:title', ogp.title));
+		if (ogp.description !== '') {
+			lines.push(meta_tag('property', 'og:description', ogp.description));
+		}
+		lines.push(meta_tag('property', 'og:url', ogp.effective_url.href));
+		lines.push(meta_tag('property', 'og:image', image_url));
+		lines.push(meta_tag('property', 'og:image:type', ogp.mime));
+		lines.push(meta_tag('property', 'og:image:width', String(og_width)));
+		lines.push(meta_tag('property', 'og:image:height', String(og_height)));
+		if (ogp.alt !== '') {
+			lines.push(meta_tag('property', 'og:image:alt', ogp.alt));
+		}
+		// X reads og:title, og:description and og:image when its own tags are missing,
+		// so only the card type and account are needed.
+		lines.push(meta_tag('name', 'twitter:card', 'summary_large_image'));
+		if (ogp.x_handle) {
+			lines.push(meta_tag('name', 'twitter:site', ogp.x_handle));
+		}
+	}
 	return lines.join('\n');
 }
 
@@ -1569,6 +2937,11 @@ async function build_files(settings) {
 				case 'manifest':
 					data = text_encoder.encode(build_manifest(settings));
 					break;
+				case 'og_image': {
+					const blob = await canvas_to_blob(render_og_canvas(settings), settings.ogp.mime);
+					data = new Uint8Array(await blob.arrayBuffer());
+					break;
+				}
 			}
 			files.push({ name: get_file_path(file, settings), data: data });
 		}
@@ -1595,8 +2968,9 @@ async function download_zip() {
 	download_button.textContent = 'Building zip…';
 
 	try {
-		const files = await build_files(read_settings());
-		save_blob(build_zip(files), 'favicons.zip');
+		const settings = read_settings();
+		const files = await build_files(settings);
+		save_blob(build_zip(files), settings.ogp.enabled ? 'favicons_and_og.zip' : 'favicons.zip');
 	} catch (error) {
 		show_status('The zip could not be built: ' + error.message, true);
 	} finally {
@@ -1645,7 +3019,13 @@ window.addEventListener('drop', (event) => {
 	drag_depth = 0;
 	drop_zone.classList.remove('is_dragging');
 	const file = event.dataTransfer && event.dataTransfer.files[0];
-	if (file) {
+	if (!file) {
+		return;
+	}
+	// A drop on the share image zone replaces that image. Anywhere else sets the logo.
+	if (event.target instanceof Element && event.target.closest('#og_drop_zone')) {
+		load_og_file(file);
+	} else {
 		load_file(file);
 	}
 });
@@ -1724,6 +3104,40 @@ for (const input of setting_inputs) {
 	input.addEventListener('input', schedule_render);
 	input.addEventListener('change', schedule_render);
 }
+
+const ogp_inputs = [page_title_input, description_input, page_url_input, x_handle_input, og_layout_input, og_alt_input, ...og_mode_inputs];
+for (const input of ogp_inputs) {
+	input.addEventListener('input', schedule_render);
+	input.addEventListener('change', schedule_render);
+}
+
+// The toggle lives in the URL (?ogp=1), so the page can be bookmarked or shared in either mode.
+ogp_toggle.checked = new URLSearchParams(location.search).get('ogp') === '1';
+ogp_toggle.addEventListener('change', () => {
+	const url = new URL(location.href);
+	if (ogp_toggle.checked) {
+		url.searchParams.set('ogp', '1');
+	} else {
+		url.searchParams.delete('ogp');
+	}
+	history.replaceState(null, '', url);
+	schedule_render();
+});
+
+og_drop_zone.addEventListener('keydown', (event) => {
+	if (event.key === 'Enter' || event.key === ' ') {
+		event.preventDefault();
+		og_file_input.click();
+	}
+});
+
+og_file_input.addEventListener('change', () => {
+	const file = og_file_input.files[0];
+	if (file) {
+		load_og_file(file);
+	}
+	og_file_input.value = '';
+});
 
 download_button.addEventListener('click', download_zip);
 
