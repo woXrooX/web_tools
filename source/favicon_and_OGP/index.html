@@ -38,32 +38,155 @@ body {
 	outline-offset: 2px;
 }
 
-.page {
-	max-width: 1180px;
-	margin: 0 auto;
-	padding: 48px 24px 64px;
+/* App layout: settings sidebar on the left, output pane on the right.
+   The layout fills the viewport and each side scrolls on its own. */
+
+.app {
+	display: grid;
+	grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+	height: calc(100vh - 38px);
+	height: calc(100dvh - 38px);
 }
 
-.page_header {
-	max-width: 60ch;
-	margin-bottom: 36px;
+.sidebar {
+	overflow-y: auto;
+	padding: 24px 22px 48px;
+	border-right: 1px solid var(--line);
+	background: var(--surface);
 }
 
-.page_header h1 {
-	margin: 0 0 8px;
+.sidebar_header {
+	margin-bottom: 20px;
 }
 
-.page_header p {
+.sidebar_header h1 {
+	margin: 0 0 6px;
+	font-size: 21px;
+}
+
+.sidebar_header p {
 	margin: 0;
 	color: var(--ink_soft);
-	font-size: 18px;
+	font-size: 14px;
 }
 
-.workspace {
-	display: grid;
-	grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-	gap: 28px;
-	align-items: start;
+.panel {
+	padding: 4px 0 8px;
+	border-top: 1px solid var(--line_strong);
+}
+
+.panel_title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 0;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	list-style: none;
+	cursor: pointer;
+}
+
+.panel_title::-webkit-details-marker {
+	display: none;
+}
+
+.panel_title::after {
+	content: "";
+	width: 7px;
+	height: 7px;
+	border-right: 1.5px solid var(--ink_faint);
+	border-bottom: 1.5px solid var(--ink_faint);
+	transform: rotate(45deg) translateY(-2px);
+	transition: transform 0.15s;
+}
+
+.panel:not([open]) > .panel_title::after {
+	transform: rotate(-45deg);
+}
+
+.panel_note {
+	margin: -6px 0 12px;
+	color: var(--ink_soft);
+	font-size: 13px;
+}
+
+.output_pane {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+}
+
+.pane_header {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 10px 24px;
+	border-bottom: 1px solid var(--line);
+	background: var(--page);
+}
+
+.pane_tabs {
+	display: flex;
+	gap: 4px;
+	overflow-x: auto;
+}
+
+.pane_tab {
+	padding: 7px 14px;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--ink_soft);
+	font: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.pane_tab:hover {
+	background: var(--raised);
+	color: var(--ink);
+}
+
+.pane_tab[aria-selected="true"] {
+	background: var(--raised);
+	color: var(--ink);
+	box-shadow: inset 0 0 0 1px var(--line_strong);
+}
+
+.pane_tab[hidden] {
+	display: none;
+}
+
+.pane_header .button_primary {
+	flex: none;
+	padding: 9px 18px;
+	font-size: 14px;
+}
+
+.pane_body {
+	flex: 1;
+	overflow-y: auto;
+	padding: 28px;
+}
+
+.view {
+	max-width: 1100px;
+	margin: 0 auto;
+}
+
+.view[hidden] {
+	display: none;
+}
+
+.view:focus-visible {
+	outline-offset: 6px;
 }
 
 /* Drop zone */
@@ -74,8 +197,8 @@ body {
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	min-height: 230px;
-	padding: 24px;
+	min-height: 180px;
+	padding: 20px;
 	border: 2px dashed var(--line_strong);
 	border-radius: 14px;
 	background: var(--surface);
@@ -135,16 +258,6 @@ body {
 }
 
 /* Settings */
-
-.settings {
-	margin-top: 20px;
-}
-
-.settings_title {
-	margin: 0 0 8px;
-	font-size: 15px;
-	font-weight: 600;
-}
 
 .field {
 	display: grid;
@@ -413,43 +526,13 @@ input:disabled {
 	border-radius: 50%;
 }
 
-/* Cards below the workspace */
-
-.card {
-	margin-top: 28px;
-	background: var(--surface);
-	border: 1px solid var(--line);
-	border-radius: 14px;
-}
-
-.card_title {
-	margin: 0;
-	font-size: 17px;
-	font-weight: 600;
-}
-
-.card_lede {
-	max-width: 64ch;
-	margin: 4px 0 0;
-	color: var(--ink_soft);
-	font-size: 14px;
-}
-
-/* Social link previews */
-
-.ogp_header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 16px;
-	padding: 22px 28px;
-}
+/* Link previews */
 
 .ogp_switch {
 	display: flex;
-	flex: none;
 	align-items: center;
 	gap: 8px;
+	margin-bottom: 8px;
 	font-size: 14px;
 	font-weight: 500;
 	cursor: pointer;
@@ -461,12 +544,7 @@ input:disabled {
 	margin: 0;
 }
 
-.ogp_workspace {
-	padding: 24px 28px 28px;
-	border-top: 1px solid var(--line);
-}
-
-.ogp_workspace[hidden] {
+#ogp_fields[hidden] {
 	display: none;
 }
 
@@ -546,9 +624,8 @@ input:disabled {
 .checks {
 	display: grid;
 	gap: 8px;
-	margin: 16px 0 0;
-	padding: 16px 0 0;
-	border-top: 1px solid var(--line);
+	margin: 0 0 24px;
+	padding: 0;
 	list-style: none;
 	font-size: 13.5px;
 }
@@ -577,8 +654,23 @@ input:disabled {
 	background: var(--ok);
 }
 
+.og_frames {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 16px;
+	align-items: start;
+}
+
 .og_frame {
 	margin: 0;
+}
+
+.og_frame[hidden] {
+	display: none;
+}
+
+.field .sub_check {
+	margin-top: 10px;
 }
 
 .og_frame canvas {
@@ -729,6 +821,11 @@ input:disabled {
 	overflow: hidden;
 	border: 1px solid #2f3336;
 	border-radius: 16px;
+}
+
+/* X crops large card images to about 2:1 in the timeline. */
+.mock .x_card img {
+	aspect-ratio: 2 / 1;
 }
 
 .x_title {
@@ -1008,9 +1105,6 @@ input:disabled {
 
 /* Output */
 
-.output {
-	padding: 24px 28px 28px;
-}
 
 .output_title {
 	margin: 0 0 14px;
@@ -1099,7 +1193,7 @@ input:disabled {
 }
 
 .actions_hint {
-	flex: 1 1 240px;
+	margin: -6px 0 16px;
 	color: var(--ink_soft);
 	font-size: 14px;
 }
@@ -1143,13 +1237,7 @@ input:disabled {
 }
 
 .snippet {
-	margin-top: 24px;
-}
-
-.snippet summary {
-	font-size: 15px;
-	font-weight: 600;
-	cursor: pointer;
+	margin-top: 32px;
 }
 
 .snippet pre {
@@ -1164,9 +1252,28 @@ input:disabled {
 	line-height: 1.6;
 }
 
-@media (max-width: 880px) {
-	.workspace {
-		grid-template-columns: 1fr;
+/* Narrow screens: back to one stacked column that scrolls as a page.
+   The tab bar and download button stay pinned at the top of the output. */
+@media (max-width: 900px) {
+	.app {
+		display: block;
+		height: auto;
+	}
+
+	.sidebar {
+		overflow: visible;
+		border-right: 0;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.pane_header {
+		position: sticky;
+		top: 0;
+		z-index: 1;
+	}
+
+	.pane_body {
+		overflow: visible;
 	}
 
 	.preview_body {
@@ -1175,19 +1282,25 @@ input:disabled {
 }
 
 @media (max-width: 520px) {
-	.page {
-		padding-top: 32px;
+	.pane_header,
+	.pane_body,
+	.preview_body {
+		padding-right: 16px;
+		padding-left: 16px;
 	}
 
-	.preview_body,
-	.output,
-	.ogp_workspace {
-		padding: 20px;
+	.pane_header {
+		gap: 8px;
 	}
 
-	.ogp_header {
-		align-items: flex-start;
-		padding: 20px;
+	.pane_tab {
+		padding: 6px 9px;
+		font-size: 13px;
+	}
+
+	.pane_header .button_primary {
+		padding: 8px 12px;
+		font-size: 13px;
 	}
 
 	.file_rows li {
@@ -1212,14 +1325,16 @@ input:disabled {
 	<strong>favicon_and_OGP</strong>
 </nav>
 
-<main class="page">
-	<header class="page_header">
-		<h1>Favicon and OGP generator</h1>
-		<p>Drop in a PNG or SVG and download the icon files modern browsers and devices actually use, plus Open Graph tags and a share image if you want them, as one zip. Everything happens in this page. Nothing is uploaded.</p>
-	</header>
+<main class="app">
+	<aside class="sidebar" aria-label="Settings">
+		<header class="sidebar_header">
+			<h1>Favicon and OGP generator</h1>
+			<p>Icons and link previews from one logo, as one zip. Everything happens in this page. Nothing is uploaded.</p>
+		</header>
 
-	<div class="workspace">
-		<section aria-label="Source image and settings">
+		<details class="panel" open>
+			<summary class="panel_title">Source</summary>
+			<p class="panel_note">Shared by the icons and the link previews.</p>
 			<label class="drop_zone" id="drop_zone" tabindex="0">
 				<input type="file" id="file_input" accept=".png,.svg,image/png,image/svg+xml" hidden>
 				<svg class="drop_zone_art" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
@@ -1232,145 +1347,100 @@ input:disabled {
 			</label>
 			<p class="status" id="source_status" role="status"></p>
 
-			<div class="settings">
-				<h2 class="settings_title">Settings</h2>
-
-				<div class="field">
-					<label for="site_name_input">Site name</label>
-					<input type="text" id="site_name_input" value="My website" autocomplete="off">
-				</div>
-
-				<div class="field">
-					<label for="short_name_input">Short name</label>
-					<input type="text" id="short_name_input" placeholder="Same as site name" autocomplete="off">
-					<p class="field_note">Shown under the icon on phone home screens.</p>
-				</div>
-
-				<div class="field">
-					<label for="folder_input">Folder</label>
-					<input type="text" id="folder_input" value="/images/Favicon" spellcheck="false" autocomplete="off">
-					<p class="field_note">Where the icons live on your site.</p>
-				</div>
-
-				<div class="field">
-					<label for="file_prefix_input">File name</label>
-					<input type="text" id="file_prefix_input" value="logo" spellcheck="false" autocomplete="off">
-					<p class="field_note" id="file_prefix_note"></p>
-				</div>
-
-				<div class="field">
-					<label class="check_row">
-						<input type="checkbox" id="ico_at_root_input" checked>
-						Keep the ICO as /favicon.ico
-					</label>
-					<p class="field_note">Recommended. Browsers showing non-HTML pages, like PDFs, and tools like RSS readers request /favicon.ico directly without reading your HTML. Untick to name it like the other files.</p>
-				</div>
-
-				<div class="field">
-					<div class="field_row">
-						<label for="theme_color_input">Theme color</label>
-						<span class="color_control">
-							<input type="text" id="theme_color_hex" aria-label="Theme color hex value" aria-describedby="theme_color_error" maxlength="7" spellcheck="false" autocomplete="off">
-							<input type="color" id="theme_color_input" value="#2446d4">
-						</span>
-					</div>
-					<p class="field_error" id="theme_color_error" hidden>Enter a hex value like #2446d4 or #fff.</p>
-					<p class="field_note">Colors the browser toolbar on phones and the title bar of the installed web app.</p>
-				</div>
-
-				<div class="field">
-					<div class="field_row">
-						<label for="background_color_input">Background color</label>
-						<span class="color_control">
-							<input type="text" id="background_color_hex" aria-label="Background color hex value" aria-describedby="background_color_error" maxlength="7" spellcheck="false" autocomplete="off">
-							<input type="color" id="background_color_input" value="#ffffff">
-						</span>
-					</div>
-					<p class="field_error" id="background_color_error" hidden>Enter a hex value like #ffffff or #fff.</p>
-					<label class="check_row">
-						<input type="checkbox" id="transparent_input" checked>
-						Keep the favicon and web app icons transparent
-					</label>
-					<p class="field_note">Apple and maskable Android icons always use this color, because those platforms don't support transparency.</p>
-				</div>
-
-				<div class="field">
-					<div class="field_row">
-						<label for="padding_input">Padding</label>
-						<span class="field_value" id="padding_value"></span>
-					</div>
-					<input type="range" id="padding_input" min="0" max="25" step="1" value="0">
-				</div>
-
-				<div class="field">
-					<div class="field_row">
-						<label for="radius_input">Corner radius</label>
-						<span class="field_value" id="radius_value"></span>
-					</div>
-					<input type="range" id="radius_input" min="0" max="50" step="1" value="0">
-					<p class="field_note" id="radius_note">Turn off transparency to round the background.</p>
-				</div>
-			</div>
-		</section>
-
-		<section class="preview" aria-label="Icon preview">
-			<div class="tab_strip tab_strip_light" aria-hidden="true">
-				<div class="tab tab_active">
-					<canvas class="tab_icon" width="32" height="32"></canvas>
-					<span class="tab_title"></span>
-					<span class="tab_close">×</span>
-				</div>
-				<div class="tab tab_inactive">
-					<span class="tab_placeholder"></span>
-					<span class="tab_title">New tab</span>
-				</div>
-			</div>
-			<div class="tab_strip tab_strip_dark" aria-hidden="true">
-				<div class="tab tab_active">
-					<canvas class="tab_icon" width="32" height="32"></canvas>
-					<span class="tab_title"></span>
-					<span class="tab_close">×</span>
-				</div>
-				<div class="tab tab_inactive">
-					<span class="tab_placeholder"></span>
-					<span class="tab_title">New tab</span>
-				</div>
+			<div class="field field_first">
+				<label for="site_name_input">Site name</label>
+				<input type="text" id="site_name_input" value="My website" autocomplete="off">
 			</div>
 
-			<div class="preview_body">
-				<figure class="zoom">
-					<div class="zoom_frame">
-						<canvas id="zoom_canvas" width="16" height="16"></canvas>
-					</div>
-					<figcaption>The 16 × 16 icon, one square per pixel. This is what a browser tab gets on a standard screen.</figcaption>
-				</figure>
-				<div class="ladder" id="ladder"></div>
+			<div class="field">
+				<div class="field_row">
+					<label for="theme_color_input">Theme color</label>
+					<span class="color_control">
+						<input type="text" id="theme_color_hex" aria-label="Theme color hex value" aria-describedby="theme_color_error" maxlength="7" spellcheck="false" autocomplete="off">
+						<input type="color" id="theme_color_input" value="#2446d4">
+					</span>
+				</div>
+				<p class="field_error" id="theme_color_error" hidden>Enter a hex value like #2446d4 or #fff.</p>
+				<p class="field_note">Colors the browser toolbar on phones and the title bar of the installed web app.</p>
+			</div>
+		</details>
+
+		<details class="panel" open data-tab="icons">
+			<summary class="panel_title">Icons</summary>
+			<div class="field field_first">
+				<label for="short_name_input">Short name</label>
+				<input type="text" id="short_name_input" placeholder="Same as site name" autocomplete="off">
+				<p class="field_note">Shown under the icon on phone home screens.</p>
 			</div>
 
-		</section>
-	</div>
-
-	<section class="card ogp_panel" aria-labelledby="ogp_heading">
-		<div class="ogp_header">
-			<div>
-				<h2 class="card_title" id="ogp_heading">Social link previews</h2>
-				<p class="card_lede">Open Graph tags and a 1200 × 630 image, so a link to your site shows a title, description and picture in chats, feeds and search results.</p>
+			<div class="field">
+				<label for="folder_input">Folder</label>
+				<input type="text" id="folder_input" value="/images/Favicon" spellcheck="false" autocomplete="off">
+				<p class="field_note">Where the icons live on your site.</p>
 			</div>
+
+			<div class="field">
+				<label for="file_prefix_input">File name</label>
+				<input type="text" id="file_prefix_input" value="logo" spellcheck="false" autocomplete="off">
+				<p class="field_note" id="file_prefix_note"></p>
+			</div>
+
+			<div class="field">
+				<label class="check_row">
+					<input type="checkbox" id="ico_at_root_input" checked>
+					Keep the ICO as /favicon.ico
+				</label>
+				<p class="field_note">Recommended. Browsers showing non-HTML pages, like PDFs, and tools like RSS readers request /favicon.ico directly without reading your HTML. Untick to name it like the other files.</p>
+			</div>
+
+			<div class="field">
+				<div class="field_row">
+					<label for="background_color_input">Background color</label>
+					<span class="color_control">
+						<input type="text" id="background_color_hex" aria-label="Background color hex value" aria-describedby="background_color_error" maxlength="7" spellcheck="false" autocomplete="off">
+						<input type="color" id="background_color_input" value="#ffffff">
+					</span>
+				</div>
+				<p class="field_error" id="background_color_error" hidden>Enter a hex value like #ffffff or #fff.</p>
+				<label class="check_row">
+					<input type="checkbox" id="transparent_input" checked>
+					Keep the favicon and web app icons transparent
+				</label>
+				<p class="field_note">Apple and maskable Android icons always use this color, because those platforms don't support transparency.</p>
+			</div>
+
+			<div class="field">
+				<div class="field_row">
+					<label for="padding_input">Padding</label>
+					<span class="field_value" id="padding_value"></span>
+				</div>
+				<input type="range" id="padding_input" min="0" max="25" step="1" value="0">
+			</div>
+
+			<div class="field">
+				<div class="field_row">
+					<label for="radius_input">Corner radius</label>
+					<span class="field_value" id="radius_value"></span>
+				</div>
+				<input type="range" id="radius_input" min="0" max="50" step="1" value="0">
+				<p class="field_note" id="radius_note">Turn off transparency to round the background.</p>
+			</div>
+		</details>
+
+		<details class="panel" open data-tab="links">
+			<summary class="panel_title">Link previews</summary>
 			<label class="check_row ogp_switch">
 				<input type="checkbox" id="ogp_toggle">
-				Include
+				Include Open Graph tags and share images
 			</label>
-		</div>
-
-		<div class="workspace ogp_workspace" id="ogp_workspace" hidden>
-			<section aria-label="Link preview settings">
+			<div id="ogp_fields" hidden>
 				<div class="field field_first">
 					<div class="field_row">
 						<label for="page_title_input">Page title</label>
 						<span class="field_value" id="page_title_count"></span>
 					</div>
 					<input type="text" id="page_title_input" placeholder="Same as site name" autocomplete="off">
-					<p class="field_note">Used for the title tag, og:title and the browser tab above.</p>
+					<p class="field_note">Used for the title tag, og:title and the browser tab in the Icons view.</p>
 				</div>
 
 				<div class="field">
@@ -1412,32 +1482,98 @@ input:disabled {
 							<option value="split">Logo beside text</option>
 							<option value="text">Text first</option>
 						</select>
-						<p class="field_note">Uses your logo, site name and theme color from above.</p>
+						<p class="field_note">Uses the logo, site name and theme color from Source.</p>
 					</div>
 
 					<div id="og_upload_controls" hidden>
 						<label class="drop_zone drop_zone_small" id="og_drop_zone" tabindex="0">
 							<input type="file" id="og_file_input" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" hidden>
 							<span class="drop_zone_title" id="og_drop_title">Drop a PNG, JPG or WebP</span>
-							<span class="drop_zone_hint">Or click to choose. 1200 × 630 fits without cropping.</span>
+							<span class="drop_zone_hint">Or click to choose. 1200 × 630 or larger. It is cropped from the center to fit each size.</span>
 						</label>
 					</div>
+
+					<label class="check_row sub_check">
+						<input type="checkbox" id="x_image_input" checked>
+						Separate 1600 × 900 image for X
+					</label>
+					<p class="field_note">Linked with twitter:image. Without it, X uses the 1200 × 630 image.</p>
 				</div>
 
 				<div class="field">
 					<label for="og_alt_input">Image description</label>
-					<input type="text" id="og_alt_input" placeholder="What the image shows" autocomplete="off">
-					<p class="field_note">Written to og:image:alt for screen readers.</p>
+					<input type="text" id="og_alt_input" placeholder="Logo on a blue background" autocomplete="off">
+					<p class="field_note">Describe what is in the picture, not a slogan. Screen readers read it out. Written to og:image:alt and twitter:image:alt.</p>
 				</div>
 
-				<ul class="checks" id="checks" aria-live="polite"></ul>
-			</section>
+				<div class="field">
+					<label for="locale_input">Language and region</label>
+					<input type="text" id="locale_input" placeholder="en_US, optional" spellcheck="false" autocomplete="off">
+					<p class="field_note">Written to og:locale. Language, underscore, country.</p>
+				</div>
+			</div>
+		</details>
+	</aside>
 
-			<section aria-label="Link previews">
-				<figure class="og_frame">
-					<canvas id="og_canvas" width="1200" height="630"></canvas>
-					<figcaption id="og_caption"></figcaption>
-				</figure>
+	<section class="output_pane" aria-label="Output">
+		<div class="pane_header">
+			<div class="pane_tabs" role="tablist" aria-label="Output views">
+				<button type="button" class="pane_tab" role="tab" id="tab_icons" aria-controls="view_icons" aria-selected="true" data-tab="icons">Icons</button>
+				<button type="button" class="pane_tab" role="tab" id="tab_links" aria-controls="view_links" aria-selected="false" tabindex="-1" data-tab="links" hidden>Link previews</button>
+				<button type="button" class="pane_tab" role="tab" id="tab_files" aria-controls="view_files" aria-selected="false" tabindex="-1" data-tab="files">Files &amp; HTML</button>
+			</div>
+			<button type="button" class="button_primary" id="download_button" title="Add a logo in Source first" disabled>Download zip</button>
+		</div>
+
+		<div class="pane_body">
+			<div class="view preview" role="tabpanel" id="view_icons" aria-labelledby="tab_icons" tabindex="0">
+				<div class="tab_strip tab_strip_light" aria-hidden="true">
+					<div class="tab tab_active">
+						<canvas class="tab_icon" width="32" height="32"></canvas>
+						<span class="tab_title"></span>
+						<span class="tab_close">×</span>
+					</div>
+					<div class="tab tab_inactive">
+						<span class="tab_placeholder"></span>
+						<span class="tab_title">New tab</span>
+					</div>
+				</div>
+				<div class="tab_strip tab_strip_dark" aria-hidden="true">
+					<div class="tab tab_active">
+						<canvas class="tab_icon" width="32" height="32"></canvas>
+						<span class="tab_title"></span>
+						<span class="tab_close">×</span>
+					</div>
+					<div class="tab tab_inactive">
+						<span class="tab_placeholder"></span>
+						<span class="tab_title">New tab</span>
+					</div>
+				</div>
+
+				<div class="preview_body">
+					<figure class="zoom">
+						<div class="zoom_frame">
+							<canvas id="zoom_canvas" width="16" height="16"></canvas>
+						</div>
+						<figcaption>The 16 × 16 icon, one square per pixel. This is what a browser tab gets on a standard screen.</figcaption>
+					</figure>
+					<div class="ladder" id="ladder"></div>
+				</div>
+			</div>
+
+			<div class="view" role="tabpanel" id="view_links" aria-labelledby="tab_links" tabindex="0" hidden>
+				<ul class="checks" id="checks" aria-live="polite"></ul>
+
+				<div class="og_frames">
+					<figure class="og_frame">
+						<canvas id="og_canvas" width="1200" height="630"></canvas>
+						<figcaption id="og_caption"></figcaption>
+					</figure>
+					<figure class="og_frame" id="x_frame">
+						<canvas id="x_canvas" width="1600" height="900"></canvas>
+						<figcaption id="x_caption"></figcaption>
+					</figure>
+				</div>
 
 				<div class="platform_grid" id="platform_grid">
 					<article class="platform">
@@ -1459,7 +1595,7 @@ input:disabled {
 						<h3 class="platform_name">X</h3>
 						<div class="mock mock_x">
 							<div class="x_card">
-								<img data-bind="image" alt="">
+								<img data-bind="x_image" alt="">
 								<span class="x_title one_line" data-bind="title"></span>
 							</div>
 							<div class="x_from">From <span data-bind="domain"></span></div>
@@ -1565,22 +1701,20 @@ input:disabled {
 				</div>
 
 				<p class="field_note preview_note">Close approximations. Each app changes its layout from time to time, and caches a link's preview once it has fetched it. After you publish changes, refresh the cache with the <a href="https://developers.facebook.com/tools/debug/" target="_blank" rel="noopener">Facebook Sharing Debugger</a> or <a href="https://www.linkedin.com/post-inspector/" target="_blank" rel="noopener">LinkedIn Post Inspector</a>.</p>
-			</section>
-		</div>
-	</section>
+			</div>
 
-	<section class="card output" aria-labelledby="output_heading">
-		<h2 class="output_title" id="output_heading">Files in the zip</h2>
-		<div id="file_groups"></div>
-		<div class="actions">
-			<button type="button" class="button_primary" id="download_button" disabled>Download zip</button>
-			<span class="actions_hint" id="download_hint">Add an image to enable the download.</span>
+			<div class="view output" role="tabpanel" id="view_files" aria-labelledby="tab_files" tabindex="0" hidden>
+				<h2 class="output_title">Files in the zip</h2>
+				<p class="actions_hint" id="download_hint">Add a logo in Source to enable the download.</p>
+				<div id="file_groups"></div>
+
+				<div class="snippet">
+					<h2 class="output_title">HTML for your page's head</h2>
+					<pre><code id="snippet_code"></code></pre>
+					<button type="button" class="button_secondary" id="copy_button">Copy HTML</button>
+				</div>
+			</div>
 		</div>
-		<details class="snippet">
-			<summary>HTML for your page's head</summary>
-			<pre><code id="snippet_code"></code></pre>
-			<button type="button" class="button_secondary" id="copy_button">Copy HTML</button>
-		</details>
 	</section>
 </main>
 
@@ -1618,7 +1752,10 @@ const download_hint = document.getElementById('download_hint');
 const snippet_code = document.getElementById('snippet_code');
 const copy_button = document.getElementById('copy_button');
 const ogp_toggle = document.getElementById('ogp_toggle');
-const ogp_workspace = document.getElementById('ogp_workspace');
+const ogp_fields = document.getElementById('ogp_fields');
+const sidebar = document.querySelector('.sidebar');
+const pane_tabs = document.querySelectorAll('.pane_tab');
+const tab_links = document.getElementById('tab_links');
 const page_title_input = document.getElementById('page_title_input');
 const page_title_count = document.getElementById('page_title_count');
 const description_input = document.getElementById('description_input');
@@ -1635,6 +1772,11 @@ const og_file_input = document.getElementById('og_file_input');
 const og_alt_input = document.getElementById('og_alt_input');
 const og_canvas = document.getElementById('og_canvas');
 const og_caption = document.getElementById('og_caption');
+const x_image_input = document.getElementById('x_image_input');
+const x_frame = document.getElementById('x_frame');
+const x_canvas = document.getElementById('x_canvas');
+const x_caption = document.getElementById('x_caption');
+const locale_input = document.getElementById('locale_input');
 const checks_list = document.getElementById('checks');
 const platform_grid = document.getElementById('platform_grid');
 const bound_elements = platform_grid.querySelectorAll('[data-bind]');
@@ -1654,16 +1796,28 @@ let drag_depth = 0;
 
 // Open Graph image state. The canvas is redrawn on every change, but encoding it to a file
 // is slower, so that waits until typing pauses. The encoded file feeds the platform previews.
-const og_width = 1200;
-const og_height = 630;
+// Layouts are designed at 630 px tall and scaled, so every size shares the same drawing code.
+const og_design_height = 630;
 const og_font_family = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 // WhatsApp is known to skip preview images above roughly this size.
 const og_size_limit = 300 * 1024;
 let og_upload = null;
-let og_blob_url = '';
-let og_byte_size = 0;
 let og_encode_timer = 0;
 let og_encoding = false;
+
+// Every share image the tool makes. blob_url and byte_size are filled in after encoding.
+const share_images = [
+	{ id: 'og_image', width: 1200, height: 630, canvas: og_canvas, caption: og_caption, blob_url: '', byte_size: 0 },
+	{ id: 'x_image', width: 1600, height: 900, canvas: x_canvas, caption: x_caption, blob_url: '', byte_size: 0 }
+];
+
+function find_share_image(id) {
+	return share_images.find((image) => image.id === id);
+}
+
+function is_share_image_enabled(image, settings) {
+	return image.id === 'og_image' || settings.ogp.x_image;
+}
 
 /* ---------- Output plan ---------- */
 
@@ -1717,7 +1871,8 @@ const output_groups = [
 		optional: false,
 		description: 'The picture chats, feeds and search results show next to a link to your site.',
 		files: [
-			{ id: 'og_image', type: 'og_image', note: '1200 × 630, linked with og:image' }
+			{ id: 'og_image', type: 'share_image', suffix: '_OGP_1200x630.', note: '1200 × 630, linked with og:image' },
+			{ id: 'x_image', type: 'share_image', suffix: '_OGP_1600x900.', note: '1600 × 900, linked with twitter:image' }
 		]
 	}
 ];
@@ -1730,8 +1885,18 @@ const ladder_items = [
 	{ width: 180, height: 180, display_width: 90, style_key: 'maskable', shape: 'circle', caption: 'Android, masked' }
 ];
 
-function get_group_files(group) {
-	return group.files.filter((file) => file.type !== 'svg' || source_is_svg);
+function is_file_enabled(file, settings) {
+	if (file.type === 'svg') {
+		return source_is_svg;
+	}
+	if (file.type === 'share_image') {
+		return is_share_image_enabled(find_share_image(file.id), settings);
+	}
+	return true;
+}
+
+function get_group_files(group, settings) {
+	return group.files.filter((file) => is_file_enabled(file, settings));
 }
 
 function find_group(key) {
@@ -1768,7 +1933,7 @@ function get_file_path(file, settings) {
 	if (file.type === 'ico' && settings.ico_at_root) {
 		return 'favicon.ico';
 	}
-	const suffix = file.type === 'og_image' ? '_og_1200x630.' + settings.ogp.extension : file.suffix;
+	const suffix = file.type === 'share_image' ? file.suffix + settings.ogp.extension : file.suffix;
 	const file_name = file.fixed_name || settings.file_prefix + suffix;
 	if (settings.folder === '') {
 		return file_name;
@@ -1809,7 +1974,30 @@ function read_settings() {
 	};
 }
 
-// Adds https:// when the scheme is missing, so "example.com/blog" still works. Returns a URL or null.
+// new URL() lowercases the host. Hosts are case-insensitive, so "MySite.com" and "mysite.com"
+// are the same address, but people write them styled. This keeps the host exactly as typed
+// whenever it only differs from the parsed one by case.
+function get_typed_host(candidate, url) {
+	const after_scheme = candidate.slice(candidate.indexOf('//') + 2);
+	const authority = after_scheme.split(/[/?#]/)[0];
+	const host = authority.slice(authority.lastIndexOf('@') + 1);
+	return host.toLowerCase() === url.host ? host : url.host;
+}
+
+// Returns the page address parts used everywhere else. The URL object does the validation and
+// encoding. The strings keep the typed casing of the host.
+function make_page_url(url, host) {
+	const origin = url.protocol + '//' + host;
+	return {
+		url: url,
+		protocol: url.protocol,
+		host: host,
+		origin: origin,
+		href: origin + url.pathname + url.search + url.hash
+	};
+}
+
+// Adds https:// when the scheme is missing, so "example.com/blog" still works. Returns page URL parts or null.
 function parse_page_url(value) {
 	const text = value.trim();
 	if (text === '') {
@@ -1821,7 +2009,7 @@ function parse_page_url(value) {
 		if ((url.protocol !== 'https:' && url.protocol !== 'http:') || !url.hostname.includes('.')) {
 			return null;
 		}
-		return url;
+		return make_page_url(url, get_typed_host(candidate, url));
 	} catch (error) {
 		return null;
 	}
@@ -1834,6 +2022,15 @@ function normalize_x_handle(value) {
 		return '';
 	}
 	return /^[A-Za-z0-9_]{1,15}$/.test(text) ? '@' + text : null;
+}
+
+// Accepts "en_US" or "en-us" and returns "en_US". Returns "" when empty, or null when invalid.
+function normalize_locale(value) {
+	const match = /^([a-z]{2,3})[_-]([a-z]{2})$/i.exec(value.trim());
+	if (value.trim() === '') {
+		return '';
+	}
+	return match ? match[1].toLowerCase() + '_' + match[2].toUpperCase() : null;
 }
 
 function read_ogp_settings(site_name) {
@@ -1849,8 +2046,10 @@ function read_ogp_settings(site_name) {
 		url_text: page_url_input.value.trim(),
 		page_url: page_url,
 		// Placeholder so the snippet stays readable before a URL is entered. The checks flag it.
-		effective_url: page_url || new URL('https://example.com/'),
+		effective_url: page_url || make_page_url(new URL('https://example.com/'), 'example.com'),
 		x_handle: normalize_x_handle(x_handle_input.value),
+		x_image: x_image_input.checked,
+		locale: normalize_locale(locale_input.value),
 		selected_mode: selected_mode,
 		image_mode: image_mode,
 		layout: og_layout_input.value,
@@ -2038,10 +2237,10 @@ function update_file_groups(settings) {
 
 	for (const group of output_groups) {
 		const included = settings.groups[group.key];
-		const files = get_group_files(group);
+		const files = get_group_files(group, settings);
 
 		for (const file of group.files) {
-			file.row.hidden = file.type === 'svg' && !source_is_svg;
+			file.row.hidden = !is_file_enabled(file, settings);
 			file.name_element.textContent = '/' + get_file_path(file, settings);
 		}
 
@@ -2084,12 +2283,21 @@ function render_previews() {
 
 	const total_files = update_file_groups(settings);
 	snippet_code.textContent = build_head_snippet(settings);
-	ogp_workspace.hidden = !settings.ogp.enabled;
+	ogp_fields.hidden = !settings.ogp.enabled;
+	tab_links.hidden = !settings.ogp.enabled;
+	if (!settings.ogp.enabled && active_tab === 'links') {
+		select_tab('icons', false);
+	}
 	og_design_controls.hidden = settings.ogp.selected_mode !== 'design';
 	og_upload_controls.hidden = settings.ogp.selected_mode !== 'upload';
 
 	if (settings.ogp.enabled) {
-		draw_og_image(og_canvas.getContext('2d'), settings);
+		for (const image of share_images) {
+			if (is_share_image_enabled(image, settings)) {
+				draw_og_image(image.canvas.getContext('2d'), settings, image.width, image.height);
+			}
+		}
+		x_frame.hidden = !settings.ogp.x_image;
 		schedule_og_encode();
 		update_ogp_panel(settings);
 	}
@@ -2199,12 +2407,18 @@ function stack_height(blocks, gap) {
 	return total + gap * Math.max(0, visible.length - 1);
 }
 
-function draw_og_design(context, settings) {
+// Draws in a layout space 630 units tall. Wider images get a wider layout space,
+// so 1600 × 900 becomes 1120 × 630 units scaled up, with the same type sizes relative to height.
+function draw_og_design(context, settings, pixel_width, pixel_height) {
 	const ogp = settings.ogp;
 	const ink = get_ink_colors(settings.theme_color);
 	const has_logo = Boolean(source_image);
 	const margin = 88;
+	const scale = pixel_height / og_design_height;
+	const og_width = pixel_width / scale;
+	const og_height = og_design_height;
 
+	context.setTransform(scale, 0, 0, scale, 0, 0);
 	context.fillStyle = settings.theme_color;
 	context.fillRect(0, 0, og_width, og_height);
 
@@ -2273,7 +2487,7 @@ function draw_og_design(context, settings) {
 }
 
 // Uploaded images are scaled to cover 1200 × 630 and cropped from the center, like the platforms do.
-function draw_og_upload(context) {
+function draw_og_upload(context, og_width, og_height) {
 	const scale = Math.max(og_width / og_upload.width, og_height / og_upload.height);
 	const width = og_upload.width * scale;
 	const height = og_upload.height * scale;
@@ -2284,20 +2498,22 @@ function draw_og_upload(context) {
 	context.drawImage(og_upload.image, (og_width - width) / 2, (og_height - height) / 2, width, height);
 }
 
-function draw_og_image(context, settings) {
-	context.clearRect(0, 0, og_width, og_height);
+function draw_og_image(context, settings, width, height) {
+	context.setTransform(1, 0, 0, 1, 0, 0);
+	context.clearRect(0, 0, width, height);
 	if (settings.ogp.image_mode === 'upload') {
-		draw_og_upload(context);
+		draw_og_upload(context, width, height);
 	} else {
-		draw_og_design(context, settings);
+		draw_og_design(context, settings, width, height);
 	}
+	context.setTransform(1, 0, 0, 1, 0, 0);
 }
 
-function render_og_canvas(settings) {
+function render_og_canvas(settings, image) {
 	const canvas = document.createElement('canvas');
-	canvas.width = og_width;
-	canvas.height = og_height;
-	draw_og_image(canvas.getContext('2d'), settings);
+	canvas.width = image.width;
+	canvas.height = image.height;
+	draw_og_image(canvas.getContext('2d'), settings, image.width, image.height);
 	return canvas;
 }
 
@@ -2324,18 +2540,23 @@ async function encode_og_image() {
 	if (!settings.ogp.enabled) {
 		return;
 	}
-	let blob;
-	try {
-		blob = await canvas_to_blob(og_canvas, settings.ogp.mime);
-	} catch (error) {
-		og_caption.textContent = 'The preview image could not be built: ' + error.message;
-		return;
+	for (const image of share_images) {
+		if (!is_share_image_enabled(image, settings)) {
+			continue;
+		}
+		let blob;
+		try {
+			blob = await canvas_to_blob(image.canvas, settings.ogp.mime);
+		} catch (error) {
+			image.caption.textContent = 'The preview image could not be built: ' + error.message;
+			return;
+		}
+		if (image.blob_url) {
+			URL.revokeObjectURL(image.blob_url);
+		}
+		image.blob_url = URL.createObjectURL(blob);
+		image.byte_size = blob.size;
 	}
-	if (og_blob_url) {
-		URL.revokeObjectURL(og_blob_url);
-	}
-	og_blob_url = URL.createObjectURL(blob);
-	og_byte_size = blob.size;
 	og_encoding = false;
 	update_ogp_panel(read_settings());
 }
@@ -2345,9 +2566,9 @@ function format_kb(bytes) {
 }
 
 // "https://example.com/blog/post" becomes "https://example.com › blog › post", like Google shows it.
-function get_display_url(url) {
-	const segments = url.pathname.split('/').filter((segment) => segment !== '');
-	return [url.origin].concat(segments.map((segment) => decodeURIComponent(segment))).join(' › ');
+function get_display_url(page_url) {
+	const segments = page_url.url.pathname.split('/').filter((segment) => segment !== '');
+	return [page_url.origin].concat(segments.map((segment) => decodeURIComponent(segment))).join(' › ');
 }
 
 function get_preview_values(settings) {
@@ -2361,10 +2582,12 @@ function get_preview_values(settings) {
 		title: ogp.title,
 		description: ogp.description,
 		site_name: settings.site_name,
-		domain: url.hostname.replace(/^www\./, ''),
+		domain: url.host.replace(/^www\./i, ''),
 		display_url: get_display_url(url),
 		url: url.href,
-		image: og_blob_url,
+		image: find_share_image('og_image').blob_url,
+		// X shows twitter:image when it is set, and falls back to og:image when it is not.
+		x_image: find_share_image(ogp.x_image ? 'x_image' : 'og_image').blob_url,
 		favicon: favicon
 	};
 }
@@ -2400,8 +2623,8 @@ function build_checks(settings) {
 		add('warn', 'The page URL uses http. Some apps skip images that are not served over https.');
 	}
 
-	if (ogp.title_input === '') {
-		add('note', 'No page title, so the site name is used.');
+	if (ogp.title.toLowerCase() === settings.site_name.toLowerCase()) {
+		add('note', 'The title is only the site name. A short descriptor after it, like "' + settings.site_name + ' – what the page is", makes shared links clearer.');
 	} else if (ogp.title.length > 60) {
 		add('warn', 'Google often cuts titles longer than about 60 characters. This one has ' + ogp.title.length + '.');
 	}
@@ -2424,15 +2647,28 @@ function build_checks(settings) {
 	}
 	if (ogp.image_mode === 'upload') {
 		const ratio = og_upload.width / og_upload.height;
-		if (Math.abs(ratio - og_width / og_height) > 0.02) {
-			add('note', 'Your image is ' + og_upload.width + ' × ' + og_upload.height + ', so its edges are cropped to fit 1200 × 630.');
+		for (const image of share_images) {
+			if (!is_share_image_enabled(image, settings)) {
+				continue;
+			}
+			if (Math.abs(ratio - image.width / image.height) > 0.02) {
+				add('note', 'Your image is ' + og_upload.width + ' × ' + og_upload.height + ', so its edges are cropped to fit ' + image.width + ' × ' + image.height + '.');
+			}
 		}
-		if (og_upload.width < og_width) {
-			add('warn', 'Your image is narrower than 1200 px, so it will look soft on large cards.');
+		const widest = ogp.x_image ? 1600 : 1200;
+		if (og_upload.width < widest) {
+			add('warn', 'Your image is narrower than ' + widest + ' px, so it will look soft on large cards.');
 		}
 	}
-	if (!og_encoding && og_byte_size > og_size_limit) {
-		add('warn', 'The image is ' + format_kb(og_byte_size) + '. WhatsApp may skip preview images larger than about 300 KB.');
+	const og_image_size = find_share_image('og_image').byte_size;
+	if (!og_encoding && og_image_size > og_size_limit) {
+		add('warn', 'The 1200 × 630 image is ' + format_kb(og_image_size) + '. WhatsApp may skip preview images larger than about 300 KB.');
+	}
+	if (ogp.x_image) {
+		add('note', 'X crops large card images to about 2:1, so the top and bottom edges of the 1600 × 900 image are cut off in the timeline. Keep important content away from them.');
+	}
+	if (ogp.locale === null) {
+		add('warn', 'The language and region is not valid. Use a form like en_US or de_DE.');
 	}
 
 	if (ogp.alt === '') {
@@ -2454,7 +2690,10 @@ function update_ogp_panel(settings) {
 	description_count.classList.toggle('is_over', ogp.description.length > 160);
 
 	const format = ogp.extension.toUpperCase();
-	og_caption.textContent = og_encoding || !og_byte_size ? '1200 × 630 ' + format : '1200 × 630 ' + format + ', ' + format_kb(og_byte_size);
+	for (const image of share_images) {
+		const label = image.width + ' × ' + image.height + ' ' + format + (image.id === 'x_image' ? ' for X' : '');
+		image.caption.textContent = og_encoding || !image.byte_size ? label : label + ', ' + format_kb(image.byte_size);
+	}
 
 	checks_list.replaceChildren(...build_checks(settings).map((check) => {
 		const item = document.createElement('li');
@@ -2615,6 +2854,7 @@ async function load_file(file) {
 	drop_zone_thumb.src = source_object_url;
 	drop_zone_title.textContent = 'Drop another file to replace it';
 	download_button.disabled = false;
+	download_button.removeAttribute('title');
 	schedule_render();
 }
 
@@ -2638,6 +2878,61 @@ async function load_og_file(file) {
 	og_drop_zone.classList.add('has_source');
 	og_drop_title.textContent = file.name + ', ' + og_upload.width + ' × ' + og_upload.height + '. Drop another to replace it.';
 	schedule_render();
+}
+
+/* ---------- Output tabs ---------- */
+
+// Follows the WAI-ARIA tabs pattern: only the selected tab is in the Tab order,
+// and the arrow keys move between tabs.
+let active_tab = 'icons';
+
+function get_visible_tabs() {
+	return Array.from(pane_tabs).filter((tab) => !tab.hidden);
+}
+
+function select_tab(name, move_focus) {
+	for (const tab of pane_tabs) {
+		const is_active = tab.dataset.tab === name;
+		tab.setAttribute('aria-selected', String(is_active));
+		tab.tabIndex = is_active ? 0 : -1;
+		document.getElementById(tab.getAttribute('aria-controls')).hidden = !is_active;
+		if (is_active && move_focus) {
+			tab.focus();
+		}
+	}
+	active_tab = name;
+}
+
+function handle_tab_keys(event) {
+	const tabs = get_visible_tabs();
+	const index = tabs.indexOf(event.currentTarget);
+	let next = null;
+	if (event.key === 'ArrowRight') {
+		next = tabs[(index + 1) % tabs.length];
+	} else if (event.key === 'ArrowLeft') {
+		next = tabs[(index - 1 + tabs.length) % tabs.length];
+	} else if (event.key === 'Home') {
+		next = tabs[0];
+	} else if (event.key === 'End') {
+		next = tabs[tabs.length - 1];
+	}
+	if (next) {
+		event.preventDefault();
+		select_tab(next.dataset.tab, true);
+	}
+}
+
+// Editing a sidebar section shows its result: the Icons section opens the Icons view,
+// the Link previews section opens the Link previews view. Source is shared, so it changes nothing.
+function follow_sidebar_focus(event) {
+	const section = event.target.closest('[data-tab]');
+	if (!section || section.dataset.tab === active_tab) {
+		return;
+	}
+	const tab = Array.from(pane_tabs).find((item) => item.dataset.tab === section.dataset.tab);
+	if (tab && !tab.hidden) {
+		select_tab(tab.dataset.tab, false);
+	}
 }
 
 /* ---------- Text files ---------- */
@@ -2674,6 +2969,14 @@ function meta_tag(attribute, key, value) {
 	return '<meta ' + attribute + '="' + key + '" content="' + escape_html(value) + '">';
 }
 
+// Platforms fetch images from their own servers, so image tags need a full URL, not a path.
+// The URL object encodes the path; the origin string keeps the typed host casing.
+function get_absolute_url(id, settings) {
+	const page_url = settings.ogp.effective_url;
+	const file_url = new URL(get_file_url(id, settings), page_url.url.origin);
+	return page_url.origin + file_url.pathname;
+}
+
 function build_head_snippet(settings) {
 	const ogp = settings.ogp;
 	const lines = [];
@@ -2703,11 +3006,13 @@ function build_head_snippet(settings) {
 	lines.push('<meta name="theme-color" content="' + settings.theme_color + '">');
 
 	if (ogp.enabled) {
-		// Platforms fetch the image from their own servers, so it needs a full URL, not a path.
-		const image_url = new URL(get_file_url('og_image', settings), ogp.effective_url.origin).href;
+		const image_url = get_absolute_url('og_image', settings);
 		lines.push('');
 		lines.push(meta_tag('property', 'og:type', 'website'));
 		lines.push(meta_tag('property', 'og:site_name', settings.site_name));
+		if (ogp.locale) {
+			lines.push(meta_tag('property', 'og:locale', ogp.locale));
+		}
 		lines.push(meta_tag('property', 'og:title', ogp.title));
 		if (ogp.description !== '') {
 			lines.push(meta_tag('property', 'og:description', ogp.description));
@@ -2715,14 +3020,21 @@ function build_head_snippet(settings) {
 		lines.push(meta_tag('property', 'og:url', ogp.effective_url.href));
 		lines.push(meta_tag('property', 'og:image', image_url));
 		lines.push(meta_tag('property', 'og:image:type', ogp.mime));
-		lines.push(meta_tag('property', 'og:image:width', String(og_width)));
-		lines.push(meta_tag('property', 'og:image:height', String(og_height)));
+		lines.push(meta_tag('property', 'og:image:width', '1200'));
+		lines.push(meta_tag('property', 'og:image:height', '630'));
 		if (ogp.alt !== '') {
 			lines.push(meta_tag('property', 'og:image:alt', ogp.alt));
 		}
-		// X reads og:title, og:description and og:image when its own tags are missing,
-		// so only the card type and account are needed.
+		// X reads og:title and og:description when its own tags are missing,
+		// so only the card type, image and account are needed.
+		lines.push('');
 		lines.push(meta_tag('name', 'twitter:card', 'summary_large_image'));
+		if (ogp.x_image) {
+			lines.push(meta_tag('name', 'twitter:image', get_absolute_url('x_image', settings)));
+			if (ogp.alt !== '') {
+				lines.push(meta_tag('name', 'twitter:image:alt', ogp.alt));
+			}
+		}
 		if (ogp.x_handle) {
 			lines.push(meta_tag('name', 'twitter:site', ogp.x_handle));
 		}
@@ -2918,7 +3230,7 @@ async function build_files(settings) {
 		if (!settings.groups[group.key]) {
 			continue;
 		}
-		for (const file of get_group_files(group)) {
+		for (const file of get_group_files(group, settings)) {
 			let data;
 			switch (file.type) {
 				case 'png':
@@ -2938,8 +3250,8 @@ async function build_files(settings) {
 				case 'manifest':
 					data = text_encoder.encode(build_manifest(settings));
 					break;
-				case 'og_image': {
-					const blob = await canvas_to_blob(render_og_canvas(settings), settings.ogp.mime);
+				case 'share_image': {
+					const blob = await canvas_to_blob(render_og_canvas(settings, find_share_image(file.id)), settings.ogp.mime);
 					data = new Uint8Array(await blob.arrayBuffer());
 					break;
 				}
@@ -3106,7 +3418,7 @@ for (const input of setting_inputs) {
 	input.addEventListener('change', schedule_render);
 }
 
-const ogp_inputs = [page_title_input, description_input, page_url_input, x_handle_input, og_layout_input, og_alt_input, ...og_mode_inputs];
+const ogp_inputs = [page_title_input, description_input, page_url_input, x_handle_input, og_layout_input, og_alt_input, x_image_input, locale_input, ...og_mode_inputs];
 for (const input of ogp_inputs) {
 	input.addEventListener('input', schedule_render);
 	input.addEventListener('change', schedule_render);
@@ -3122,8 +3434,16 @@ ogp_toggle.addEventListener('change', () => {
 		url.searchParams.delete('ogp');
 	}
 	history.replaceState(null, '', url);
+	tab_links.hidden = !ogp_toggle.checked;
+	select_tab(ogp_toggle.checked ? 'links' : 'icons', false);
 	schedule_render();
 });
+
+for (const tab of pane_tabs) {
+	tab.addEventListener('click', () => select_tab(tab.dataset.tab, false));
+	tab.addEventListener('keydown', handle_tab_keys);
+}
+sidebar.addEventListener('focusin', follow_sidebar_focus);
 
 og_drop_zone.addEventListener('keydown', (event) => {
 	if (event.key === 'Enter' || event.key === ' ') {
