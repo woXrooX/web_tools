@@ -1,0 +1,3068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>infinite canvas</title>
+<meta name="description" content="Infinite whiteboard for engineers. Pressure-sensitive pen, dot grid, surfaces that group drawings, connectors and system icons. Runs locally.">
+
+<link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
+<link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="../../images/Favicon/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../../images/Favicon/logo_180x180.png">
+<link rel="manifest" href="../../images/Favicon/site.webmanifest">
+<meta name="theme-color" content="#0e0f12">
+
+<link rel="stylesheet" href="../../styles/core.css">
+<style>
+	html,
+	body {
+		height: 100%;
+	}
+
+	body {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		overscroll-behavior: none;
+	}
+
+	/* ---------- viewport ---------- */
+
+	.viewport {
+		position: relative;
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow: hidden;
+		background-color: var(--well);
+		background-image: radial-gradient(circle, var(--line_strong) 1.1px, transparent 1.5px);
+		touch-action: none;
+		-webkit-user-select: none;
+		user-select: none;
+		-webkit-touch-callout: none;
+	}
+
+	.viewport canvas {
+		position: absolute;
+		inset: 0;
+		display: block;
+		width: 100%;
+		height: 100%;
+		touch-action: none;
+	}
+
+	#overlay {
+		pointer-events: none;
+	}
+
+	/* ---------- layout ---------- */
+
+	.workspace {
+		flex: 1 1 auto;
+		display: flex;
+		min-height: 0;
+	}
+
+	/* ---------- sidebar ---------- */
+
+	/*
+		Every control has a permanent slot. Controls that do not apply to the
+		current selection are dimmed, never hidden, so nothing moves under
+		the hand.
+	*/
+	.sidebar {
+		position: relative;
+		z-index: 4;
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		width: 224px;
+		background: var(--surface);
+		box-shadow: var(--shadow);
+	}
+
+	.sidebar_body {
+		flex: 1 1 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+		min-height: 0;
+		padding: 12px;
+		overflow-y: auto;
+	}
+
+	.sidebar section {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.sidebar h2 {
+		color: var(--ink_soft);
+		font-size: 12px;
+		font-weight: 600;
+	}
+
+	/* Label beside its controls; color and name are wide enough to stack. */
+	.sidebar .field {
+		display: grid;
+		grid-template-columns: 58px minmax(0, 1fr);
+		align-items: center;
+		gap: 6px;
+	}
+
+	.sidebar .field.stacked {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 5px;
+	}
+
+	.sidebar .field > span {
+		color: var(--ink_faint);
+		font-size: 11.5px;
+	}
+
+	.sidebar .field.off {
+		opacity: 0.35;
+	}
+
+	.sidebar .row {
+		display: flex;
+		gap: 2px;
+	}
+
+	.sidebar button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: 1 1 0;
+		min-width: 0;
+		height: 30px;
+		padding: 0 4px;
+		background: transparent;
+		color: var(--ink_soft);
+		font-size: 12px;
+	}
+
+	.sidebar button:hover {
+		background: var(--raised);
+		color: var(--ink);
+	}
+
+	.sidebar button.on {
+		background: var(--accent_wash);
+		color: var(--ink);
+	}
+
+	.sidebar button:disabled,
+	.sidebar .field.off button {
+		opacity: 1;
+		background: transparent;
+		color: var(--ink_soft);
+	}
+
+	.sidebar svg {
+		width: 19px;
+		height: 19px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.7;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.sidebar input {
+		width: 100%;
+		padding: 7px 8px;
+	}
+
+	.sidebar_head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.sidebar_head button {
+		flex: none;
+		width: 32px;
+	}
+
+	.tool_grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 4px;
+	}
+
+	.tool_grid button {
+		position: relative;
+		height: 44px;
+	}
+
+	.tool_grid svg {
+		width: 21px;
+		height: 21px;
+	}
+
+	.tool_grid kbd {
+		position: absolute;
+		right: 4px;
+		bottom: 2px;
+		color: var(--ink_faint);
+		font-family: var(--mono);
+		font-size: 9px;
+	}
+
+	.swatches {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 8px;
+		padding: 2px 0;
+	}
+
+	.sidebar .swatch {
+		flex: none;
+		justify-self: center;
+		width: 26px;
+		height: 26px;
+		padding: 0;
+		border-radius: 50%;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+	}
+
+	.sidebar .swatch.on {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	.sidebar .weight {
+		display: block;
+		width: 22px;
+		border-radius: 3px;
+		background: currentColor;
+	}
+
+	.sidebar_foot {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 10px 12px 12px;
+		border-top: 1px solid var(--line);
+	}
+
+	.sidebar_foot .gap {
+		flex: 0 0 8px;
+	}
+
+	#zoom_label {
+		flex: 1.6 1 0;
+		font-family: var(--mono);
+	}
+
+	.file_grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 2px;
+	}
+
+	/* Collapsed: a narrow rail with only the tools, for maximum canvas. */
+	body.collapsed .sidebar {
+		width: 64px;
+	}
+
+	body.collapsed .sidebar_body {
+		padding: 12px 8px;
+	}
+
+	body.collapsed .sidebar_body > :not(.tools_section),
+	body.collapsed .sidebar_foot,
+	body.collapsed .sidebar_head h2,
+	body.collapsed .tool_grid kbd {
+		display: none;
+	}
+
+	body.collapsed .sidebar_head {
+		justify-content: center;
+	}
+
+	body.collapsed .tool_grid {
+		grid-template-columns: 1fr;
+	}
+
+	body.collapsed #collapse_button svg {
+		transform: rotate(180deg);
+	}
+
+	/* ---------- icon picker ---------- */
+
+	.picker {
+		position: absolute;
+		z-index: 3;
+		top: 10px;
+		left: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		width: min(440px, calc(100% - 20px));
+		max-height: calc(100% - 20px);
+		padding: 10px;
+		border-radius: var(--radius);
+		background: var(--surface);
+		box-shadow: var(--shadow_deep);
+	}
+
+	.picker[hidden] {
+		display: none;
+	}
+
+	.picker input {
+		width: 100%;
+		padding: 8px 10px;
+	}
+
+	.picker_grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+		gap: 2px;
+		overflow-y: auto;
+	}
+
+	.picker_grid button {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		padding: 10px 4px 8px;
+		background: transparent;
+		color: var(--ink_soft);
+		font-size: 11px;
+	}
+
+	.picker_grid button:hover,
+	.picker_grid button.on {
+		background: var(--raised);
+		color: var(--ink);
+	}
+
+	.picker_grid svg {
+		width: 28px;
+		height: 28px;
+	}
+
+	.glyph .fill {
+		fill: currentColor;
+		stroke: none;
+	}
+
+	.glyph .line {
+		fill: none;
+		stroke: currentColor;
+	}
+
+	.glyph .cut {
+		fill: none;
+		stroke: var(--surface);
+	}
+
+	.picker_grid button:hover .cut,
+	.picker_grid button.on .cut {
+		stroke: var(--raised);
+	}
+
+	/* ---------- text editor ---------- */
+
+	.text_editor {
+		position: absolute;
+		z-index: 2;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		outline: 1px dashed var(--ink_faint) !important;
+		outline-offset: 4px !important;
+		background: transparent;
+		font-family: var(--sans);
+		line-height: 1.3;
+		white-space: pre;
+		overflow: hidden;
+		resize: none;
+	}
+
+	.text_editor[hidden] {
+		display: none;
+	}
+
+	/* ---------- empty state and toast ---------- */
+
+	.empty {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+		pointer-events: none;
+	}
+
+	.empty p {
+		max-width: 40ch;
+		margin: 0;
+		color: var(--ink_faint);
+		text-align: center;
+	}
+
+	.empty[hidden] {
+		display: none;
+	}
+
+	.toast {
+		position: fixed;
+		left: 50%;
+		bottom: 24px;
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 6px 6px 6px 12px;
+		border-radius: var(--radius);
+		background: var(--raised);
+		box-shadow: var(--shadow_deep);
+		color: var(--ink_soft);
+		font-size: 13px;
+		transform: translateX(-50%);
+	}
+
+	.toast[hidden],
+	.toast button[hidden] {
+		display: none;
+	}
+</style>
+</head>
+<body>
+
+<nav class="site_bar">
+	<a href="../../index.html">web_tools</a>
+	<span>/</span>
+	<strong>infinite_canvas</strong>
+</nav>
+
+<div class="workspace">
+
+	<aside class="sidebar" id="sidebar" aria-label="Canvas controls">
+		<div class="sidebar_body">
+			<section class="tools_section">
+				<div class="sidebar_head">
+					<h2>Tools</h2>
+					<button type="button" id="collapse_button" aria-label="Collapse sidebar" title="Collapse sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+				</div>
+				<div class="tool_grid" id="tool_grid" role="toolbar" aria-label="Tools"></div>
+			</section>
+
+			<section>
+				<h2>Style</h2>
+				<div class="field stacked" data_section="color">
+					<span>Color</span>
+					<div class="swatches" id="swatches"></div>
+				</div>
+				<div class="field" data_section="width">
+					<span>Width</span>
+					<div class="row" id="widths"></div>
+				</div>
+				<div class="field" data_section="font">
+					<span>Text</span>
+					<div class="row" id="fonts"></div>
+				</div>
+			</section>
+
+			<section>
+				<h2>Connector</h2>
+				<div class="field" data_section="dash">
+					<span>Line</span>
+					<div class="row" id="dashes"></div>
+				</div>
+				<div class="field" data_section="routing">
+					<span>Routing</span>
+					<div class="row" id="routings"></div>
+				</div>
+				<div class="field" data_section="heads">
+					<span>Heads</span>
+					<div class="row" id="heads"></div>
+				</div>
+			</section>
+
+			<section>
+				<h2>Surface</h2>
+				<div class="field stacked" data_section="name">
+					<span>Name</span>
+					<input type="text" id="surface_name" placeholder="Select a surface" autocomplete="off" spellcheck="false" enterkeyhint="done" aria-label="Surface name">
+				</div>
+			</section>
+		</div>
+
+		<div class="sidebar_foot">
+			<div class="row">
+				<button type="button" id="undo_button" aria-label="Undo" title="Undo (Ctrl + Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5 M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+				<button type="button" id="redo_button" aria-label="Redo" title="Redo (Ctrl + Shift + Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5 M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+				<span class="gap"></span>
+				<button type="button" id="zoom_out" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>
+				<button type="button" id="zoom_label" title="Reset to 100% (Ctrl + 0)">100%</button>
+				<button type="button" id="zoom_in" aria-label="Zoom in" title="Zoom in (+)">+</button>
+			</div>
+			<div class="row">
+				<button type="button" id="fit_button" title="Fit everything (Shift + 1)">Fit</button>
+				<button type="button" id="snap_button" title="Snap surfaces and icons to the grid (G)">Snap</button>
+			</div>
+			<div class="file_grid">
+				<button type="button" id="open_button" title="Open a saved .json canvas">Open</button>
+				<button type="button" id="save_button" title="Save as .json (Ctrl + S)">Save</button>
+				<button type="button" id="png_button" title="Export the selection, or everything, as PNG">Export</button>
+				<button type="button" id="clear_button">Clear</button>
+			</div>
+			<input type="file" id="file_input" accept=".json,application/json" hidden>
+		</div>
+	</aside>
+
+	<main class="viewport" id="viewport">
+		<canvas id="scene"></canvas>
+		<canvas id="overlay"></canvas>
+
+		<div class="empty" id="empty">
+			<p>Draw with the pen, or pick a tool from the sidebar. Make a surface (F) to group drawings, then link surfaces with the connector (A).</p>
+		</div>
+
+		<div class="picker" id="picker" hidden>
+			<input type="search" id="picker_search" placeholder="Find an icon" autocomplete="off" spellcheck="false" aria-label="Find an icon">
+			<div class="picker_grid" id="picker_grid"></div>
+		</div>
+
+		<textarea class="text_editor" id="text_editor" spellcheck="false" autocomplete="off" hidden></textarea>
+	</main>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+	<span id="toast_message"></span>
+	<button type="button" id="toast_undo">Undo</button>
+</div>
+
+<script>
+	// ---------- constants ----------
+
+	const colors = ["#e9ebee", "#8d96a0", "#e5766c", "#e3a061", "#e2c870", "#86c39a", "#74abe0", "#ad9ae0"];
+	const pen_sizes = [2, 4, 8];
+	const line_widths = [1.5, 2.5, 4];
+	const font_sizes = [14, 20, 28, 40];
+	const grid_size = 24;
+	const snap_size = 12;
+	const min_zoom = 0.1;
+	const max_zoom = 8;
+	const label_size = 14;
+	const storage_key = "web_tools.infinite_canvas";
+	const history_limit = 200;
+
+	const css = getComputedStyle(document.documentElement);
+	const token = function (name) { return css.getPropertyValue(name).trim(); };
+	const sans = token("--sans");
+	const mono = token("--mono");
+	const well_color = token("--well");
+	const page_color = token("--page");
+	const line_color = token("--line_strong");
+	const ink_color = token("--ink");
+	const faint_color = token("--ink_faint");
+
+	/*
+		Icons are drawn on a 24 x 24 grid in up to three layers:
+		- fill: solid, rounded shapes in the icon color
+		- line: thick round-capped strokes in the icon color (pins, links, handles)
+		- cut: strokes in the background color that carve detail out of the fill
+		The same layers render in the picker (as SVG) and on the canvas (as Path2D).
+	*/
+	function rr(x, y, w, h, r) {
+		return "M" + (x + r) + " " + y + "h" + (w - 2 * r) + "a" + r + " " + r + " 0 0 1 " + r + " " + r + "v" + (h - 2 * r) + "a" + r + " " + r + " 0 0 1 " + (-r) + " " + r + "h" + (2 * r - w) + "a" + r + " " + r + " 0 0 1 " + (-r) + " " + (-r) + "v" + (2 * r - h) + "a" + r + " " + r + " 0 0 1 " + r + " " + (-r) + "z";
+	}
+
+	function circle(cx, cy, r) {
+		return "M" + (cx - r) + " " + cy + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0z";
+	}
+
+	// A polygon whose corners are rounded with a quadratic curve of radius r.
+	function soft_poly(points, r) {
+		let path = "";
+		const count = points.length;
+		for (let i = 0; i < count; i++) {
+			const before = points[(i - 1 + count) % count], at = points[i], after = points[(i + 1) % count];
+			const in_length = Math.hypot(at[0] - before[0], at[1] - before[1]);
+			const out_length = Math.hypot(after[0] - at[0], after[1] - at[1]);
+			const in_cut = Math.min(r, in_length / 2) / in_length;
+			const out_cut = Math.min(r, out_length / 2) / out_length;
+			const a = [at[0] - (at[0] - before[0]) * in_cut, at[1] - (at[1] - before[1]) * in_cut];
+			const b = [at[0] + (after[0] - at[0]) * out_cut, at[1] + (after[1] - at[1]) * out_cut];
+			path += (i === 0 ? "M" : "L") + fixed(a[0]) + " " + fixed(a[1]) + "Q" + fixed(at[0]) + " " + fixed(at[1]) + " " + fixed(b[0]) + " " + fixed(b[1]);
+		}
+		return path + "z";
+	}
+
+	function gear(cx, cy, teeth, inner, outer) {
+		const points = [];
+		for (let k = 0; k < teeth; k++) {
+			const base = k * Math.PI * 2 / teeth;
+			for (const step of [[-0.34, inner], [-0.17, outer], [0.17, outer], [0.34, inner]])
+				points.push([cx + Math.cos(base + step[0]) * step[1], cy + Math.sin(base + step[0]) * step[1]]);
+		}
+		return soft_poly(points, 0.7);
+	}
+
+	const icons = {
+		database: { label: "Database", fill: "M4 6a8 3 0 0 1 16 0v12a8 3 0 0 1-16 0z", cut: "M4 6.6a8 3 0 0 0 16 0 M4 12.4a8 3 0 0 0 16 0", cut_width: 1.4 },
+		server: { label: "Server", fill: rr(3, 3, 18, 8, 2.5) + rr(3, 13, 18, 8, 2.5), cut: "M7 7h.01 M11 7h6 M7 17h.01 M11 17h6", cut_width: 1.8 },
+		cloud: { label: "Cloud", fill: "M7 19h10.5a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6 9.6A4.75 4.75 0 0 0 7 19z" },
+		container: { label: "Container", fill: soft_poly([[12, 2], [21, 7], [21, 17], [12, 22], [3, 17], [3, 7]], 1.6), cut: "M3.8 7.4L12 12l8.2-4.6 M12 12v9.4", cut_width: 1.4 },
+		bucket: { label: "Storage", fill: rr(3, 3, 18, 4.5, 1.6) + soft_poly([[4.5, 9], [19.5, 9], [18.2, 21], [5.8, 21]], 1.6), cut: "M9 13.5h6" },
+		cache: { label: "Cache", fill: soft_poly([[13.5, 2], [4, 14], [11, 14], [10, 22], [20, 10], [13, 10]], 1.2) },
+		queue: { label: "Queue", fill: rr(1.5, 6, 4.8, 12, 1.5) + rr(7.6, 6, 4.8, 12, 1.5) + rr(13.7, 6, 4.8, 12, 1.5), line: "M20.4 9l2.4 3-2.4 3" },
+		balancer: { label: "Load balancer", fill: circle(5, 12, 3.2) + rr(15, 2.5, 7, 5.5, 1.8) + rr(15, 9.25, 7, 5.5, 1.8) + rr(15, 16, 7, 5.5, 1.8), line: "M8 12h7 M8 12l7-6.75 M8 12l7 6.75", line_width: 1.8 },
+		api: { label: "API", fill: rr(2, 4, 20, 16, 4.5), cut: "M9 8.5c-1.5 0-1.8.7-1.8 1.8v.8c0 .6-.4.9-1 .9c.6 0 1 .3 1 .9v.8c0 1.1.3 1.8 1.8 1.8 M15 8.5c1.5 0 1.8.7 1.8 1.8v.8c0 .6.4.9 1 .9c-.6 0-1 .3-1 .9v.8c0 1.1-.3 1.8-1.8 1.8", cut_width: 1.5 },
+		lambda: { label: "Function", fill: rr(2, 2, 20, 20, 5), cut: "M8 6.5h1.6c.8 0 1.2.4 1.5 1l4.6 10 M11.6 11.8L8 17.5", cut_width: 1.8 },
+		gear: { label: "Service", fill: gear(12, 12, 8, 7.6, 10.4), cut: circle(12, 12, 1.6), cut_width: 3.2 },
+		cpu: { label: "CPU", fill: rr(6, 6, 12, 12, 2.5), line: "M9.5 2.5v2.5 M14.5 2.5v2.5 M9.5 19v2.5 M14.5 19v2.5 M2.5 9.5h2.5 M2.5 14.5h2.5 M19 9.5h2.5 M19 14.5h2.5", cut: rr(9.5, 9.5, 5, 5, 1), cut_width: 1.4 },
+		user: { label: "User", fill: circle(12, 7.5, 4.5) + "M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1z" },
+		browser: { label: "Browser", fill: rr(2, 3.5, 20, 17, 3), cut: "M2.8 8.6h18.4 M5.8 6h.01 M8.3 6h.01", cut_width: 1.5 },
+		mobile: { label: "Mobile", fill: rr(6, 1.5, 12, 21, 3), cut: "M10.5 18.5h3" },
+		desktop: { label: "Desktop", fill: rr(2, 3, 20, 13.5, 2.5), line: "M12 16v4 M8 20.5h8", line_width: 2.2 },
+		globe: { label: "Internet", fill: circle(12, 12, 9.5), cut: "M2.5 12h19 M12 2.5c-3 3.2-3 15.8 0 19 M12 2.5c3 3.2 3 15.8 0 19", cut_width: 1.4 },
+		lock: { label: "Auth", fill: rr(4, 10, 16, 12, 3), line: "M8 10.5V7a4 4 0 0 1 8 0v3.5", line_width: 2.4, cut: "M12 14.5v3", cut_width: 1.8 },
+		key: { label: "Key", fill: circle(7.5, 15.5, 5.5), line: "M11.4 11.6L20 3 M16.5 6.5l2.5 2.5 M18.5 4.5l2 2", line_width: 2.4, cut: "M7.5 15.5h.01", cut_width: 3.4 },
+		shield: { label: "Firewall", fill: "M12 2.2l7.2 2.7c.5.2.8.6.8 1.1V11c0 5-3.5 9-8 11c-4.5-2-8-6-8-11V6c0-.5.3-.9.8-1.1z", cut: "M8.8 12l2.2 2.2 4.2-4.4", cut_width: 1.8 },
+		file: { label: "File", fill: "M6.5 2H14l5.5 5.5V20a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z", cut: "M14 2.6V7.5h4.9 M8.5 13h7 M8.5 16.5h5", cut_width: 1.4 },
+		folder: { label: "Folder", fill: "M3 6a2 2 0 0 1 2-2h4.2l2 2.2H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", cut: "M3.6 9.5h16.8", cut_width: 1.3 },
+		code: { label: "Code", fill: rr(2, 4, 20, 16, 4.5), cut: "M9.5 9l-3 3 3 3 M14.5 9l3 3-3 3 M13 8l-2 8" },
+		terminal: { label: "Terminal", fill: rr(2, 4, 20, 16, 4.5), cut: "M6.5 9l3 3-3 3 M12 15h5", cut_width: 1.7 },
+		git: { label: "Branch", fill: circle(6, 5, 2.8) + circle(6, 19, 2.8) + circle(18, 7, 2.8), line: "M6 7.5v9 M18 9.8c0 4.5-4 6.2-9.6 7.6", line_width: 2.2 },
+		mail: { label: "Email", fill: rr(2, 4.5, 20, 15, 3), cut: "M3 6.5l9 6.5 9-6.5" },
+		bell: { label: "Notification", fill: "M12 2.5a6.5 6.5 0 0 0-6.5 6.5v4.3l-1.7 3.1c-.5.8.1 1.6 1 1.6h14.4c.9 0 1.5-.8 1-1.6l-1.7-3.1V9A6.5 6.5 0 0 0 12 2.5z M9.5 19.5h5a2.5 2.5 0 0 1-5 0z" },
+		clock: { label: "Cron", fill: circle(12, 12, 10), cut: "M12 6.5V12l3.5 2.5", cut_width: 1.8 },
+		bot: { label: "AI agent", fill: rr(4, 7.5, 16, 13, 4) + circle(12, 3.5, 1.8), line: "M12 5v2.5 M2.5 12.5v3 M21.5 12.5v3", cut: "M9 12.5v1.5 M15 12.5v1.5 M9.5 17h5", cut_width: 1.8 },
+		warning: { label: "Warning", fill: soft_poly([[12, 2.5], [22, 20.5], [2, 20.5]], 2), cut: "M12 9.5v5 M12 17.5h.01", cut_width: 2 },
+		check: { label: "Check", fill: circle(12, 12, 10), cut: "M7.5 12.2l3 3 6-6.4", cut_width: 2 }
+	};
+
+	// Toolbar glyphs use the same fill / line layers as the icon library, without cuts.
+	const tools = [
+		{ id: "select", key: "v", label: "Select", fill: soft_poly([[5, 2.5], [19.5, 10.5], [13, 12.5], [10, 19.5]], 1.4) },
+		{ id: "hand", key: "h", label: "Pan", fill: soft_poly([[12, 1.5], [15.5, 5.5], [8.5, 5.5]], 1) + soft_poly([[12, 22.5], [8.5, 18.5], [15.5, 18.5]], 1) + soft_poly([[1.5, 12], [5.5, 8.5], [5.5, 15.5]], 1) + soft_poly([[22.5, 12], [18.5, 15.5], [18.5, 8.5]], 1), line: "M12 5v14 M5 12h14", line_width: 2.2 },
+		{ id: "pen", key: "p", label: "Pen", fill: soft_poly([[3.5, 20.5], [4.6, 15.6], [15.4, 4.8], [19.2, 8.6], [8.4, 19.4]], 1.1) + soft_poly([[16.7, 3.5], [18, 2.2], [21.8, 6], [20.5, 7.3]], 1) },
+		{ id: "eraser", key: "e", label: "Eraser", fill: soft_poly([[8.2, 9.2], [13, 4.4], [20.6, 12], [15.8, 16.8]], 1.4) + soft_poly([[7, 10.4], [14.6, 18], [12.4, 20.2], [6.6, 20.2], [2.8, 16.4], [2.8, 14.6]], 1.2) },
+		{ id: "frame", key: "f", label: "Surface", fill: rr(3, 7.5, 18, 13.5, 3), line: "M4 3.8h7", line_width: 2.2 },
+		{ id: "connector", key: "a", label: "Connector", fill: circle(5, 19, 2.6) + soft_poly([[20.5, 3.5], [19.4, 12.5], [11.5, 4.6]], 1.2), line: "M6.5 17.5L16 8", line_width: 2.4 },
+		{ id: "text", key: "t", label: "Text", fill: rr(4, 3, 16, 4.2, 1.6) + rr(9.9, 3, 4.2, 18, 1.6) },
+		{ id: "icon", key: "i", label: "Icons", fill: rr(3, 3, 8, 8, 2.2) + circle(17, 7, 4) + soft_poly([[7, 13.2], [11.2, 20.8], [2.8, 20.8]], 1.4) + rr(13, 13, 8, 8, 2.2) }
+	];
+
+	// Tools that stay active after use. The rest hand control back to select.
+	const sticky_tools = new Set(["select", "hand", "pen", "eraser"]);
+	const box_types = new Set(["frame", "icon"]);
+	const labelled_types = new Set(["icon", "connector"]);
+	const default_sizes = {
+		frame: [480, 320],
+		icon: [56, 56]
+	};
+
+	// ---------- state ----------
+
+	let elements = [];
+	let index = new Map();
+	const view = { x: 0, y: 0, zoom: 1 };
+	const selection = new Set();
+	const style = { color: colors[0], width: 1, dash: false, routing: "elbow", heads: "end", font: 1 };
+	const undo_stack = [];
+	const redo_stack = [];
+	let touched = new Set();
+
+	let tool = "pen";
+	let current_icon = "database";
+	let snap_on = false;
+	let pen_seen = false;
+	let space_down = false;
+
+	// ---------- elements ----------
+
+	function new_id() {
+		return Math.random().toString(36).slice(2, 10);
+	}
+
+	function reindex() {
+		index = new Map();
+		for (const element of elements) index.set(element.id, element);
+	}
+
+	function clone(element) {
+		// Shallow copy. Stroke points are never mutated once committed, so they are shared.
+		const copy = Object.assign({}, element);
+		if (copy.start) copy.start = Object.assign({}, copy.start);
+		if (copy.end) copy.end = Object.assign({}, copy.end);
+		return copy;
+	}
+
+	function frame_of(element) {
+		if (!element.frame_id) return null;
+		const frame = index.get(element.frame_id);
+		return frame && frame.type === "frame" ? frame : null;
+	}
+
+	function children_of(frame) {
+		return elements.filter(function (element) { return element.frame_id === frame.id && element.type !== "frame"; });
+	}
+
+	function frames() {
+		return elements.filter(function (element) { return element.type === "frame"; });
+	}
+
+	function snap(value) {
+		return snap_on ? Math.round(value / snap_size) * snap_size : value;
+	}
+
+	function text_lines(text) {
+		return String(text || "").split("\n");
+	}
+
+	const measure_context = document.createElement("canvas").getContext("2d");
+
+	function measure_text(text, size, family) {
+		measure_context.font = size + "px " + (family || sans);
+		let width = 0;
+		const lines = text_lines(text);
+		for (const line of lines) width = Math.max(width, measure_context.measureText(line).width);
+		return { w: Math.ceil(width), h: Math.ceil(lines.length * size * 1.3) };
+	}
+
+	// ---------- geometry ----------
+
+	function box_of(element) {
+		if (element.type === "connector") return connector_box(element);
+		if (element.type === "icon" && element.label) {
+			const label = measure_text(element.label, label_size);
+			const width = Math.max(element.w, label.w);
+			return { x: element.x + element.w / 2 - width / 2, y: element.y, w: width, h: element.h + 8 + label.h };
+		}
+		return { x: element.x, y: element.y, w: element.w, h: element.h };
+	}
+
+	function center_of(box) {
+		return { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+	}
+
+	function contains(box, x, y, pad) {
+		pad = pad || 0;
+		return x >= box.x - pad && x <= box.x + box.w + pad && y >= box.y - pad && y <= box.y + box.h + pad;
+	}
+
+	function inside(inner, outer) {
+		return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h;
+	}
+
+	function intersects(a, b) {
+		return a.x <= b.x + b.w && a.x + a.w >= b.x && a.y <= b.y + b.h && a.y + a.h >= b.y;
+	}
+
+	function union(boxes) {
+		if (!boxes.length) return null;
+		let min_x = Infinity, min_y = Infinity, max_x = -Infinity, max_y = -Infinity;
+		for (const box of boxes) {
+			min_x = Math.min(min_x, box.x);
+			min_y = Math.min(min_y, box.y);
+			max_x = Math.max(max_x, box.x + box.w);
+			max_y = Math.max(max_y, box.y + box.h);
+		}
+		return { x: min_x, y: min_y, w: max_x - min_x, h: max_y - min_y };
+	}
+
+	function box_from_points(ax, ay, bx, by) {
+		return { x: Math.min(ax, bx), y: Math.min(ay, by), w: Math.abs(bx - ax), h: Math.abs(by - ay) };
+	}
+
+	function segment_distance(px, py, ax, ay, bx, by) {
+		const dx = bx - ax, dy = by - ay;
+		const length = dx * dx + dy * dy;
+		let t = length ? ((px - ax) * dx + (py - ay) * dy) / length : 0;
+		t = Math.max(0, Math.min(1, t));
+		return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+	}
+
+	function polyline_distance(points, x, y) {
+		let best = Infinity;
+		for (let i = 1; i < points.length; i++)
+			best = Math.min(best, segment_distance(x, y, points[i - 1].x, points[i - 1].y, points[i].x, points[i].y));
+		return best;
+	}
+
+	function polyline_midpoint(points) {
+		let total = 0;
+		for (let i = 1; i < points.length; i++) total += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+		let left = total / 2;
+		for (let i = 1; i < points.length; i++) {
+			const a = points[i - 1], b = points[i];
+			const length = Math.hypot(b.x - a.x, b.y - a.y);
+			if (left <= length && length > 0) return { x: a.x + (b.x - a.x) * left / length, y: a.y + (b.y - a.y) * left / length };
+			left -= length;
+		}
+		return points[0];
+	}
+
+	/*
+		Pressure to width. 0.5 (mouse, finger) maps to the nominal size; a light
+		pencil touch thins the line, a firm one thickens it up to about 1.65x.
+	*/
+	function pressure_width(size, pressure) {
+		return size * (0.35 + 1.3 * pressure);
+	}
+
+	function fixed(value) {
+		return Math.round(value * 100) / 100;
+	}
+
+	/*
+		A pressure stroke is drawn as a filled outline, not a stroked line:
+		every sample is pushed out along its normal by half its width on both
+		sides, the two sides are smoothed with quadratic curves through the
+		midpoints, and round caps close the ends. Points are [x, y, pressure]
+		triples, flat.
+	*/
+	function stroke_outline(points, size) {
+		const count = points.length / 3;
+		const xs = [], ys = [], radii = [];
+		for (let i = 0; i < count; i++) {
+			xs.push(points[i * 3]);
+			ys.push(points[i * 3 + 1]);
+			radii.push(pressure_width(size, points[i * 3 + 2]) / 2);
+		}
+
+		let travelled = 0;
+		for (let i = 1; i < count; i++) travelled += Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
+		if (count < 2 || travelled < 0.5) {
+			const r = fixed(Math.max(...radii));
+			const x = fixed(xs[0] - r), y = fixed(ys[0]);
+			return "M" + x + " " + y + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0z";
+		}
+
+		const left_x = [], left_y = [], right_x = [], right_y = [], tangent_x = [], tangent_y = [];
+		let last_x = 1, last_y = 0;
+		for (let i = 0; i < count; i++) {
+			const a = Math.max(0, i - 1), b = Math.min(count - 1, i + 1);
+			let tx = xs[b] - xs[a], ty = ys[b] - ys[a];
+			const length = Math.hypot(tx, ty);
+			if (length > 0.0001) {
+				tx /= length;
+				ty /= length;
+				last_x = tx;
+				last_y = ty;
+			}
+			else {
+				tx = last_x;
+				ty = last_y;
+			}
+			tangent_x.push(tx);
+			tangent_y.push(ty);
+			left_x.push(xs[i] - ty * radii[i]);
+			left_y.push(ys[i] + tx * radii[i]);
+			right_x.push(xs[i] + ty * radii[i]);
+			right_y.push(ys[i] - tx * radii[i]);
+		}
+
+		function side(px, py) {
+			let path = "";
+			for (let i = 1; i < px.length - 1; i++)
+				path += "Q" + fixed(px[i]) + " " + fixed(py[i]) + " " + fixed((px[i] + px[i + 1]) / 2) + " " + fixed((py[i] + py[i + 1]) / 2);
+			return path + "L" + fixed(px[px.length - 1]) + " " + fixed(py[py.length - 1]);
+		}
+
+		function cap(i, direction, to_x, to_y) {
+			const r = fixed(radii[i]);
+			const tip_x = fixed(xs[i] + tangent_x[i] * radii[i] * direction);
+			const tip_y = fixed(ys[i] + tangent_y[i] * radii[i] * direction);
+			return "A" + r + " " + r + " 0 0 0 " + tip_x + " " + tip_y + "A" + r + " " + r + " 0 0 0 " + fixed(to_x) + " " + fixed(to_y);
+		}
+
+		const last = count - 1;
+		let path = "M" + fixed(left_x[0]) + " " + fixed(left_y[0]);
+		path += side(left_x, left_y);
+		path += cap(last, 1, right_x[last], right_y[last]);
+		path += side(right_x.slice().reverse(), right_y.slice().reverse());
+		path += cap(0, -1, left_x[0], left_y[0]);
+		return path + "z";
+	}
+
+	const stroke_cache = new WeakMap();
+
+	function stroke_path(element) {
+		let entry = stroke_cache.get(element.points);
+		if (!entry || entry.size !== element.size) {
+			entry = { size: element.size, path: new Path2D(stroke_outline(element.points, element.size)) };
+			stroke_cache.set(element.points, entry);
+		}
+		return entry.path;
+	}
+
+	const icon_cache = new Map();
+
+	function icon_glyph(name) {
+		if (!icon_cache.has(name)) {
+			const icon = icons[name] || icons.database;
+			icon_cache.set(name, {
+				fill: new Path2D(icon.fill),
+				line: icon.line ? new Path2D(icon.line) : null,
+				cut: icon.cut ? new Path2D(icon.cut) : null,
+				line_width: icon.line_width || 2,
+				cut_width: icon.cut_width || 1.6
+			});
+		}
+		return icon_cache.get(name);
+	}
+
+	// ---------- connectors ----------
+
+	/*
+		A connector end is either free ({ id: null, x, y }) or bound to an
+		element ({ id }). Bound ends are resolved every frame from the target's
+		current box, which is why moving a surface drags its arrows along.
+	*/
+	function bound_target(end) {
+		if (!end.id) return null;
+		const target = index.get(end.id);
+		return target && target.type !== "connector" && target.type !== "stroke" ? target : null;
+	}
+
+	function anchor(box, toward, gap) {
+		const center = center_of(box);
+		let dx = toward.x - center.x, dy = toward.y - center.y;
+		if (!dx && !dy) dy = -1;
+		const half_w = Math.max(box.w / 2, 1), half_h = Math.max(box.h / 2, 1);
+		const t = Math.min(dx ? half_w / Math.abs(dx) : Infinity, dy ? half_h / Math.abs(dy) : Infinity);
+		const length = Math.hypot(dx, dy);
+		return { x: center.x + dx * t + dx / length * gap, y: center.y + dy * t + dy / length * gap };
+	}
+
+	function connector_points(connector) {
+		const gap = 6;
+		const start_target = bound_target(connector.start);
+		const end_target = bound_target(connector.end);
+		const start_box = start_target ? box_of(start_target) : null;
+		const end_box = end_target ? box_of(end_target) : null;
+		const start_center = start_box ? center_of(start_box) : connector.start;
+		const end_center = end_box ? center_of(end_box) : connector.end;
+
+		if (connector.routing !== "elbow") {
+			const a = start_box ? anchor(start_box, end_center, gap) : { x: connector.start.x, y: connector.start.y };
+			const b = end_box ? anchor(end_box, start_center, gap) : { x: connector.end.x, y: connector.end.y };
+			return [a, b];
+		}
+
+		// Elbow routing: leave and enter through side midpoints, turn halfway.
+		const dx = end_center.x - start_center.x, dy = end_center.y - start_center.y;
+		let a, b;
+		if (Math.abs(dx) >= Math.abs(dy)) {
+			a = { x: start_box ? (dx >= 0 ? start_box.x + start_box.w + gap : start_box.x - gap) : start_center.x, y: start_center.y };
+			b = { x: end_box ? (dx >= 0 ? end_box.x - gap : end_box.x + end_box.w + gap) : end_center.x, y: end_center.y };
+			if (Math.abs(a.y - b.y) < 0.5) return [a, b];
+			const middle = (a.x + b.x) / 2;
+			return [a, { x: middle, y: a.y }, { x: middle, y: b.y }, b];
+		}
+		a = { x: start_center.x, y: start_box ? (dy >= 0 ? start_box.y + start_box.h + gap : start_box.y - gap) : start_center.y };
+		b = { x: end_center.x, y: end_box ? (dy >= 0 ? end_box.y - gap : end_box.y + end_box.h + gap) : end_center.y };
+		if (Math.abs(a.x - b.x) < 0.5) return [a, b];
+		const middle = (a.y + b.y) / 2;
+		return [a, { x: a.x, y: middle }, { x: b.x, y: middle }, b];
+	}
+
+	function connector_box(connector) {
+		const points = connector_points(connector);
+		const box = union(points.map(function (point) { return { x: point.x, y: point.y, w: 0, h: 0 }; }));
+		if (!connector.label) return box;
+		return union([box, label_box(connector, points)]);
+	}
+
+	// ---------- layering and hit testing ----------
+
+	/*
+		Draw order: surfaces first, each followed by its own children (clipped
+		to it), then loose elements, then connectors on top of everything.
+		Hit testing walks the same order backwards.
+	*/
+	function layers() {
+		const surfaces = [], loose = [], connectors = [], kids = new Map();
+		for (const element of elements) {
+			if (element.type === "frame") {
+				surfaces.push(element);
+				if (!kids.has(element.id)) kids.set(element.id, []);
+			}
+			else if (element.type === "connector") connectors.push(element);
+			else if (frame_of(element)) {
+				if (!kids.has(element.frame_id)) kids.set(element.frame_id, []);
+				kids.get(element.frame_id).push(element);
+			}
+			else loose.push(element);
+		}
+		return { surfaces: surfaces, loose: loose, connectors: connectors, kids: kids };
+	}
+
+	function title_box(frame) {
+		const size = 12 / view.zoom;
+		const width = measure_text(frame.name || "Surface", 12, mono).w / view.zoom;
+		return { x: frame.x, y: frame.y - size * 1.9, w: width + 4 / view.zoom, h: size * 1.6 };
+	}
+
+	function hits(element, x, y, tolerance) {
+		if (element.type === "stroke") {
+			const reach = element.size + tolerance;
+			if (!contains(element, x, y, reach)) return false;
+			const points = element.points;
+			const lx = x - element.x, ly = y - element.y;
+			if (points.length === 3) return Math.hypot(lx - points[0], ly - points[1]) <= reach;
+			for (let i = 3; i < points.length; i += 3)
+				if (segment_distance(lx, ly, points[i - 3], points[i - 2], points[i], points[i + 1]) <= element.size * 0.8 + tolerance) return true;
+			return false;
+		}
+		if (element.type === "connector") {
+			const points = connector_points(element);
+			if (polyline_distance(points, x, y) <= element.width / 2 + tolerance) return true;
+			return element.label ? contains(label_box(element, points), x, y) : false;
+		}
+		if (element.type === "frame") return contains(element, x, y) || contains(title_box(element), x, y);
+		return contains(box_of(element), x, y, tolerance);
+	}
+
+	function label_box(connector, points) {
+		const middle = polyline_midpoint(points);
+		const label = measure_text(connector.label, label_size);
+		return { x: middle.x - label.w / 2 - 6, y: middle.y - label.h / 2 - 3, w: label.w + 12, h: label.h + 6 };
+	}
+
+	// Returns the topmost element under a world point. Options: bindable, exclude.
+	function hit_test(x, y, options) {
+		options = options || {};
+		const tolerance = 6 / view.zoom;
+		const layer = layers();
+		const usable = function (element) {
+			if (options.exclude && options.exclude.has(element.id)) return false;
+			if (options.bindable && (element.type === "stroke" || element.type === "connector")) return false;
+			return hits(element, x, y, tolerance);
+		};
+		if (!options.bindable)
+			for (let i = layer.connectors.length - 1; i >= 0; i--) if (usable(layer.connectors[i])) return layer.connectors[i];
+		for (let i = layer.loose.length - 1; i >= 0; i--) if (usable(layer.loose[i])) return layer.loose[i];
+		for (let i = layer.surfaces.length - 1; i >= 0; i--) {
+			const frame = layer.surfaces[i];
+			if (!hits(frame, x, y, 0)) continue;
+			if (contains(frame, x, y)) {
+				const kids = layer.kids.get(frame.id) || [];
+				for (let k = kids.length - 1; k >= 0; k--) if (usable(kids[k])) return kids[k];
+			}
+			if (!options.exclude || !options.exclude.has(frame.id)) return frame;
+		}
+		return null;
+	}
+
+	// The surface an element belongs to: the topmost one containing its center.
+	function frame_at(x, y, skip_id) {
+		const list = frames();
+		for (let i = list.length - 1; i >= 0; i--)
+			if (list[i].id !== skip_id && contains(list[i], x, y)) return list[i];
+		return null;
+	}
+
+	// ---------- history ----------
+
+	/*
+		Undo keeps whole snapshots of the elements array, but cheaply: a
+		snapshot is just a copy of the array of references. Elements are never
+		changed in place once a snapshot can see them. edit() swaps in a fresh
+		copy the first time an element is touched during a change, so older
+		snapshots keep pointing at the untouched originals.
+	*/
+	function begin_change() {
+		undo_stack.push(elements.slice());
+		if (undo_stack.length > history_limit) undo_stack.shift();
+		redo_stack.length = 0;
+		touched = new Set();
+	}
+
+	function edit(id) {
+		if (!touched.has(id)) {
+			const position = elements.findIndex(function (element) { return element.id === id; });
+			if (position < 0) return null;
+			const copy = clone(elements[position]);
+			elements[position] = copy;
+			index.set(id, copy);
+			touched.add(id);
+		}
+		return index.get(id);
+	}
+
+	function add(element) {
+		elements.push(element);
+		index.set(element.id, element);
+		touched.add(element.id);
+		return element;
+	}
+
+	function end_change() {
+		invalidate();
+		schedule_save();
+	}
+
+	function cancel_change() {
+		if (!undo_stack.length) return;
+		elements = undo_stack.pop();
+		reindex();
+		prune_selection();
+		invalidate();
+	}
+
+	function undo() {
+		if (action || editing) finish_everything();
+		if (!undo_stack.length) return;
+		redo_stack.push(elements);
+		elements = undo_stack.pop();
+		after_history();
+	}
+
+	function redo() {
+		if (action || editing) finish_everything();
+		if (!redo_stack.length) return;
+		undo_stack.push(elements);
+		elements = redo_stack.pop();
+		after_history();
+	}
+
+	function after_history() {
+		reindex();
+		prune_selection();
+		refresh_panel();
+		invalidate();
+		schedule_save();
+	}
+
+	function prune_selection() {
+		for (const id of Array.from(selection)) if (!index.has(id)) selection.delete(id);
+	}
+
+	// Removes elements. Arrows bound to them keep their last position instead of vanishing.
+	function remove_ids(ids) {
+		for (const element of elements) {
+			if (element.type !== "connector" || ids.has(element.id)) continue;
+			const start_gone = element.start.id && ids.has(element.start.id);
+			const end_gone = element.end.id && ids.has(element.end.id);
+			if (!start_gone && !end_gone) continue;
+			const points = connector_points(element);
+			const copy = edit(element.id);
+			if (start_gone) copy.start = { id: null, x: points[0].x, y: points[0].y };
+			if (end_gone) copy.end = { id: null, x: points[points.length - 1].x, y: points[points.length - 1].y };
+		}
+		elements = elements.filter(function (element) { return !ids.has(element.id); });
+		for (const id of ids) {
+			index.delete(id);
+			selection.delete(id);
+		}
+	}
+
+	// A selection plus everything inside selected surfaces.
+	function with_children(ids) {
+		const all = new Set(ids);
+		for (const id of ids) {
+			const element = index.get(id);
+			if (element && element.type === "frame") for (const child of children_of(element)) all.add(child.id);
+		}
+		return all;
+	}
+
+	// ---------- rendering ----------
+
+	const viewport = document.getElementById("viewport");
+	const scene_canvas = document.getElementById("scene");
+	const overlay_canvas = document.getElementById("overlay");
+	const scene = scene_canvas.getContext("2d");
+	const overlay = overlay_canvas.getContext("2d", { desynchronized: true }) || overlay_canvas.getContext("2d");
+	let screen_width = 0, screen_height = 0, ratio = 1;
+	let scene_dirty = true, overlay_dirty = true, frame_requested = false;
+
+	function resize() {
+		const rect = viewport.getBoundingClientRect();
+		ratio = window.devicePixelRatio || 1;
+		screen_width = rect.width;
+		screen_height = rect.height;
+		for (const canvas of [scene_canvas, overlay_canvas]) {
+			canvas.width = Math.round(screen_width * ratio);
+			canvas.height = Math.round(screen_height * ratio);
+		}
+		invalidate();
+	}
+
+	function invalidate(scene_too) {
+		if (scene_too !== false) scene_dirty = true;
+		overlay_dirty = true;
+		if (frame_requested) return;
+		frame_requested = true;
+		requestAnimationFrame(render);
+	}
+
+	function render() {
+		frame_requested = false;
+		if (scene_dirty) {
+			draw_scene(scene, { x: view.x, y: view.y, zoom: view.zoom, ratio: ratio, width: screen_width, height: screen_height });
+			update_background();
+			update_chrome();
+		}
+		if (overlay_dirty) draw_overlay();
+		scene_dirty = false;
+		overlay_dirty = false;
+	}
+
+	// The dot grid is a CSS background: free to draw, and it doubles its spacing when zoomed far out.
+	function update_background() {
+		let spacing = grid_size * view.zoom;
+		while (spacing < 12) spacing *= 2;
+		viewport.style.backgroundSize = spacing + "px " + spacing + "px";
+		viewport.style.backgroundPosition = (view.x - spacing / 2) + "px " + (view.y - spacing / 2) + "px";
+	}
+
+	function visible_world() {
+		return { x: -view.x / view.zoom, y: -view.y / view.zoom, w: screen_width / view.zoom, h: screen_height / view.zoom };
+	}
+
+	/*
+		Draws the scene into any context. The camera is passed in, so the same
+		code renders the screen and the PNG export. only: optional Set of ids.
+	*/
+	function draw_scene(context, camera, only, background) {
+		context.setTransform(1, 0, 0, 1, 0, 0);
+		context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+		if (background) {
+			context.fillStyle = background;
+			context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+		}
+		const scale = camera.ratio * camera.zoom;
+		context.setTransform(scale, 0, 0, scale, camera.ratio * camera.x, camera.ratio * camera.y);
+
+		const area = { x: -camera.x / camera.zoom, y: -camera.y / camera.zoom, w: camera.width / camera.zoom, h: camera.height / camera.zoom };
+		const pad = 40 / camera.zoom;
+		const seen = function (element) {
+			if (only && !only.has(element.id)) return false;
+			const box = box_of(element);
+			return intersects({ x: box.x - pad, y: box.y - pad, w: box.w + pad * 2, h: box.h + pad * 2 }, area);
+		};
+
+		const layer = layers();
+		for (const frame of layer.surfaces) {
+			if (!seen(frame)) continue;
+			draw_frame(context, frame, camera.zoom);
+			context.save();
+			context.beginPath();
+			context.rect(frame.x, frame.y, frame.w, frame.h);
+			context.clip();
+			for (const child of layer.kids.get(frame.id) || []) if (seen(child)) draw_element(context, child);
+			context.restore();
+		}
+		for (const element of layer.loose) if (seen(element)) draw_element(context, element);
+		for (const connector of layer.connectors) if (seen(connector)) draw_connector(context, connector);
+	}
+
+	function draw_frame(context, frame, zoom) {
+		context.fillStyle = page_color;
+		context.fillRect(frame.x, frame.y, frame.w, frame.h);
+		context.lineWidth = 1 / zoom;
+		context.strokeStyle = selection.has(frame.id) ? ink_color : line_color;
+		context.strokeRect(frame.x, frame.y, frame.w, frame.h);
+		const size = 12 / zoom;
+		context.font = size + "px " + mono;
+		context.fillStyle = selection.has(frame.id) ? ink_color : faint_color;
+		context.textBaseline = "alphabetic";
+		context.textAlign = "left";
+		context.fillText(frame.name || "Surface", frame.x, frame.y - size * 0.6);
+	}
+
+	function apply_line(context, width, dash) {
+		context.lineWidth = width;
+		context.lineCap = "round";
+		context.lineJoin = "round";
+		context.setLineDash(dash ? [width * 4, width * 3] : []);
+	}
+
+	function draw_text_block(context, text, x, y, size, color, align) {
+		context.font = size + "px " + sans;
+		context.fillStyle = color;
+		context.textAlign = align;
+		context.textBaseline = "top";
+		const lines = text_lines(text);
+		for (let i = 0; i < lines.length; i++) context.fillText(lines[i], x, y + i * size * 1.3 + size * 0.12);
+	}
+
+	function draw_element(context, element) {
+		const is_editing = editing && editing.id === element.id;
+		if (element.type === "stroke") {
+			context.save();
+			context.translate(element.x, element.y);
+			context.fillStyle = element.color;
+			context.fill(stroke_path(element));
+			context.restore();
+			return;
+		}
+		if (element.type === "text") {
+			if (!is_editing) draw_text_block(context, element.text, element.x, element.y, element.font_size, element.color, "left");
+			return;
+		}
+		if (element.type === "icon") {
+			context.save();
+			context.translate(element.x, element.y);
+			context.scale(element.w / 24, element.h / 24);
+			const glyph = icon_glyph(element.icon);
+			context.fillStyle = element.color;
+			context.fill(glyph.fill);
+			if (glyph.line) {
+				apply_line(context, glyph.line_width, false);
+				context.strokeStyle = element.color;
+				context.stroke(glyph.line);
+			}
+			// Cuts are painted in whatever sits behind the icon: the surface or the canvas.
+			if (glyph.cut) {
+				apply_line(context, glyph.cut_width, false);
+				context.strokeStyle = frame_of(element) ? page_color : well_color;
+				context.stroke(glyph.cut);
+			}
+			context.restore();
+			if (element.label && !is_editing)
+				draw_text_block(context, element.label, element.x + element.w / 2, element.y + element.h + 8, label_size, element.color, "center");
+		}
+	}
+
+	function draw_arrowhead(context, from, to, size) {
+		const angle = Math.atan2(to.y - from.y, to.x - from.x);
+		context.beginPath();
+		context.moveTo(to.x, to.y);
+		context.lineTo(to.x - size * Math.cos(angle - 0.42), to.y - size * Math.sin(angle - 0.42));
+		context.lineTo(to.x - size * Math.cos(angle + 0.42), to.y - size * Math.sin(angle + 0.42));
+		context.closePath();
+		context.fill();
+	}
+
+	function draw_connector(context, connector) {
+		const points = connector_points(connector);
+		const last = points.length - 1;
+		const head = 7 + connector.width * 2.2;
+		context.strokeStyle = connector.color;
+		context.fillStyle = connector.color;
+		apply_line(context, connector.width, connector.dash);
+
+		// Pull the line back under each arrowhead so its round cap never pokes out of the tip.
+		const trimmed = points.map(function (point) { return { x: point.x, y: point.y }; });
+		const trim = function (tip, from) {
+			const length = Math.hypot(tip.x - from.x, tip.y - from.y);
+			if (length < head) return;
+			tip.x -= (tip.x - from.x) / length * head * 0.6;
+			tip.y -= (tip.y - from.y) / length * head * 0.6;
+		};
+		if (connector.heads !== "none") trim(trimmed[last], points[last - 1]);
+		if (connector.heads === "both") trim(trimmed[0], points[1]);
+
+		context.beginPath();
+		context.moveTo(trimmed[0].x, trimmed[0].y);
+		for (let i = 1; i < last; i++) {
+			const before = Math.hypot(trimmed[i].x - trimmed[i - 1].x, trimmed[i].y - trimmed[i - 1].y);
+			const after = Math.hypot(trimmed[i + 1].x - trimmed[i].x, trimmed[i + 1].y - trimmed[i].y);
+			context.arcTo(trimmed[i].x, trimmed[i].y, trimmed[i + 1].x, trimmed[i + 1].y, Math.min(10, before / 2, after / 2));
+		}
+		context.lineTo(trimmed[last].x, trimmed[last].y);
+		context.stroke();
+		context.setLineDash([]);
+
+		if (connector.heads !== "none") draw_arrowhead(context, points[last - 1], points[last], head);
+		if (connector.heads === "both") draw_arrowhead(context, points[1], points[0], head);
+
+		if (connector.label && !(editing && editing.id === connector.id)) {
+			const box = label_box(connector, points);
+			context.fillStyle = well_color;
+			context.fillRect(box.x, box.y, box.w, box.h);
+			draw_text_block(context, connector.label, box.x + box.w / 2, box.y + 3, label_size, connector.color, "center");
+		}
+	}
+
+	// ---------- overlay ----------
+
+	let hover = null;
+	const pen_glyph = new Path2D(tools.find(function (item) { return item.id === "pen"; }).fill);
+	let bind_hint = null;
+
+	function screen_box(box) {
+		return { x: box.x * view.zoom + view.x, y: box.y * view.zoom + view.y, w: box.w * view.zoom, h: box.h * view.zoom };
+	}
+
+	function to_screen(point) {
+		return { x: point.x * view.zoom + view.x, y: point.y * view.zoom + view.y };
+	}
+
+	function handle_boxes(element) {
+		const box = screen_box(element);
+		const pad = 4;
+		return {
+			nw: { x: box.x - pad, y: box.y - pad },
+			ne: { x: box.x + box.w + pad, y: box.y - pad },
+			sw: { x: box.x - pad, y: box.y + box.h + pad },
+			se: { x: box.x + box.w + pad, y: box.y + box.h + pad }
+		};
+	}
+
+	function single_selected() {
+		if (selection.size !== 1) return null;
+		return index.get(selection.values().next().value) || null;
+	}
+
+	function draw_overlay() {
+		const context = overlay;
+		context.setTransform(1, 0, 0, 1, 0, 0);
+		context.clearRect(0, 0, overlay_canvas.width, overlay_canvas.height);
+		context.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+		// selection outlines
+		context.strokeStyle = ink_color;
+		context.lineWidth = 1;
+		context.setLineDash([4, 3]);
+		for (const id of selection) {
+			const element = index.get(id);
+			if (!element || element.type === "connector" || element.type === "frame") continue;
+			const box = screen_box(box_of(element));
+			context.strokeRect(Math.round(box.x - 4) + 0.5, Math.round(box.y - 4) + 0.5, Math.round(box.w + 8), Math.round(box.h + 8));
+		}
+		context.setLineDash([]);
+
+		// handles
+		const one = single_selected();
+		if (one && box_types.has(one.type) && !(action && action.kind === "move")) {
+			const handles = handle_boxes(one);
+			for (const name in handles) {
+				context.fillStyle = well_color;
+				context.fillRect(handles[name].x - 4.5, handles[name].y - 4.5, 9, 9);
+				context.strokeRect(handles[name].x - 4.5, handles[name].y - 4.5, 9, 9);
+			}
+		}
+		for (const id of selection) {
+			const element = index.get(id);
+			if (!element || element.type !== "connector") continue;
+			const points = connector_points(element);
+			for (const point of [points[0], points[points.length - 1]]) {
+				const at = to_screen(point);
+				context.beginPath();
+				context.arc(at.x, at.y, 5, 0, Math.PI * 2);
+				context.fillStyle = well_color;
+				context.fill();
+				context.stroke();
+			}
+		}
+
+		// binding target while dragging a connector end
+		if (bind_hint) {
+			const target = index.get(bind_hint);
+			if (target) {
+				const box = screen_box(box_of(target));
+				context.lineWidth = 2;
+				context.strokeStyle = ink_color;
+				context.strokeRect(box.x - 3, box.y - 3, box.w + 6, box.h + 6);
+				context.lineWidth = 1;
+			}
+		}
+
+		if (action && action.kind === "marquee") {
+			const box = screen_box(box_from_points(action.start.x, action.start.y, action.current.x, action.current.y));
+			context.fillStyle = "rgba(255, 255, 255, 0.05)";
+			context.fillRect(box.x, box.y, box.w, box.h);
+			context.strokeStyle = faint_color;
+			context.strokeRect(box.x + 0.5, box.y + 0.5, box.w, box.h);
+		}
+
+		// live pen stroke: drawn here so the full scene is not repainted per sample
+		if (action && action.kind === "stroke" && action.points.length) {
+			context.setTransform(ratio * view.zoom, 0, 0, ratio * view.zoom, ratio * view.x, ratio * view.y);
+			context.fillStyle = action.color;
+			context.fill(new Path2D(stroke_outline(action.points, action.size)));
+			context.setTransform(ratio, 0, 0, ratio, 0, 0);
+		}
+
+		// pencil hover and eraser cursor
+		if (hover && hover.kind === "pen") {
+			context.save();
+			context.translate(hover.x - 4, hover.y - 20);
+			context.fillStyle = style.color;
+			context.strokeStyle = well_color;
+			context.lineWidth = 1.2;
+			context.lineJoin = "round";
+			context.stroke(pen_glyph);
+			context.fill(pen_glyph);
+			context.restore();
+		}
+		else if (hover && hover.kind === "eraser") {
+			context.beginPath();
+			context.arc(hover.x, hover.y, 10, 0, Math.PI * 2);
+			context.strokeStyle = faint_color;
+			context.lineWidth = 1;
+			context.stroke();
+		}
+	}
+
+	// ---------- input ----------
+
+	/*
+		Input model, tuned for iPad + Apple Pencil:
+		- pen: always runs the active tool. Its eraser end (where a stylus has one) erases.
+		- touch: once a pen has been seen, fingers only navigate (one pans, two pinch),
+		  so a resting palm never draws.
+		- mouse: left runs the tool, middle or space + drag pans, wheel pans, Ctrl + wheel zooms.
+	*/
+	let action = null;
+	let gesture = null;
+	let last_tap = null;
+	let pending_focus = false;
+	let viewport_left = 0, viewport_top = 0;
+	const pointers = new Map();
+
+	function local_point(event) {
+		return { x: event.clientX - viewport_left, y: event.clientY - viewport_top };
+	}
+
+	function to_world(point) {
+		return { x: (point.x - view.x) / view.zoom, y: (point.y - view.y) / view.zoom };
+	}
+
+	function clamp_zoom(zoom) {
+		return Math.max(min_zoom, Math.min(max_zoom, zoom));
+	}
+
+	function zoom_at(point, factor) {
+		const zoom = clamp_zoom(view.zoom * factor);
+		const world = to_world(point);
+		view.zoom = zoom;
+		view.x = point.x - world.x * zoom;
+		view.y = point.y - world.y * zoom;
+		invalidate();
+		schedule_save();
+	}
+
+	function ensure_change() {
+		if (action.changed) return;
+		begin_change();
+		action.changed = true;
+	}
+
+	scene_canvas.addEventListener("pointerdown", function (event) {
+		if (document.activeElement === surface_name) surface_name.blur();
+		if (editing) commit_editor();
+		close_picker();
+		if (event.pointerType === "pen") pen_seen = true;
+		const point = local_point(event);
+		pointers.set(event.pointerId, { type: event.pointerType, x: point.x, y: point.y });
+		try { scene_canvas.setPointerCapture(event.pointerId); } catch (error) {}
+
+		if (event.pointerType === "touch") {
+			// A palm on the glass while the pencil is down is ignored entirely.
+			if (action && action.pointer_type === "pen") return;
+			if (pen_seen || touch_points().length >= 2) {
+				if (action && action.pointer_type === "touch") abort_action();
+				start_gesture();
+				return;
+			}
+		}
+		if (action) return;
+
+		const pans = event.pointerType === "mouse" && (event.button === 1 || space_down);
+		if (event.pointerType === "mouse" && event.button !== 0 && !pans) return;
+		const eraser_end = event.pointerType === "pen" && (event.button === 5 || (event.buttons & 32) !== 0);
+		let kind = tool;
+		if (pans) kind = "hand";
+		else if (eraser_end) kind = "eraser";
+		hover = null;
+		start_action(event, point, kind);
+	});
+
+	scene_canvas.addEventListener("pointermove", function (event) {
+		const point = local_point(event);
+		const tracked = pointers.get(event.pointerId);
+		if (tracked) {
+			tracked.x = point.x;
+			tracked.y = point.y;
+		}
+		if (gesture && tracked && tracked.type === "touch") move_gesture();
+		else if (action && action.pointer_id === event.pointerId) move_action(event, point);
+		else if (!action) update_hover(event, point);
+	});
+
+	function release(event) {
+		const tracked = pointers.get(event.pointerId);
+		pointers.delete(event.pointerId);
+		if (gesture && tracked && tracked.type === "touch") {
+			end_gesture_pointer();
+		}
+		else if (action && action.pointer_id === event.pointerId) end_action();
+		// iOS only raises the keyboard for focus() inside pointerup, not pointerdown.
+		if (pending_focus && editing) editor.focus();
+		pending_focus = false;
+	}
+
+	scene_canvas.addEventListener("pointerup", release);
+	scene_canvas.addEventListener("pointercancel", release);
+	scene_canvas.addEventListener("lostpointercapture", function (event) {
+		if (pointers.has(event.pointerId)) release(event);
+	});
+
+	scene_canvas.addEventListener("pointerleave", function () {
+		if (!hover) return;
+		hover = null;
+		invalidate(false);
+	});
+
+	// Stops the iOS long-press loupe and callout, and keeps the text editor focused on click.
+	scene_canvas.addEventListener("touchstart", function (event) { event.preventDefault(); }, { passive: false });
+	scene_canvas.addEventListener("mousedown", function (event) { event.preventDefault(); });
+	scene_canvas.addEventListener("contextmenu", function (event) { event.preventDefault(); });
+
+	viewport.addEventListener("wheel", function (event) {
+		if (event.target !== scene_canvas) return;
+		event.preventDefault();
+		const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? screen_height : 1;
+		if (event.ctrlKey || event.metaKey) {
+			const delta = Math.max(-50, Math.min(50, event.deltaY * unit));
+			zoom_at(local_point(event), Math.exp(-delta * 0.01));
+			return;
+		}
+		if (event.shiftKey && !event.deltaX) view.x -= event.deltaY * unit;
+		else {
+			view.x -= event.deltaX * unit;
+			view.y -= event.deltaY * unit;
+		}
+		invalidate();
+		schedule_save();
+	}, { passive: false });
+
+	// Safari on macOS reports trackpad pinch as gesture events instead of Ctrl + wheel.
+	let gesture_zoom = null;
+	viewport.addEventListener("gesturestart", function (event) {
+		event.preventDefault();
+		if (navigator.maxTouchPoints === 0) gesture_zoom = view.zoom;
+	});
+	viewport.addEventListener("gesturechange", function (event) {
+		event.preventDefault();
+		if (gesture_zoom === null) return;
+		zoom_at(local_point(event), clamp_zoom(gesture_zoom * event.scale) / view.zoom);
+	});
+	viewport.addEventListener("gestureend", function (event) {
+		event.preventDefault();
+		gesture_zoom = null;
+	});
+
+	// ---------- touch navigation ----------
+
+	function touch_points() {
+		return Array.from(pointers.values()).filter(function (pointer) { return pointer.type === "touch"; });
+	}
+
+	function middle_of(points) {
+		let x = 0, y = 0;
+		for (const point of points) {
+			x += point.x;
+			y += point.y;
+		}
+		return { x: x / points.length, y: y / points.length };
+	}
+
+	function start_gesture() {
+		if (!gesture) gesture = {};
+		baseline_gesture();
+	}
+
+	// Re-anchors the pinch whenever a finger lands or lifts, so the view never jumps.
+	function baseline_gesture() {
+		const touches = touch_points();
+		gesture.view = { x: view.x, y: view.y, zoom: view.zoom };
+		gesture.middle = middle_of(touches);
+		gesture.distance = touches.length > 1 ? Math.hypot(touches[0].x - touches[1].x, touches[0].y - touches[1].y) : 0;
+	}
+
+	function move_gesture() {
+		const touches = touch_points();
+		if (!touches.length) return;
+		const middle = middle_of(touches);
+		let zoom = gesture.view.zoom;
+		if (touches.length > 1 && gesture.distance > 0)
+			zoom = clamp_zoom(gesture.view.zoom * Math.hypot(touches[0].x - touches[1].x, touches[0].y - touches[1].y) / gesture.distance);
+		const world_x = (gesture.middle.x - gesture.view.x) / gesture.view.zoom;
+		const world_y = (gesture.middle.y - gesture.view.y) / gesture.view.zoom;
+		view.zoom = zoom;
+		view.x = middle.x - world_x * zoom;
+		view.y = middle.y - world_y * zoom;
+		invalidate();
+	}
+
+	function end_gesture_pointer() {
+		if (touch_points().length) {
+			baseline_gesture();
+			return;
+		}
+		gesture = null;
+		schedule_save();
+	}
+
+	// ---------- actions ----------
+
+	function start_action(event, point, kind) {
+		const world = to_world(point);
+		const base = { pointer_id: event.pointerId, pointer_type: event.pointerType, changed: false };
+
+		if (kind === "hand") {
+			action = Object.assign(base, { kind: "pan", start: point, view: { x: view.x, y: view.y } });
+			scene_canvas.style.cursor = "grabbing";
+			return;
+		}
+		if (kind === "pen") {
+			action = Object.assign(base, { kind: "stroke", points: [], color: style.color, size: pen_sizes[style.width], pressure: null, last: null });
+			add_samples(event);
+			invalidate(false);
+			return;
+		}
+		if (kind === "eraser") {
+			action = Object.assign(base, { kind: "erase", erased: 0 });
+			ensure_change();
+			erase_at(world);
+			return;
+		}
+		if (kind === "select") {
+			start_select(event, point, world, base);
+			return;
+		}
+		if (kind === "text") {
+			const hit = hit_test(world.x, world.y);
+			if (hit && hit.type === "text") open_editor(hit, "text");
+			else create_text(world);
+			return;
+		}
+		if (kind === "connector") {
+			start_connector(world, base);
+			return;
+		}
+		if (box_types.has(kind)) start_box(kind, world, base);
+	}
+
+	function move_action(event, point) {
+		const world = to_world(point);
+		if (action.kind === "pan") {
+			view.x = action.view.x + point.x - action.start.x;
+			view.y = action.view.y + point.y - action.start.y;
+			invalidate();
+		}
+		else if (action.kind === "stroke") {
+			add_samples(event);
+			invalidate(false);
+		}
+		else if (action.kind === "erase") {
+			for (const sample of coalesced(event)) erase_at(to_world(local_point(sample)));
+		}
+		else if (action.kind === "marquee") {
+			action.current = world;
+			const box = box_from_points(action.start.x, action.start.y, world.x, world.y);
+			selection.clear();
+			for (const id of action.base) selection.add(id);
+			for (const element of elements) if (inside(box_of(element), box)) selection.add(element.id);
+			invalidate();
+		}
+		else if (action.kind === "move") move_selection(world);
+		else if (action.kind === "resize") resize_to(world, event);
+		else if (action.kind === "endpoint" || action.kind === "connect") drag_endpoint(world);
+		else if (action.kind === "create") size_box(world, event);
+	}
+
+	function end_action() {
+		const current = action;
+		current.hint = bind_hint;
+		action = null;
+		bind_hint = null;
+		if (current.kind === "pan") {
+			set_cursor();
+			schedule_save();
+		}
+		else if (current.kind === "stroke") finish_stroke(current);
+		else if (current.kind === "erase") {
+			if (current.erased) end_change();
+			else undo_stack.pop();
+		}
+		else if (current.kind === "marquee") refresh_panel();
+		else if (current.kind === "move" && current.changed) finish_move(current);
+		else if (current.kind === "resize" && current.changed) finish_resize(current);
+		else if (current.kind === "endpoint" && current.changed) finish_endpoint(current);
+		else if (current.kind === "connect") finish_connect(current);
+		else if (current.kind === "create") finish_box(current);
+		invalidate();
+	}
+
+	// A second finger landed: whatever the first finger started is thrown away.
+	function abort_action() {
+		const current = action;
+		action = null;
+		bind_hint = null;
+		if (current.changed) cancel_change();
+		invalidate();
+	}
+
+	function finish_everything() {
+		if (editing) commit_editor();
+		if (action) end_action();
+	}
+
+	/*
+		The pen cursor is the sidebar's pen glyph, filled with the current
+		pen color and outlined so it reads on any background. Its hotspot is
+		the nib, at (4, 20) on the 24 x 24 grid.
+	*/
+	function pen_cursor() {
+		const glyph = tools.find(function (item) { return item.id === "pen"; }).fill;
+		const markup = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='" + glyph + "' fill='" + style.color + "' stroke='" + well_color + "' stroke-width='1.2' stroke-linejoin='round'/></svg>";
+		return "url(\"data:image/svg+xml," + encodeURIComponent(markup) + "\") 4 20, crosshair";
+	}
+
+	function set_cursor() {
+		let cursor = "crosshair";
+		if (tool === "select") cursor = "default";
+		else if (tool === "pen") cursor = pen_cursor();
+		else if (tool === "hand" || space_down) cursor = "grab";
+		else if (tool === "text") cursor = "text";
+		scene_canvas.style.cursor = space_down ? "grab" : cursor;
+	}
+
+	function update_hover(event, point) {
+		if (event.pointerType === "touch") return;
+		let kind = null;
+		if (tool === "eraser") kind = "eraser";
+		else if (tool === "pen" && event.pointerType === "pen") kind = "pen";
+		hover = kind ? { kind: kind, x: point.x, y: point.y } : null;
+		if (tool === "select" && event.pointerType === "mouse" && !space_down) {
+			const one = single_selected();
+			const handle = one ? handle_at(one, point) : null;
+			const world = to_world(point);
+			if (handle) scene_canvas.style.cursor = handle === "nw" || handle === "se" ? "nwse-resize" : "nesw-resize";
+			else scene_canvas.style.cursor = hit_test(world.x, world.y) ? "move" : "default";
+		}
+		invalidate(false);
+	}
+
+	// ---------- pen and eraser ----------
+
+	function coalesced(event) {
+		const list = event.getCoalescedEvents ? event.getCoalescedEvents() : [];
+		return list.length ? list : [event];
+	}
+
+	function add_samples(event) {
+		for (const sample of coalesced(event)) {
+			const point = local_point(sample);
+			if (action.last && Math.hypot(point.x - action.last.x, point.y - action.last.y) < 1) continue;
+			const raw = sample.pointerType === "pen" ? sample.pressure : 0.5;
+			// Light smoothing on pressure only. Positions stay raw so the line never lags the nib.
+			action.pressure = action.pressure === null ? raw : action.pressure * 0.6 + raw * 0.4;
+			const world = to_world(point);
+			action.points.push(world.x, world.y, action.pressure);
+			action.last = point;
+		}
+	}
+
+	function finish_stroke(current) {
+		const points = current.points;
+		if (!points.length) return;
+		let min_x = Infinity, min_y = Infinity, max_x = -Infinity, max_y = -Infinity;
+		for (let i = 0; i < points.length; i += 3) {
+			min_x = Math.min(min_x, points[i]);
+			min_y = Math.min(min_y, points[i + 1]);
+			max_x = Math.max(max_x, points[i]);
+			max_y = Math.max(max_y, points[i + 1]);
+		}
+		// Points are stored relative to the stroke's corner, so moving a stroke never touches them.
+		min_x = fixed(min_x);
+		min_y = fixed(min_y);
+		const relative = [];
+		for (let i = 0; i < points.length; i += 3) relative.push(fixed(points[i] - min_x), fixed(points[i + 1] - min_y), fixed(points[i + 2]));
+		const frame = frame_at((min_x + max_x) / 2, (min_y + max_y) / 2);
+		begin_change();
+		add({
+			id: new_id(),
+			type: "stroke",
+			x: min_x,
+			y: min_y,
+			w: max_x - min_x,
+			h: max_y - min_y,
+			points: relative,
+			color: current.color,
+			size: current.size,
+			frame_id: frame ? frame.id : null
+		});
+		end_change();
+	}
+
+	function erase_at(world) {
+		const radius = 10 / view.zoom;
+		const doomed = new Set();
+		for (const element of elements)
+			if (element.type !== "frame" && hits(element, world.x, world.y, radius)) doomed.add(element.id);
+		if (!doomed.size) return;
+		remove_ids(doomed);
+		action.erased += doomed.size;
+		invalidate();
+	}
+
+	// ---------- select, move, resize ----------
+
+	function handle_at(element, point) {
+		if (!box_types.has(element.type)) return null;
+		const handles = handle_boxes(element);
+		const reach = pen_seen ? 14 : 9;
+		for (const name in handles)
+			if (Math.abs(point.x - handles[name].x) <= reach && Math.abs(point.y - handles[name].y) <= reach) return name;
+		return null;
+	}
+
+	function endpoint_at(connector, point) {
+		const points = connector_points(connector);
+		const reach = pen_seen ? 16 : 10;
+		const start = to_screen(points[0]), end = to_screen(points[points.length - 1]);
+		if (Math.hypot(point.x - end.x, point.y - end.y) <= reach) return "end";
+		if (Math.hypot(point.x - start.x, point.y - start.y) <= reach) return "start";
+		return null;
+	}
+
+	function is_double_tap(point) {
+		const now = performance.now();
+		const double = last_tap !== null && now - last_tap.time < 380 && Math.hypot(point.x - last_tap.x, point.y - last_tap.y) < 16;
+		last_tap = double ? null : { time: now, x: point.x, y: point.y };
+		return double;
+	}
+
+	function start_select(event, point, world, base) {
+		const one = single_selected();
+		if (one) {
+			const handle = handle_at(one, point);
+			if (handle) {
+				action = Object.assign(base, { kind: "resize", id: one.id, handle: handle, origin: { x: one.x, y: one.y, w: one.w, h: one.h } });
+				return;
+			}
+			const end = one.type === "connector" ? endpoint_at(one, point) : null;
+			if (end) {
+				action = Object.assign(base, { kind: "endpoint", id: one.id, which: end });
+				return;
+			}
+		}
+
+		const hit = hit_test(world.x, world.y);
+		if (is_double_tap(point)) {
+			double_tap(hit, world);
+			return;
+		}
+		if (!hit) {
+			if (!event.shiftKey) selection.clear();
+			refresh_panel();
+			action = Object.assign(base, { kind: "marquee", start: world, current: world, base: new Set(selection) });
+			invalidate();
+			return;
+		}
+		if (event.shiftKey && selection.has(hit.id)) selection.delete(hit.id);
+		else if (event.shiftKey) selection.add(hit.id);
+		else if (!selection.has(hit.id)) {
+			selection.clear();
+			selection.add(hit.id);
+		}
+		refresh_panel();
+		invalidate();
+		if (selection.has(hit.id)) start_move(world, hit, base);
+	}
+
+	function double_tap(hit, world) {
+		if (hit && hit.type === "text") open_editor(hit, "text");
+		else if (hit && labelled_types.has(hit.type)) open_editor(hit, "label");
+		else if (hit && hit.type === "frame" && contains(title_box(hit), world.x, world.y)) return;
+		else create_text(world);
+	}
+
+	function start_move(world, primary, base) {
+		const ids = with_children(selection);
+		const origins = new Map();
+		for (const id of ids) {
+			const element = index.get(id);
+			if (element.type === "connector") origins.set(id, { start: Object.assign({}, element.start), end: Object.assign({}, element.end) });
+			else origins.set(id, { x: element.x, y: element.y });
+		}
+		action = Object.assign(base, { kind: "move", start: world, ids: ids, origins: origins, primary: primary.type === "connector" ? null : primary.id });
+	}
+
+	function move_selection(world) {
+		let dx = world.x - action.start.x, dy = world.y - action.start.y;
+		if (!action.changed && Math.hypot(dx, dy) * view.zoom < 3) return;
+		if (snap_on && action.primary) {
+			const origin = action.origins.get(action.primary);
+			dx = snap(origin.x + dx) - origin.x;
+			dy = snap(origin.y + dy) - origin.y;
+		}
+		ensure_change();
+		for (const [id, origin] of action.origins) {
+			const element = edit(id);
+			if (element.type !== "connector") {
+				element.x = origin.x + dx;
+				element.y = origin.y + dy;
+				continue;
+			}
+			if (!element.start.id) {
+				element.start.x = origin.start.x + dx;
+				element.start.y = origin.start.y + dy;
+			}
+			if (!element.end.id) {
+				element.end.x = origin.end.x + dx;
+				element.end.y = origin.end.y + dy;
+			}
+		}
+		invalidate();
+	}
+
+	// Dropping an element over a surface puts it on that surface; dropping it outside takes it off.
+	function reparent(element) {
+		if (element.type === "frame" || element.type === "connector") return;
+		const center = center_of(box_of(element));
+		const frame = frame_at(center.x, center.y);
+		const frame_id = frame ? frame.id : null;
+		if ((element.frame_id || null) !== frame_id) edit(element.id).frame_id = frame_id;
+	}
+
+	function finish_move(current) {
+		for (const id of current.ids) {
+			const element = index.get(id);
+			if (!element) continue;
+			// Children travelling with their surface stay where they are.
+			if (element.frame_id && current.ids.has(element.frame_id)) continue;
+			reparent(element);
+		}
+		end_change();
+	}
+
+	function resize_to(world, event) {
+		ensure_change();
+		const element = edit(action.id);
+		const origin = action.origin;
+		const sign_x = action.handle.includes("w") ? -1 : 1;
+		const sign_y = action.handle.includes("n") ? -1 : 1;
+		const anchor_x = sign_x < 0 ? origin.x + origin.w : origin.x;
+		const anchor_y = sign_y < 0 ? origin.y + origin.h : origin.y;
+		let w = Math.max(8, (snap(world.x) - anchor_x) * sign_x);
+		let h = Math.max(8, (snap(world.y) - anchor_y) * sign_y);
+		if (element.type === "icon" || event.shiftKey) {
+			const aspect = origin.w / origin.h;
+			if (w / h > aspect) h = w / aspect;
+			else w = h * aspect;
+		}
+		element.w = w;
+		element.h = h;
+		element.x = sign_x < 0 ? anchor_x - w : anchor_x;
+		element.y = sign_y < 0 ? anchor_y - h : anchor_y;
+		invalidate();
+	}
+
+	function finish_resize(current) {
+		const element = index.get(current.id);
+		if (element.type === "frame") adopt(element, true);
+		else reparent(element);
+		end_change();
+	}
+
+	/*
+		Surface membership after a surface is drawn or resized: loose elements
+		fully inside join it. With release, children whose center fell outside
+		the new edge are let go instead of silently clipped away.
+	*/
+	function adopt(frame, release_outside) {
+		for (const element of elements) {
+			if (element.type === "frame" || element.type === "connector") continue;
+			if (element.frame_id === frame.id) {
+				const center = center_of(box_of(element));
+				if (release_outside && !contains(frame, center.x, center.y)) reparent(element);
+			}
+			else if (!frame_of(element) && inside(box_of(element), frame)) edit(element.id).frame_id = frame.id;
+		}
+	}
+
+	// ---------- surfaces and icons ----------
+
+	function start_box(kind, world, base) {
+		action = Object.assign(base, { kind: "create" });
+		ensure_change();
+		const x = snap(world.x), y = snap(world.y);
+		const element = { id: new_id(), type: kind, x: x, y: y, w: 0, h: 0 };
+		if (kind === "frame") element.name = "Surface " + (frames().length + 1);
+		else Object.assign(element, { icon: current_icon, color: style.color, label: icons[current_icon].label, frame_id: null });
+		add(element);
+		selection.clear();
+		selection.add(element.id);
+		action.id = element.id;
+		action.origin = { x: x, y: y };
+		invalidate();
+	}
+
+	function size_box(world, event) {
+		const element = edit(action.id);
+		let w = snap(world.x) - action.origin.x, h = snap(world.y) - action.origin.y;
+		if (element.type === "icon" || event.shiftKey) {
+			const size = Math.max(Math.abs(w), Math.abs(h));
+			w = (w < 0 ? -1 : 1) * size;
+			h = (h < 0 ? -1 : 1) * size;
+		}
+		element.x = Math.min(action.origin.x, action.origin.x + w);
+		element.y = Math.min(action.origin.y, action.origin.y + h);
+		element.w = Math.abs(w);
+		element.h = Math.abs(h);
+		invalidate();
+	}
+
+	function finish_box(current) {
+		const element = edit(current.id);
+		// A tap instead of a drag drops a default-sized one centered on the tap.
+		if (element.w * view.zoom < 8 && element.h * view.zoom < 8) {
+			const size = default_sizes[element.type];
+			element.w = size[0];
+			element.h = size[1];
+			element.x = snap(current.origin.x - size[0] / 2);
+			element.y = snap(current.origin.y - size[1] / 2);
+		}
+		element.w = Math.max(element.w, 8);
+		element.h = Math.max(element.h, 8);
+		if (element.type === "frame") adopt(element, false);
+		else reparent(element);
+		end_change();
+		refresh_panel();
+		after_tool_use();
+	}
+
+	function after_tool_use() {
+		if (!sticky_tools.has(tool)) set_tool("select", true);
+	}
+
+	// ---------- connectors ----------
+
+	function start_connector(world, base) {
+		action = Object.assign(base, { kind: "connect", start_point: world });
+		ensure_change();
+		const target = hit_test(world.x, world.y, { bindable: true });
+		const start = target ? { id: target.id, x: world.x, y: world.y } : { id: null, x: snap(world.x), y: snap(world.y) };
+		const connector = add({
+			id: new_id(),
+			type: "connector",
+			start: start,
+			end: { id: null, x: start.x, y: start.y },
+			color: style.color,
+			width: line_widths[style.width],
+			dash: style.dash,
+			routing: style.routing,
+			heads: style.heads,
+			label: ""
+		});
+		action.id = connector.id;
+		action.which = "end";
+		selection.clear();
+		invalidate();
+	}
+
+	function drag_endpoint(world) {
+		ensure_change();
+		const connector = edit(action.id);
+		const other = action.which === "start" ? connector.end : connector.start;
+		const target = hit_test(world.x, world.y, { bindable: true });
+		bind_hint = target && target.id !== other.id ? target.id : null;
+		connector[action.which] = { id: null, x: bind_hint ? world.x : snap(world.x), y: bind_hint ? world.y : snap(world.y) };
+		invalidate();
+	}
+
+	function bind_end(current, hint) {
+		if (!hint) return;
+		const connector = edit(current.id);
+		connector[current.which] = { id: hint, x: connector[current.which].x, y: connector[current.which].y };
+	}
+
+	function finish_endpoint(current) {
+		bind_end(current, current.hint);
+		end_change();
+	}
+
+	function finish_connect(current) {
+		const connector = index.get(current.id);
+		const far = Math.hypot(connector.end.x - current.start_point.x, connector.end.y - current.start_point.y) * view.zoom;
+		if (!current.hint && far < 10) {
+			cancel_change();
+			return;
+		}
+		bind_end(current, current.hint);
+		selection.clear();
+		selection.add(current.id);
+		end_change();
+		refresh_panel();
+		after_tool_use();
+	}
+
+	// ---------- text ----------
+
+	const editor = document.getElementById("text_editor");
+	let editing = null;
+
+	function create_text(world) {
+		begin_change();
+		const size = font_sizes[style.font];
+		const frame = frame_at(world.x, world.y);
+		const element = add({
+			id: new_id(),
+			type: "text",
+			x: snap(world.x),
+			y: snap(world.y - size * 0.65),
+			w: 0,
+			h: size * 1.3,
+			text: "",
+			color: style.color,
+			font_size: size,
+			frame_id: frame ? frame.id : null
+		});
+		selection.clear();
+		selection.add(element.id);
+		open_editor(element, "text", true);
+	}
+
+	function open_editor(element, field, created) {
+		if (!created) begin_change();
+		editing = { id: element.id, field: field, created: Boolean(created), original: element[field] || "" };
+		editor.value = editing.original;
+		editor.hidden = false;
+		position_editor();
+		editor.focus();
+		editor.setSelectionRange(editor.value.length, editor.value.length);
+		pending_focus = true;
+		invalidate();
+	}
+
+	// Where the editor sits on screen, per kind of text.
+	function editor_placement(element, field) {
+		const color = element.color || ink_color;
+		if (element.type === "text") {
+			const at = to_screen(element);
+			return { size: element.font_size * view.zoom, family: sans, color: color, align: "left", x: at.x, y: at.y, center_y: false };
+		}
+		let anchor_point;
+		let center_y = true;
+		if (element.type === "connector") anchor_point = polyline_midpoint(connector_points(element));
+		else if (element.type === "icon") {
+			anchor_point = { x: element.x + element.w / 2, y: element.y + element.h + 8 };
+			center_y = false;
+		}
+		else anchor_point = center_of(element);
+		const at = to_screen(anchor_point);
+		return { size: label_size * view.zoom, family: sans, color: color, align: "center", x: at.x, y: at.y, center_y: center_y };
+	}
+
+	function position_editor() {
+		if (!editing) return;
+		const element = index.get(editing.id);
+		if (!element) return;
+		const place = editor_placement(element, editing.field);
+		const measured = measure_text(editor.value || " ", place.size, place.family);
+		const width = measured.w + place.size;
+		const height = measured.h;
+		editor.style.fontSize = place.size + "px";
+		editor.style.fontFamily = place.family;
+		editor.style.color = place.color;
+		editor.style.textAlign = place.align;
+		editor.style.width = width + "px";
+		editor.style.height = height + "px";
+		editor.style.left = (place.align === "center" ? place.x - width / 2 : place.x) + "px";
+		editor.style.top = (place.center_y ? place.y - height / 2 : place.y) + "px";
+	}
+
+	function commit_editor() {
+		if (!editing) return;
+		const session = editing;
+		editing = null;
+		editor.hidden = true;
+		const value = editor.value.replace(/\s+$/, "");
+		const element = index.get(session.id);
+		if (!element) {
+			invalidate();
+			return;
+		}
+		if (value === session.original && !session.created) {
+			undo_stack.pop();
+			invalidate();
+			return;
+		}
+		if (element.type === "text" && !value) {
+			if (session.created) cancel_change();
+			else {
+				remove_ids(new Set([session.id]));
+				end_change();
+			}
+			refresh_panel();
+			return;
+		}
+		const copy = edit(session.id);
+		copy[session.field] = value;
+		if (copy.type === "text") {
+			const measured = measure_text(value, copy.font_size);
+			copy.w = measured.w;
+			copy.h = measured.h;
+		}
+		end_change();
+	}
+
+	editor.addEventListener("input", position_editor);
+	editor.addEventListener("blur", commit_editor);
+	editor.addEventListener("keydown", function (event) {
+		event.stopPropagation();
+		if (event.key === "Escape" || (event.key === "Enter" && (event.ctrlKey || event.metaKey))) {
+			event.preventDefault();
+			commit_editor();
+		}
+	});
+
+	// ---------- commands ----------
+
+	let clipboard = null;
+
+	function top_level_ids() {
+		const ids = new Set();
+		for (const element of elements) if (!frame_of(element)) ids.add(element.id);
+		return ids;
+	}
+
+	function delete_selection() {
+		if (!selection.size) return;
+		begin_change();
+		remove_ids(with_children(selection));
+		end_change();
+		refresh_panel();
+	}
+
+	function copy_selection() {
+		if (!selection.size) return false;
+		const ids = with_children(selection);
+		clipboard = elements.filter(function (element) { return ids.has(element.id); }).map(clone);
+		return true;
+	}
+
+	// Pastes with fresh ids. Arrows between pasted elements are re-bound to the copies.
+	function paste(offset) {
+		if (!clipboard || !clipboard.length) return;
+		begin_change();
+		const ids = new Map();
+		for (const element of clipboard) ids.set(element.id, new_id());
+		selection.clear();
+		const pasted = [];
+		for (const original of clipboard) {
+			const copy = clone(original);
+			copy.id = ids.get(original.id);
+			if (copy.type === "connector") {
+				for (const end of [copy.start, copy.end]) {
+					if (end.id && ids.has(end.id)) end.id = ids.get(end.id);
+					else if (!end.id) {
+						end.x += offset;
+						end.y += offset;
+					}
+				}
+			}
+			else {
+				copy.x += offset;
+				copy.y += offset;
+				if (copy.frame_id && ids.has(copy.frame_id)) copy.frame_id = ids.get(copy.frame_id);
+			}
+			add(copy);
+			pasted.push(copy);
+			if (!copy.frame_id || !ids.has(original.frame_id)) selection.add(copy.id);
+		}
+		end_change();
+		clipboard = pasted.map(clone);
+		refresh_panel();
+	}
+
+	function duplicate() {
+		if (copy_selection()) paste(snap_on ? snap_size * 2 : 20);
+	}
+
+	function select_all() {
+		selection.clear();
+		for (const id of top_level_ids()) selection.add(id);
+		refresh_panel();
+		invalidate();
+	}
+
+	function reorder(to_front) {
+		if (!selection.size) return;
+		begin_change();
+		const picked = elements.filter(function (element) { return selection.has(element.id); });
+		const rest = elements.filter(function (element) { return !selection.has(element.id); });
+		elements = to_front ? rest.concat(picked) : picked.concat(rest);
+		end_change();
+	}
+
+	function nudge(dx, dy) {
+		if (!selection.size) return;
+		begin_change();
+		for (const id of with_children(selection)) {
+			const element = edit(id);
+			if (element.type !== "connector") {
+				element.x += dx;
+				element.y += dy;
+				continue;
+			}
+			for (const end of [element.start, element.end]) {
+				if (end.id) continue;
+				end.x += dx;
+				end.y += dy;
+			}
+		}
+		end_change();
+	}
+
+	function fit_view() {
+		const box = union(elements.map(box_of));
+		if (!box) {
+			view.zoom = 1;
+			view.x = screen_width / 2;
+			view.y = screen_height / 2;
+		}
+		else {
+			const pad = 80;
+			const zoom = clamp_zoom(Math.min((screen_width - pad * 2) / Math.max(box.w, 1), (screen_height - pad * 2) / Math.max(box.h, 1), 2));
+			view.zoom = zoom;
+			view.x = screen_width / 2 - (box.x + box.w / 2) * zoom;
+			view.y = screen_height / 2 - (box.y + box.h / 2) * zoom;
+		}
+		invalidate();
+		schedule_save();
+	}
+
+	function clear_canvas() {
+		if (!elements.length) return;
+		finish_everything();
+		begin_change();
+		elements = [];
+		reindex();
+		selection.clear();
+		end_change();
+		refresh_panel();
+		show_toast("Canvas cleared.", true);
+	}
+
+	// ---------- keyboard ----------
+
+	window.addEventListener("keydown", function (event) {
+		const target = event.target;
+		if (target && target.closest && target.closest("input, textarea, select")) return;
+		/*
+			A clicked sidebar button keeps keyboard focus, and the browser shows
+			its focus ring as soon as a key is pressed. Shortcuts act on the
+			canvas, not on that button, so drop its focus first. Tab and Enter
+			are left alone for keyboard navigation.
+		*/
+		if (target && target.closest && target.closest(".sidebar, .picker") && event.key !== "Tab" && event.key !== "Enter")
+			target.blur();
+		const command = event.ctrlKey || event.metaKey;
+		const key = event.key.toLowerCase();
+
+		if (key === " ") {
+			event.preventDefault();
+			if (!space_down) {
+				space_down = true;
+				set_cursor();
+			}
+			return;
+		}
+		if (command) {
+			if (key === "z") {
+				event.preventDefault();
+				if (event.shiftKey) redo();
+				else undo();
+			}
+			else if (key === "y") {
+				event.preventDefault();
+				redo();
+			}
+			else if (key === "s") {
+				event.preventDefault();
+				save_file();
+			}
+			else if (key === "a") {
+				event.preventDefault();
+				select_all();
+			}
+			else if (key === "d") {
+				event.preventDefault();
+				duplicate();
+			}
+			else if (key === "c") copy_selection();
+			else if (key === "x") {
+				if (copy_selection()) delete_selection();
+			}
+			else if (key === "v") paste(snap_on ? snap_size * 2 : 20);
+			else if (key === "0") {
+				event.preventDefault();
+				zoom_at({ x: screen_width / 2, y: screen_height / 2 }, 1 / view.zoom);
+			}
+			return;
+		}
+		if (event.altKey) return;
+
+		if (key === "delete" || key === "backspace") {
+			event.preventDefault();
+			delete_selection();
+		}
+		else if (key === "escape") {
+			if (action) abort_action();
+			close_picker();
+			selection.clear();
+			refresh_panel();
+			invalidate();
+		}
+		else if (key === "enter") {
+			const one = single_selected();
+			if (!one || one.type === "frame") return;
+			event.preventDefault();
+			if (one.type === "text") open_editor(one, "text");
+			else if (labelled_types.has(one.type)) open_editor(one, "label");
+		}
+		else if (event.shiftKey && event.code === "Digit1") fit_view();
+		else if (key === "+" || key === "=") zoom_at({ x: screen_width / 2, y: screen_height / 2 }, 1.2);
+		else if (key === "-" || key === "_") zoom_at({ x: screen_width / 2, y: screen_height / 2 }, 1 / 1.2);
+		else if (key === "]") reorder(true);
+		else if (key === "[") reorder(false);
+		else if (key === "g") toggle_snap();
+		else if (key.startsWith("arrow")) {
+			event.preventDefault();
+			const step = snap_on ? snap_size : event.shiftKey ? 10 : 1;
+			const moves = { arrowleft: [-step, 0], arrowright: [step, 0], arrowup: [0, -step], arrowdown: [0, step] };
+			nudge(moves[key][0], moves[key][1]);
+		}
+		else {
+			const match = tools.find(function (item) { return item.key === key; });
+			if (!match) return;
+			event.preventDefault();
+			activate_tool(match.id);
+		}
+	});
+
+	window.addEventListener("keyup", function (event) {
+		if (event.key !== " ") return;
+		space_down = false;
+		set_cursor();
+	});
+
+	window.addEventListener("blur", function () {
+		space_down = false;
+	});
+
+	// ---------- chrome ----------
+
+	const sidebar = document.getElementById("sidebar");
+	const tool_grid = document.getElementById("tool_grid");
+	const picker = document.getElementById("picker");
+	const picker_grid = document.getElementById("picker_grid");
+	const picker_search = document.getElementById("picker_search");
+	const zoom_label = document.getElementById("zoom_label");
+	const undo_button = document.getElementById("undo_button");
+	const redo_button = document.getElementById("redo_button");
+	const snap_button = document.getElementById("snap_button");
+	const empty = document.getElementById("empty");
+	const tool_buttons = new Map();
+
+	for (const item of tools) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.title = item.label + " (" + item.key.toUpperCase() + ")";
+		button.setAttribute("aria-label", item.label);
+		button.innerHTML = glyph_svg(item) + "<kbd>" + item.key.toUpperCase() + "</kbd>";
+		button.addEventListener("click", function () { activate_tool(item.id); });
+		tool_grid.append(button);
+		tool_buttons.set(item.id, button);
+	}
+
+	function activate_tool(id) {
+		if (id === "icon") {
+			if (picker.hidden) open_picker();
+			else close_picker();
+			return;
+		}
+		close_picker();
+		set_tool(id);
+	}
+
+	function set_tool(id, keep_selection) {
+		if (editing) commit_editor();
+		tool = id;
+		if (!keep_selection && id !== "select") selection.clear();
+		hover = null;
+		sync_tool_buttons();
+		set_cursor();
+		refresh_panel();
+		invalidate();
+	}
+
+	function sync_tool_buttons() {
+		for (const [id, button] of tool_buttons) {
+			const on = id === tool;
+			button.classList.toggle("on", on);
+			button.setAttribute("aria-pressed", String(on));
+		}
+	}
+
+	function toggle_snap() {
+		snap_on = !snap_on;
+		snap_button.classList.toggle("on", snap_on);
+		snap_button.setAttribute("aria-pressed", String(snap_on));
+	}
+
+	function update_chrome() {
+		zoom_label.textContent = Math.round(view.zoom * 100) + "%";
+		empty.hidden = elements.length > 0 || Boolean(action);
+		undo_button.disabled = !undo_stack.length;
+		redo_button.disabled = !redo_stack.length;
+	}
+
+	// icon picker
+
+	function glyph_svg(icon) {
+		let markup = "<svg class=\"glyph\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path class=\"fill\" d=\"" + icon.fill + "\"/>";
+		if (icon.line) markup += "<path class=\"line\" style=\"stroke-width: " + (icon.line_width || 2) + "\" d=\"" + icon.line + "\"/>";
+		if (icon.cut) markup += "<path class=\"cut\" style=\"stroke-width: " + (icon.cut_width || 1.6) + "\" d=\"" + icon.cut + "\"/>";
+		return markup + "</svg>";
+	}
+
+	function build_picker() {
+		const query = picker_search.value.trim().toLowerCase();
+		picker_grid.innerHTML = "";
+		for (const name in icons) {
+			const label = icons[name].label;
+			if (query && !label.toLowerCase().includes(query) && !name.includes(query)) continue;
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = name === current_icon && tool === "icon" ? "on" : "";
+			button.innerHTML = glyph_svg(icons[name]) + "<span></span>";
+			button.lastChild.textContent = label;
+			button.addEventListener("click", function () {
+				current_icon = name;
+				close_picker();
+				set_tool("icon");
+			});
+			picker_grid.append(button);
+		}
+	}
+
+	function open_picker() {
+		picker_search.value = "";
+		build_picker();
+		picker.hidden = false;
+		tool_buttons.get("icon").classList.add("on");
+		if (!matchMedia("(pointer: coarse)").matches) picker_search.focus();
+	}
+
+	function close_picker() {
+		if (picker.hidden) return;
+		picker.hidden = true;
+		sync_tool_buttons();
+	}
+
+	picker_search.addEventListener("input", build_picker);
+	picker_search.addEventListener("keydown", function (event) {
+		if (event.key === "Escape") close_picker();
+		if (event.key !== "Enter") return;
+		const first = picker_grid.querySelector("button");
+		if (first) first.click();
+	});
+
+	// style panel
+
+	const panel_rows = {
+		widths: { key: "width", options: [[0, "Thin"], [1, "Medium"], [2, "Thick"]] },
+		dashes: { key: "dash", options: [[false, "Solid"], [true, "Dashed"]] },
+		routings: { key: "routing", options: [["straight", "Straight"], ["elbow", "Elbow"]] },
+		heads: { key: "heads", options: [["none", "None"], ["end", "End"], ["both", "Both"]] },
+		fonts: { key: "font", options: [[0, "S"], [1, "M"], [2, "L"], [3, "XL"]] }
+	};
+	const panel_buttons = [];
+
+	for (const color of colors) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "swatch";
+		button.style.background = color;
+		button.setAttribute("aria-label", "Color " + color);
+		button.addEventListener("click", function () { set_style("color", color); });
+		document.getElementById("swatches").append(button);
+		panel_buttons.push({ key: "color", value: color, button: button });
+	}
+
+	for (const row in panel_rows) {
+		const spec = panel_rows[row];
+		for (const option of spec.options) {
+			const button = document.createElement("button");
+			button.type = "button";
+			if (spec.key === "width") {
+				button.setAttribute("aria-label", option[1]);
+				const weight = document.createElement("span");
+				weight.className = "weight";
+				weight.style.height = [1.5, 3, 5][option[0]] + "px";
+				button.append(weight);
+			}
+			else button.textContent = option[1];
+			button.addEventListener("click", function () { set_style(spec.key, option[0]); });
+			document.getElementById(row).append(button);
+			panel_buttons.push({ key: spec.key, value: option[0], button: button });
+		}
+	}
+
+	const panel_sections = {
+		stroke: ["color", "width"],
+		connector: ["color", "width", "dash", "routing", "heads"],
+		text: ["color", "font"],
+		icon: ["color"]
+	};
+
+	function selection_types() {
+		const types = new Set();
+		for (const id of selection) {
+			const element = index.get(id);
+			if (element) types.add(element.type);
+		}
+		return types;
+	}
+
+	function current_value(key) {
+		const first = selection.size ? index.get(selection.values().next().value) : null;
+		if (!first) return style[key];
+		if (key === "width") {
+			if (first.type === "stroke") return pen_sizes.indexOf(first.size);
+			return first.width !== undefined ? line_widths.indexOf(first.width) : style.width;
+		}
+		if (key === "font") return first.font_size !== undefined ? font_sizes.indexOf(first.font_size) : style.font;
+		return first[key] !== undefined ? first[key] : style[key];
+	}
+
+	/*
+		With nothing selected, every style control is live: it sets the default
+		for the next thing you draw. With a selection, only the controls that
+		affect the selected elements stay live; the rest dim in place.
+	*/
+	function refresh_panel() {
+		const live = new Set();
+		if (selection.size)
+			for (const type of selection_types()) for (const section of panel_sections[type] || []) live.add(section);
+		else
+			for (const section of ["color", "width", "font", "dash", "routing", "heads"]) live.add(section);
+		const frame = selected_frame();
+		if (frame) live.add("name");
+		if (document.activeElement !== surface_name) surface_name.value = frame ? frame.name || "" : "";
+		for (const field of sidebar.querySelectorAll(".field")) {
+			const on = live.has(field.getAttribute("data_section"));
+			field.classList.toggle("off", !on);
+			for (const control of field.querySelectorAll("button, input")) control.disabled = !on;
+		}
+		for (const entry of panel_buttons) {
+			const on = current_value(entry.key) === entry.value;
+			entry.button.classList.toggle("on", on);
+			entry.button.setAttribute("aria-pressed", String(on));
+		}
+	}
+
+	function set_style(key, value) {
+		style[key] = value;
+		if (selection.size) {
+			begin_change();
+			for (const id of selection) {
+				const element = index.get(id);
+				if (!element) continue;
+				if (key === "color" && element.color !== undefined) edit(id).color = value;
+				else if (key === "width" && element.type === "stroke") edit(id).size = pen_sizes[value];
+				else if (key === "width" && element.width !== undefined) edit(id).width = line_widths[value];
+				else if (key === "font" && element.type === "text") {
+					const copy = edit(id);
+					copy.font_size = font_sizes[value];
+					const measured = measure_text(copy.text, copy.font_size);
+					copy.w = measured.w;
+					copy.h = measured.h;
+				}
+				else if (key !== "color" && key !== "width" && key !== "font" && element[key] !== undefined) edit(id)[key] = value;
+			}
+			end_change();
+		}
+		refresh_panel();
+		set_cursor();
+		invalidate();
+	}
+
+	// surface name
+
+	/*
+		The name field edits live, so the title on the canvas updates as you
+		type. The whole edit is one undo step: opened on focus, closed on blur.
+	*/
+	const surface_name = document.getElementById("surface_name");
+	let naming = null;
+
+	function selected_frame() {
+		const one = single_selected();
+		return one && one.type === "frame" ? one : null;
+	}
+
+	surface_name.addEventListener("focus", function () {
+		const frame = selected_frame();
+		if (!frame) return;
+		begin_change();
+		naming = { id: frame.id, original: frame.name || "" };
+	});
+
+	surface_name.addEventListener("input", function () {
+		if (!naming || !index.has(naming.id)) return;
+		edit(naming.id).name = surface_name.value;
+		invalidate();
+	});
+
+	surface_name.addEventListener("keydown", function (event) {
+		if (event.key === "Enter") surface_name.blur();
+		if (event.key !== "Escape") return;
+		if (naming) surface_name.value = naming.original;
+		surface_name.blur();
+	});
+
+	surface_name.addEventListener("blur", function () {
+		if (!naming) return;
+		const session = naming;
+		naming = null;
+		const value = surface_name.value.trim() || session.original || "Surface";
+		if (!index.has(session.id) || value === session.original) {
+			cancel_change();
+			refresh_panel();
+			return;
+		}
+		edit(session.id).name = value;
+		end_change();
+		refresh_panel();
+	});
+
+	// collapse
+
+	const collapse_button = document.getElementById("collapse_button");
+
+	function set_collapsed(collapsed) {
+		document.body.classList.toggle("collapsed", collapsed);
+		collapse_button.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+		collapse_button.title = collapse_button.getAttribute("aria-label");
+		try { localStorage.setItem(storage_key + ".collapsed", collapsed ? "1" : ""); } catch (error) {}
+	}
+
+	collapse_button.addEventListener("click", function () {
+		set_collapsed(!document.body.classList.contains("collapsed"));
+	});
+
+	try { set_collapsed(localStorage.getItem(storage_key + ".collapsed") === "1"); } catch (error) {}
+
+	// view and file actions
+
+	undo_button.addEventListener("click", undo);
+	redo_button.addEventListener("click", redo);
+	document.getElementById("zoom_in").addEventListener("click", function () { zoom_at({ x: screen_width / 2, y: screen_height / 2 }, 1.2); });
+	document.getElementById("zoom_out").addEventListener("click", function () { zoom_at({ x: screen_width / 2, y: screen_height / 2 }, 1 / 1.2); });
+	zoom_label.addEventListener("click", function () { zoom_at({ x: screen_width / 2, y: screen_height / 2 }, 1 / view.zoom); });
+	document.getElementById("fit_button").addEventListener("click", fit_view);
+	snap_button.addEventListener("click", toggle_snap);
+	document.getElementById("clear_button").addEventListener("click", clear_canvas);
+	document.getElementById("save_button").addEventListener("click", save_file);
+	document.getElementById("png_button").addEventListener("click", export_png);
+	document.getElementById("open_button").addEventListener("click", function () { document.getElementById("file_input").click(); });
+	document.getElementById("file_input").addEventListener("change", function (event) {
+		const file = event.target.files[0];
+		event.target.value = "";
+		if (file) open_file(file);
+	});
+
+	// toast
+
+	const toast = document.getElementById("toast");
+	const toast_undo = document.getElementById("toast_undo");
+	let toast_timer = null;
+
+	function show_toast(message, with_undo) {
+		document.getElementById("toast_message").textContent = message;
+		toast_undo.hidden = !with_undo;
+		toast.hidden = false;
+		clearTimeout(toast_timer);
+		toast_timer = setTimeout(function () { toast.hidden = true; }, with_undo ? 6000 : 2600);
+	}
+
+	toast_undo.addEventListener("click", function () {
+		toast.hidden = true;
+		undo();
+	});
+
+	// ---------- files and storage ----------
+
+	const known_types = new Set(["stroke", "frame", "icon", "text", "connector"]);
+	let save_timer = null;
+	let save_warned = false;
+
+	function is_number(value) {
+		return typeof value === "number" && Number.isFinite(value);
+	}
+
+	function valid_element(element) {
+		if (!element || typeof element.id !== "string" || !known_types.has(element.type)) return false;
+		if (element.type === "connector") return Boolean(element.start && element.end);
+		if (element.type === "stroke" && (!Array.isArray(element.points) || element.points.length % 3 !== 0 || !element.points.length)) return false;
+		return is_number(element.x) && is_number(element.y) && is_number(element.w) && is_number(element.h);
+	}
+
+	function serialize(with_view) {
+		const data = { app: "web_tools/infinite_canvas", version: 1, elements: elements };
+		if (with_view) data.view = { x: view.x, y: view.y, zoom: view.zoom };
+		return data;
+	}
+
+	function read_data(data) {
+		if (!data || !Array.isArray(data.elements)) return null;
+		return data.elements.filter(valid_element);
+	}
+
+	function schedule_save() {
+		clearTimeout(save_timer);
+		save_timer = setTimeout(save_local, 400);
+	}
+
+	function save_local() {
+		clearTimeout(save_timer);
+		try {
+			localStorage.setItem(storage_key, JSON.stringify(serialize(true)));
+		}
+		catch (error) {
+			if (save_warned) return;
+			save_warned = true;
+			show_toast("Autosave failed: browser storage is full. Use Save to keep a copy.", false);
+		}
+	}
+
+	function load_local() {
+		try {
+			const data = JSON.parse(localStorage.getItem(storage_key) || "null");
+			const list = read_data(data);
+			if (!list) return false;
+			elements = list;
+			reindex();
+			if (data.view && is_number(data.view.x) && is_number(data.view.y) && is_number(data.view.zoom)) {
+				view.x = data.view.x;
+				view.y = data.view.y;
+				view.zoom = clamp_zoom(data.view.zoom);
+				return "view";
+			}
+			return true;
+		}
+		catch (error) {
+			return false;
+		}
+	}
+
+	function stamp() {
+		return new Date().toISOString().slice(0, 10);
+	}
+
+	function download(blob, name) {
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = name;
+		document.body.append(link);
+		link.click();
+		link.remove();
+		setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+	}
+
+	function save_file() {
+		finish_everything();
+		download(new Blob([JSON.stringify(serialize(false))], { type: "application/json" }), "canvas_" + stamp() + ".json");
+	}
+
+	function open_file(file) {
+		file.text().then(function (text) {
+			let list = null;
+			try {
+				list = read_data(JSON.parse(text));
+			}
+			catch (error) {
+				list = null;
+			}
+			if (!list) {
+				show_toast("That file is not a saved canvas. Open a .json made with Save.", false);
+				return;
+			}
+			finish_everything();
+			begin_change();
+			elements = list;
+			reindex();
+			selection.clear();
+			end_change();
+			refresh_panel();
+			fit_view();
+			show_toast("Opened " + file.name + ".", true);
+		});
+	}
+
+	function export_png() {
+		finish_everything();
+		const ids = selection.size ? with_children(selection) : null;
+		const list = ids ? elements.filter(function (element) { return ids.has(element.id); }) : elements;
+		const box = union(list.map(box_of));
+		if (!box) {
+			show_toast("Nothing to export yet.", false);
+			return;
+		}
+		const pad = 32, title_room = 24;
+		const width = box.w + pad * 2, height = box.h + pad * 2 + title_room;
+		const scale = Math.min(2, 8000 / Math.max(width, height));
+		const canvas = document.createElement("canvas");
+		canvas.width = Math.ceil(width * scale);
+		canvas.height = Math.ceil(height * scale);
+		const kept = new Set(selection);
+		selection.clear();
+		draw_scene(canvas.getContext("2d"), { x: pad - box.x, y: pad + title_room - box.y, zoom: 1, ratio: scale, width: width, height: height }, ids, well_color);
+		for (const id of kept) selection.add(id);
+		canvas.toBlob(function (blob) {
+			if (blob) download(blob, "canvas_" + stamp() + ".png");
+		}, "image/png");
+	}
+
+	window.addEventListener("pagehide", save_local);
+	document.addEventListener("visibilitychange", function () {
+		if (document.visibilityState === "hidden") save_local();
+	});
+
+	// ---------- start ----------
+
+	// When the sidebar collapses or expands, shift the camera so drawings stay put on screen.
+	let measured = false;
+	function measure_viewport() {
+		const rect = viewport.getBoundingClientRect();
+		if (measured) {
+			view.x += viewport_left - rect.left;
+			view.y += viewport_top - rect.top;
+		}
+		measured = true;
+		viewport_left = rect.left;
+		viewport_top = rect.top;
+		resize();
+	}
+
+	const restored = load_local();
+	measure_viewport();
+	new ResizeObserver(measure_viewport).observe(viewport);
+	window.addEventListener("resize", measure_viewport);
+	if (restored !== "view") {
+		view.x = screen_width / 2;
+		view.y = screen_height / 2;
+	}
+	set_tool(tool);
+</script>
+
+</body>
+</html>
