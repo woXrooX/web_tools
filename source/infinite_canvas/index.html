@@ -333,7 +333,7 @@
 
 	.tool_grid {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(5, 1fr);
 		gap: 4px;
 	}
 
@@ -682,6 +682,21 @@
 			</section>
 
 			<section>
+				<h2>Flow node</h2>
+				<div class="field stacked" data_section="node_shape">
+					<span>Shape</span>
+					<div class="row" id="node_shapes"></div>
+				</div>
+				<div class="field" data_section="node_fill">
+					<span>Fill</span>
+					<div class="row" id="node_fills"></div>
+				</div>
+				<div class="field" data_section="node_dash">
+					<span>Line</span>
+					<div class="row" id="node_dashes"></div>
+				</div>
+			</section>
+			<section>
 				<h2>Connector</h2>
 				<div class="field" data_section="dash">
 					<span>Line</span>
@@ -906,6 +921,7 @@
 		{ id: "frame", key: "f", label: "Surface", fill: rr(3, 7.5, 18, 13.5, 3), line: "M4 3.8h7", line_width: 2.2 },
 		{ id: "connector", key: "a", label: "Connector", fill: circle(5, 19, 2.6) + soft_poly([[20.5, 3.5], [19.4, 12.5], [11.5, 4.6]], 1.2), line: "M6.5 17.5L16 8", line_width: 2.4 },
 		{ id: "text", key: "t", label: "Text", fill: rr(4, 3, 16, 4.2, 1.6) + rr(9.9, 3, 4.2, 18, 1.6) },
+		{ id: "flow", key: "w", label: "Flow", fill: rr(2.5, 3, 9, 6, 2) + rr(2.5, 15, 9, 6, 2) + soft_poly([[17, 7.5], [21.5, 12], [17, 16.5], [12.5, 12]], 0.8), line: "M7 9v6 M11.5 18h5.5v-1.5", line_width: 1.8 },
 		{ id: "image", key: "m", label: "Image", fill: soft_poly([[5, 18], [9.5, 11], [13, 15.5], [15.5, 12.5], [19, 18]], 1) + circle(16, 8, 1.9), line: "M6 4h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z", line_width: 2 },
 		{ id: "icon", key: "i", label: "Icons", fill: rr(3, 3, 8, 8, 2.2) + circle(17, 7, 4) + soft_poly([[7, 13.2], [11.2, 20.8], [2.8, 20.8]], 1.4) + rr(13, 13, 8, 8, 2.2) }
 	];
@@ -925,11 +941,14 @@
 	let index = new Map();
 	const view = { x: 0, y: 0, zoom: 1 };
 	const selection = new Set();
-	const style = { color: colors[0], width: 1, dash: false, routing: "elbow", heads: "end", font: 1, surface_fill: "auto", surface_border: "solid", surface_border_color: "auto" };
+	const style = { color: colors[0], width: 1, dash: false, routing: "elbow", heads: "end", font: 1, surface_fill: "auto", surface_border: "solid", surface_border_color: "auto", node_shape: "process", node_fill: "solid", node_dash: false };
 
 	// Sidebar keys for surface styling, and the element field each one sets.
 	const surface_fields = { surface_fill: "fill", surface_border: "border", surface_border_color: "border_color" };
 	const surface_defaults = { fill: "auto", border: "solid", border_color: "auto" };
+
+	// Sidebar keys for flow nodes, and the element field each one sets.
+	const node_fields = { node_shape: "shape", node_fill: "fill", node_dash: "dash" };
 	const undo_stack = [];
 	const redo_stack = [];
 	let touched = new Set();
@@ -1207,24 +1226,35 @@
 		const start_center = start_box ? center_of(start_box) : connector.start;
 		const end_center = end_box ? center_of(end_box) : connector.end;
 
+		// Flow nodes have real outlines (diamonds, pills, slants); everything else uses its box.
+		const edge = function (target, box, toward) {
+			return target.type === "node" ? node_edge(target, toward, gap) : anchor(box, toward, gap);
+		};
+
 		if (connector.routing !== "elbow") {
-			const a = start_box ? anchor(start_box, end_center, gap) : { x: connector.start.x, y: connector.start.y };
-			const b = end_box ? anchor(end_box, start_center, gap) : { x: connector.end.x, y: connector.end.y };
+			const a = start_box ? edge(start_target, start_box, end_center) : { x: connector.start.x, y: connector.start.y };
+			const b = end_box ? edge(end_target, end_box, start_center) : { x: connector.end.x, y: connector.end.y };
 			return [a, b];
 		}
 
 		// Elbow routing: leave and enter through side midpoints, turn halfway.
 		const dx = end_center.x - start_center.x, dy = end_center.y - start_center.y;
 		let a, b;
+		const side = function (target, box, center, sx, sy) {
+			if (!box) return { x: center.x, y: center.y };
+			if (target.type === "node") return node_edge(target, { x: center.x + sx, y: center.y + sy }, gap);
+			if (sx) return { x: sx > 0 ? box.x + box.w + gap : box.x - gap, y: center.y };
+			return { x: center.x, y: sy > 0 ? box.y + box.h + gap : box.y - gap };
+		};
 		if (Math.abs(dx) >= Math.abs(dy)) {
-			a = { x: start_box ? (dx >= 0 ? start_box.x + start_box.w + gap : start_box.x - gap) : start_center.x, y: start_center.y };
-			b = { x: end_box ? (dx >= 0 ? end_box.x - gap : end_box.x + end_box.w + gap) : end_center.x, y: end_center.y };
+			a = side(start_target, start_box, start_center, dx >= 0 ? 1 : -1, 0);
+			b = side(end_target, end_box, end_center, dx >= 0 ? -1 : 1, 0);
 			if (Math.abs(a.y - b.y) < 0.5) return [a, b];
 			const middle = (a.x + b.x) / 2;
 			return [a, { x: middle, y: a.y }, { x: middle, y: b.y }, b];
 		}
-		a = { x: start_center.x, y: start_box ? (dy >= 0 ? start_box.y + start_box.h + gap : start_box.y - gap) : start_center.y };
-		b = { x: end_center.x, y: end_box ? (dy >= 0 ? end_box.y - gap : end_box.y + end_box.h + gap) : end_center.y };
+		a = side(start_target, start_box, start_center, 0, dy >= 0 ? 1 : -1);
+		b = side(end_target, end_box, end_center, 0, dy >= 0 ? -1 : 1);
 		if (Math.abs(a.x - b.x) < 0.5) return [a, b];
 		const middle = (a.y + b.y) / 2;
 		return [a, { x: a.x, y: middle }, { x: b.x, y: middle }, b];
@@ -1678,6 +1708,10 @@
 			draw_image(context, element);
 			return;
 		}
+		if (element.type === "node") {
+			draw_node(context, element, is_editing);
+			return;
+		}
 		if (element.type === "stroke") {
 			context.save();
 			context.translate(element.x, element.y);
@@ -1755,6 +1789,309 @@
 		}
 	}
 
+	// ---------- flowchart nodes ----------
+
+	/*
+		A flow node is text in a shape. Its size always follows its text, so
+		there are no resize handles: type more and the node grows around its
+		center. Each shape is defined once as an SVG path string, used for the
+		canvas (Path2D), for SVG export, and for hit and edge geometry.
+	*/
+	const node_font = 15;
+	const node_shapes = {
+		terminal: { label: "Start / End", glyph: "M7 7h10a5 5 0 0 1 0 10H7a5 5 0 0 1 0-10z" },
+		process: { label: "Process", glyph: "M6 6h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3z" },
+		decision: { label: "Decision", glyph: "M12 3l9 9-9 9-9-9z" },
+		io: { label: "Input / Output", glyph: "M7 6h14l-4 12H3z" },
+		data: { label: "Data", glyph: "M5 7a7 2.5 0 0 0 14 0a7 2.5 0 0 0-14 0v10a7 2.5 0 0 0 14 0V7" }
+	};
+
+	function node_slant(element) {
+		return Math.min(element.h * 0.35, element.w * 0.2);
+	}
+
+	function node_cap(element) {
+		return Math.min(10, element.h * 0.15);
+	}
+
+	// The size a node needs for its text. A diamond only fits text in its middle, so it grows faster.
+	function node_size(shape, text) {
+		const measured = measure_text(text || " ", node_font);
+		const tw = measured.w, th = measured.h;
+		if (shape === "terminal") return { w: Math.max(120, tw + 48), h: Math.max(48, th + 20) };
+		if (shape === "decision") {
+			const w = Math.max(140, tw + 1.6 * th + 40);
+			return { w: w, h: Math.max(84, w / 1.6) };
+		}
+		if (shape === "io") {
+			const h = Math.max(56, th + 24);
+			return { w: Math.max(140, tw + 32 + h * 0.7), h: h };
+		}
+		if (shape === "data") return { w: Math.max(120, tw + 32), h: Math.max(68, th + 44) };
+		return { w: Math.max(120, tw + 32), h: Math.max(56, th + 24) };
+	}
+
+	/*
+		Resizes a node (already a mutable copy) to its text. It grows away from
+		the node that leads into it, keeping the facing edge still, so the gap
+		and arrow between them stay intact. With no incoming link it grows
+		around its center.
+	*/
+	function fit_node(element) {
+		const size = node_size(element.shape, element.text);
+		const center = center_of(element);
+		let keep = null;
+		for (const other of elements) {
+			if (other.type !== "connector" || other.end.id !== element.id || !other.start.id) continue;
+			const source = index.get(other.start.id);
+			if (!source) continue;
+			const from = center_of(box_of(source));
+			const dx = center.x - from.x, dy = center.y - from.y;
+			keep = Math.abs(dy) >= Math.abs(dx) ? (dy >= 0 ? "top" : "bottom") : (dx >= 0 ? "left" : "right");
+			break;
+		}
+		let x = center.x - size.w / 2, y = center.y - size.h / 2;
+		if (keep === "top") y = element.y;
+		else if (keep === "bottom") y = element.y + element.h - size.h;
+		else if (keep === "left") x = element.x;
+		else if (keep === "right") x = element.x + element.w - size.w;
+		element.x = x;
+		element.y = y;
+		element.w = size.w;
+		element.h = size.h;
+	}
+
+	function node_outline(element) {
+		const x = element.x, y = element.y, w = element.w, h = element.h;
+		const p = function (value) { return fixed(value); };
+		if (element.shape === "decision")
+			return "M" + p(x + w / 2) + " " + p(y) + "L" + p(x + w) + " " + p(y + h / 2) + "L" + p(x + w / 2) + " " + p(y + h) + "L" + p(x) + " " + p(y + h / 2) + "Z";
+		if (element.shape === "io") {
+			const s = node_slant(element);
+			return "M" + p(x + s) + " " + p(y) + "L" + p(x + w) + " " + p(y) + "L" + p(x + w - s) + " " + p(y + h) + "L" + p(x) + " " + p(y + h) + "Z";
+		}
+		if (element.shape === "data") {
+			const ry = node_cap(element), rx = w / 2;
+			return "M" + p(x) + " " + p(y + ry) + "A" + p(rx) + " " + p(ry) + " 0 0 1 " + p(x + w) + " " + p(y + ry) + "V" + p(y + h - ry) + "A" + p(rx) + " " + p(ry) + " 0 0 1 " + p(x) + " " + p(y + h - ry) + "Z";
+		}
+		const r = element.shape === "terminal" ? h / 2 : Math.min(10, w / 4, h / 4);
+		return "M" + p(x + r) + " " + p(y) + "H" + p(x + w - r) + "A" + p(r) + " " + p(r) + " 0 0 1 " + p(x + w) + " " + p(y + r) + "V" + p(y + h - r) + "A" + p(r) + " " + p(r) + " 0 0 1 " + p(x + w - r) + " " + p(y + h) + "H" + p(x + r) + "A" + p(r) + " " + p(r) + " 0 0 1 " + p(x) + " " + p(y + h - r) + "V" + p(y + r) + "A" + p(r) + " " + p(r) + " 0 0 1 " + p(x + r) + " " + p(y) + "Z";
+	}
+
+	// Lines drawn on top of the outline: the cylinder's front lip.
+	function node_detail(element) {
+		if (element.shape !== "data") return "";
+		const ry = node_cap(element);
+		return "M" + fixed(element.x) + " " + fixed(element.y + ry) + "A" + fixed(element.w / 2) + " " + fixed(ry) + " 0 0 0 " + fixed(element.x + element.w) + " " + fixed(element.y + ry);
+	}
+
+	/*
+		Where a line from the node's center toward a point leaves the shape.
+		Instead of solving each shape's geometry separately, it binary-searches
+		along the ray with isPointInPath, so every shape, present and future,
+		gets an exact edge for free.
+	*/
+	function node_edge(element, toward, gap) {
+		const center = center_of(element);
+		let dx = toward.x - center.x, dy = toward.y - center.y;
+		if (!dx && !dy) dy = -1;
+		const length = Math.hypot(dx, dy);
+		dx /= length;
+		dy /= length;
+		const path = new Path2D(node_outline(element));
+		let inside_at = 0, outside_at = element.w + element.h;
+		for (let i = 0; i < 22; i++) {
+			const middle = (inside_at + outside_at) / 2;
+			if (measure_context.isPointInPath(path, center.x + dx * middle, center.y + dy * middle)) inside_at = middle;
+			else outside_at = middle;
+		}
+		return { x: center.x + dx * (inside_at + gap), y: center.y + dy * (inside_at + gap) };
+	}
+
+	function draw_node(context, element, is_editing) {
+		const outline = new Path2D(node_outline(element));
+		if (element.fill !== "none") {
+			context.fillStyle = depth_colors[1];
+			context.fill(outline);
+			if (element.fill === "tint") {
+				context.globalAlpha = 0.16;
+				context.fillStyle = element.color;
+				context.fill(outline);
+				context.globalAlpha = 1;
+			}
+		}
+		apply_line(context, element.width, element.dash);
+		context.strokeStyle = element.color;
+		context.stroke(outline);
+		const detail = node_detail(element);
+		if (detail) context.stroke(new Path2D(detail));
+		context.setLineDash([]);
+		if (element.text && !is_editing) {
+			const measured = measure_text(element.text, node_font);
+			const center = center_of(element);
+			const nudge = element.shape === "data" ? node_cap(element) / 2 : 0;
+			draw_text_block(context, element.text, center.x, center.y - measured.h / 2 + nudge, node_font, element.color, "center");
+		}
+	}
+
+	// ---------- flow building ----------
+
+	const flow_gap = 72;
+	const flow_directions = {
+		down: { x: 0, y: 1 },
+		right: { x: 1, y: 0 },
+		up: { x: 0, y: -1 },
+		left: { x: -1, y: 0 }
+	};
+
+	// Sides of a node where a connector already attaches. Their + handle would sit on the arrow, so it is hidden.
+	function used_sides(element) {
+		const center = center_of(element);
+		const sides = new Set();
+		for (const other of elements) {
+			if (other.type !== "connector") continue;
+			const points = connector_points(other);
+			let end = null;
+			if (other.start.id === element.id) end = points[0];
+			else if (other.end.id === element.id) end = points[points.length - 1];
+			if (!end) continue;
+			const dx = end.x - center.x, dy = end.y - center.y;
+			sides.add(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+		}
+		return sides;
+	}
+
+	// The + handles around a selected node, in screen space, on the sides still free.
+	function plus_points(element) {
+		const box = screen_box(element);
+		const out = pen_seen ? 30 : 24;
+		const all = {
+			up: { x: box.x + box.w / 2, y: box.y - out },
+			right: { x: box.x + box.w + out, y: box.y + box.h / 2 },
+			down: { x: box.x + box.w / 2, y: box.y + box.h + out },
+			left: { x: box.x - out, y: box.y + box.h / 2 }
+		};
+		const used = used_sides(element);
+		const free = {};
+		for (const side in all) if (!used.has(side)) free[side] = all[side];
+		return free;
+	}
+
+	function plus_at(element, point) {
+		if (!element || element.type !== "node") return null;
+		const reach = pen_seen ? 16 : 12;
+		const points = plus_points(element);
+		for (const side in points)
+			if (Math.hypot(point.x - points[side].x, point.y - points[side].y) <= reach) return side;
+		return null;
+	}
+
+	function show_plus_handles() {
+		return tool === "select" && !action && !editing && single_selected() && single_selected().type === "node";
+	}
+
+	// A start or a decision is followed by a process; anything else repeats its own shape.
+	function next_shape(source) {
+		return source.shape === "terminal" || source.shape === "decision" ? "process" : source.shape;
+	}
+
+	function branch_label(source) {
+		if (source.shape !== "decision") return "";
+		let count = 0;
+		for (const element of elements) if (element.type === "connector" && element.start.id === source.id) count++;
+		return count === 0 ? "True" : count === 1 ? "False" : "";
+	}
+
+	function make_node(shape, center, look) {
+		const size = node_size(shape, "");
+		const frame = frame_at(center.x, center.y);
+		return {
+			id: new_id(),
+			type: "node",
+			shape: shape,
+			text: "",
+			x: snap(center.x - size.w / 2),
+			y: snap(center.y - size.h / 2),
+			w: size.w,
+			h: size.h,
+			color: look.color,
+			width: look.width,
+			fill: look.fill,
+			dash: look.dash,
+			frame_id: frame ? frame.id : null
+		};
+	}
+
+	function connect_nodes(source, target) {
+		return add({
+			id: new_id(),
+			type: "connector",
+			start: { id: source.id, x: 0, y: 0 },
+			end: { id: target.id, x: 0, y: 0 },
+			color: style.color,
+			width: line_widths[style.width],
+			dash: false,
+			routing: style.routing,
+			heads: "end",
+			label: branch_label(source)
+		});
+	}
+
+	/*
+		The next step in a direction: same axis as the source, one gap away.
+		If that spot is taken, it keeps stepping along until it finds room, so
+		branching twice from a decision never stacks nodes on each other.
+	*/
+	function chain_node(source, side, at) {
+		finish_everything();
+		const direction = flow_directions[side];
+		const shape = next_shape(source);
+		const size = node_size(shape, "");
+		const from = center_of(source);
+		let center = at;
+		if (!center) {
+			const step = direction.x ? source.w / 2 + flow_gap + size.w / 2 : source.h / 2 + flow_gap + size.h / 2;
+			center = { x: from.x + direction.x * step, y: from.y + direction.y * step };
+			for (let tries = 0; tries < 12; tries++) {
+				const box = { x: center.x - size.w / 2, y: center.y - size.h / 2, w: size.w, h: size.h };
+				const blocked = elements.some(function (element) {
+					return element.type !== "connector" && element.type !== "frame" && element.id !== source.id && intersects(box_of(element), box);
+				});
+				if (!blocked) break;
+				const along = direction.x ? size.w + flow_gap / 2 : size.h + flow_gap / 2;
+				center = { x: center.x + direction.x * along, y: center.y + direction.y * along };
+			}
+		}
+		begin_change();
+		const node = add(make_node(shape, center, { color: source.color, width: source.width, fill: source.fill, dash: source.dash }));
+		connect_nodes(source, node);
+		selection.clear();
+		selection.add(node.id);
+		refresh_panel();
+		open_editor(node, "text", true);
+	}
+
+	function connect_to_existing(source, target) {
+		finish_everything();
+		begin_change();
+		connect_nodes(source, target);
+		end_change();
+	}
+
+	function create_flow_node(world) {
+		begin_change();
+		const node = add(make_node(style.node_shape, world, {
+			color: style.color,
+			width: line_widths[style.width],
+			fill: style.node_fill,
+			dash: style.node_dash
+		}));
+		selection.clear();
+		selection.add(node.id);
+		set_tool("select", true);
+		open_editor(node, "text", true);
+	}
+
 	// ---------- overlay ----------
 
 	let hover = null;
@@ -1825,6 +2162,43 @@
 				context.fill();
 				context.stroke();
 			}
+		}
+
+		// + handles around a selected flow node
+		if (show_plus_handles()) {
+			const points = plus_points(single_selected());
+			const radius = pen_seen ? 11 : 9;
+			for (const side in points) {
+				const at = points[side];
+				context.beginPath();
+				context.arc(at.x, at.y, radius, 0, Math.PI * 2);
+				context.fillStyle = token("--raised");
+				context.fill();
+				context.strokeStyle = line_color;
+				context.lineWidth = 1;
+				context.stroke();
+				context.beginPath();
+				context.moveTo(at.x - radius * 0.45, at.y);
+				context.lineTo(at.x + radius * 0.45, at.y);
+				context.moveTo(at.x, at.y - radius * 0.45);
+				context.lineTo(at.x, at.y + radius * 0.45);
+				context.strokeStyle = ink_color;
+				context.lineWidth = 1.6;
+				context.stroke();
+			}
+		}
+
+		// dragging from a + handle: a preview line to the pointer
+		if (action && action.kind === "flow_drag" && action.moved) {
+			const from = to_screen(center_of(index.get(action.id)));
+			context.beginPath();
+			context.moveTo(from.x, from.y);
+			context.lineTo(action.point.x, action.point.y);
+			context.strokeStyle = faint_color;
+			context.lineWidth = 1.5;
+			context.setLineDash([5, 4]);
+			context.stroke();
+			context.setLineDash([]);
 		}
 
 		// binding target while dragging a connector end
@@ -2116,6 +2490,12 @@
 			start_connector(world, base);
 			return;
 		}
+		if (kind === "flow") {
+			const hit = hit_test(world.x, world.y);
+			if (hit && hit.type === "node") open_editor(hit, "text");
+			else create_flow_node(world);
+			return;
+		}
 		if (box_types.has(kind)) start_box(kind, world, base);
 	}
 
@@ -2145,6 +2525,13 @@
 		else if (action.kind === "resize") resize_to(world, event);
 		else if (action.kind === "endpoint" || action.kind === "connect") drag_endpoint(world);
 		else if (action.kind === "create") size_box(world, event);
+		else if (action.kind === "flow_drag") {
+			action.point = point;
+			if (Math.hypot(point.x - action.start.x, point.y - action.start.y) > 8) action.moved = true;
+			const target = action.moved ? hit_test(world.x, world.y, { bindable: true }) : null;
+			bind_hint = target && target.id !== action.id && target.type !== "frame" ? target.id : null;
+			invalidate(false);
+		}
 	}
 
 	function end_action() {
@@ -2167,6 +2554,7 @@
 		else if (current.kind === "endpoint" && current.changed) finish_endpoint(current);
 		else if (current.kind === "connect") finish_connect(current);
 		else if (current.kind === "create") finish_box(current);
+		else if (current.kind === "flow_drag") finish_flow_drag(current);
 		invalidate();
 	}
 
@@ -2313,6 +2701,11 @@
 
 	function start_select(event, point, world, base) {
 		const one = single_selected();
+		const plus = show_plus_handles() ? plus_at(one, point) : null;
+		if (plus) {
+			action = Object.assign(base, { kind: "flow_drag", id: one.id, side: plus, start: point, point: point, moved: false });
+			return;
+		}
 		if (one) {
 			const handle = handle_at(one, point);
 			if (handle) {
@@ -2349,8 +2742,21 @@
 		if (selection.has(hit.id)) start_move(world, hit, base);
 	}
 
+	/*
+		Releasing a + handle: a tap adds the next node in that direction, a
+		drag onto another element connects to it, and a drag into empty space
+		adds the next node right there.
+	*/
+	function finish_flow_drag(current) {
+		const source = index.get(current.id);
+		if (!source) return;
+		if (!current.moved) chain_node(source, current.side);
+		else if (current.hint) connect_to_existing(source, index.get(current.hint));
+		else chain_node(source, current.side, to_world(current.point));
+	}
+
 	function double_tap(hit, world) {
-		if (hit && hit.type === "text") open_editor(hit, "text");
+		if (hit && (hit.type === "text" || hit.type === "node")) open_editor(hit, "text");
 		else if (hit && labelled_types.has(hit.type)) open_editor(hit, "label");
 		else if (hit && hit.type === "frame" && contains(title_box(hit), world.x, world.y)) return;
 		else create_text(world);
@@ -2653,7 +3059,8 @@
 		}
 		else anchor_point = center_of(element);
 		const at = to_screen(anchor_point);
-		return { size: label_size * view.zoom, family: sans, color: color, align: "center", x: at.x, y: at.y, center_y: center_y };
+		const size = element.type === "node" ? node_font : label_size;
+		return { size: size * view.zoom, family: sans, color: color, align: "center", x: at.x, y: at.y, center_y: center_y };
 	}
 
 	function position_editor() {
@@ -2706,6 +3113,7 @@
 			copy.w = measured.w;
 			copy.h = measured.h;
 		}
+		if (copy.type === "node") fit_node(copy);
 		end_change();
 	}
 
@@ -2713,6 +3121,15 @@
 	editor.addEventListener("blur", commit_editor);
 	editor.addEventListener("keydown", function (event) {
 		event.stopPropagation();
+		// Tab while typing in a node: finish it and start the next one (down, or right with Shift).
+		if (event.key === "Tab" && editing && index.get(editing.id) && index.get(editing.id).type === "node") {
+			event.preventDefault();
+			const id = editing.id;
+			commit_editor();
+			const source = index.get(id);
+			if (source) chain_node(source, event.shiftKey ? "right" : "down");
+			return;
+		}
 		if (event.key === "Escape" || (event.key === "Enter" && (event.ctrlKey || event.metaKey))) {
 			event.preventDefault();
 			commit_editor();
@@ -2925,8 +3342,14 @@
 			const one = single_selected();
 			if (!one || one.type === "frame") return;
 			event.preventDefault();
-			if (one.type === "text") open_editor(one, "text");
+			if (one.type === "text" || one.type === "node") open_editor(one, "text");
 			else if (labelled_types.has(one.type)) open_editor(one, "label");
+		}
+		else if (key === "tab") {
+			const one = single_selected();
+			if (!one || one.type !== "node") return;
+			event.preventDefault();
+			chain_node(one, event.shiftKey ? "right" : "down");
 		}
 		else if (event.shiftKey && event.code === "Digit1") fit_view();
 		else if (key === "+" || key === "=") zoom_at({ x: screen_width / 2, y: screen_height / 2 }, 1.2);
@@ -3101,7 +3524,9 @@
 		routings: { key: "routing", options: [["straight", "Straight"], ["elbow", "Elbow"]] },
 		heads: { key: "heads", options: [["none", "None"], ["end", "End"], ["both", "Both"]] },
 		fonts: { key: "font", options: [[0, "S"], [1, "M"], [2, "L"], [3, "XL"]] },
-		surface_borders: { key: "surface_border", options: [["solid", "Solid"], ["dashed", "Dashed"], ["none", "None"]] }
+		surface_borders: { key: "surface_border", options: [["solid", "Solid"], ["dashed", "Dashed"], ["none", "None"]] },
+		node_fills: { key: "node_fill", options: [["none", "None"], ["solid", "Solid"], ["tint", "Tint"]] },
+		node_dashes: { key: "node_dash", options: [[false, "Solid"], [true, "Dashed"]] }
 	};
 	const panel_buttons = [];
 
@@ -3146,11 +3571,23 @@
 		}
 	}
 
+	for (const shape in node_shapes) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.title = node_shapes[shape].label;
+		button.setAttribute("aria-label", node_shapes[shape].label);
+		button.innerHTML = "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"" + node_shapes[shape].glyph + "\"/></svg>";
+		button.addEventListener("click", function () { set_style("node_shape", shape); });
+		document.getElementById("node_shapes").append(button);
+		panel_buttons.push({ key: "node_shape", value: shape, button: button });
+	}
+
 	const panel_sections = {
 		stroke: ["color", "width"],
 		connector: ["color", "width", "dash", "routing", "heads"],
 		text: ["color", "font"],
 		image: ["image"],
+		node: ["color", "width", "node_shape", "node_fill", "node_dash"],
 		frame: ["surface_fill", "surface_border", "surface_border_color"],
 		icon: ["color"]
 	};
@@ -3168,6 +3605,7 @@
 		const first = selection.size ? index.get(selection.values().next().value) : null;
 		if (!first) return style[key];
 		if (surface_fields[key]) return first.type === "frame" ? surface_style(first)[surface_fields[key]] : style[key];
+		if (node_fields[key]) return first.type === "node" ? first[node_fields[key]] : style[key];
 		if (key === "width") {
 			if (first.type === "stroke") return pen_sizes.indexOf(first.size);
 			return first.width !== undefined ? line_widths.indexOf(first.width) : style.width;
@@ -3187,7 +3625,8 @@
 		connector: ["connector", "New connectors"],
 		text: ["text", "New text"],
 		icon: ["icon", "New icons"],
-		frame: ["frame", "New surfaces"]
+		frame: ["frame", "New surfaces"],
+		flow: ["node", "New flow nodes"]
 	};
 
 	function context_label() {
@@ -3196,6 +3635,7 @@
 		if (!one) return tool_contexts[tool] ? tool_contexts[tool][1] : "";
 		if (one.type === "frame") return one.name || "Surface";
 		if (one.type === "icon") return (icons[one.icon] || icons.database).label;
+		if (one.type === "node") return node_shapes[one.shape].label;
 		return { stroke: "Drawing", connector: "Connector", text: "Text", image: "Image" }[one.type] || "";
 	}
 
@@ -3245,6 +3685,12 @@
 				if (!element) continue;
 				if (surface_fields[key]) {
 					if (element.type === "frame") edit(id)[surface_fields[key]] = value;
+				}
+				else if (node_fields[key]) {
+					if (element.type !== "node") continue;
+					const copy = edit(id);
+					copy[node_fields[key]] = value;
+					if (key === "node_shape") fit_node(copy);
 				}
 				else if (key === "color" && element.color !== undefined) edit(id).color = value;
 				else if (key === "width" && element.type === "stroke") edit(id).size = pen_sizes[value];
@@ -4099,6 +4545,20 @@
 				if (element.label) markup += svg_text(element.label, element.x + element.w / 2, element.y + element.h + 8, label_size, element.color, "middle");
 				return markup;
 			}
+			if (element.type === "node") {
+				const fill = element.fill === "none" ? "none" : depth_colors[1];
+				const dash = element.dash ? " stroke-dasharray=\"" + num(element.width * 4) + " " + num(element.width * 3) + "\"" : "";
+				let markup = "<path d=\"" + node_outline(element) + "\" fill=\"" + fill + "\"/>";
+				if (element.fill === "tint") markup += "<path d=\"" + node_outline(element) + "\" fill=\"" + element.color + "\" fill-opacity=\"0.16\"/>";
+				markup += "<path d=\"" + node_outline(element) + node_detail(element) + "\" fill=\"none\" stroke=\"" + element.color + "\" stroke-width=\"" + num(element.width) + "\" stroke-linejoin=\"round\"" + dash + "/>";
+				if (element.text) {
+					const measured = measure_text(element.text, node_font);
+					const center = center_of(element);
+					const nudge = element.shape === "data" ? node_cap(element) / 2 : 0;
+					markup += svg_text(element.text, center.x, center.y - measured.h / 2 + nudge, node_font, element.color, "middle");
+				}
+				return markup;
+			}
 			if (element.type === "image") {
 				const data = images.get(element.asset);
 				const r = Math.min(6, element.w / 8, element.h / 8);
@@ -4203,7 +4663,7 @@
 
 	// ---------- files and storage ----------
 
-	const known_types = new Set(["stroke", "frame", "icon", "text", "connector", "image"]);
+	const known_types = new Set(["stroke", "frame", "icon", "text", "connector", "image", "node"]);
 	let save_timer = null;
 	let save_warned = false;
 
@@ -4216,6 +4676,7 @@
 		if (element.type === "connector") return Boolean(element.start && element.end);
 		if (element.type === "stroke" && (!Array.isArray(element.points) || element.points.length % 3 !== 0 || !element.points.length)) return false;
 		if (element.type === "image" && typeof element.asset !== "string") return false;
+		if (element.type === "node" && !node_shapes[element.shape]) return false;
 		return is_number(element.x) && is_number(element.y) && is_number(element.w) && is_number(element.h);
 	}
 
