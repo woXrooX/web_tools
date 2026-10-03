@@ -81,6 +81,16 @@
 		box-shadow: var(--shadow);
 	}
 
+	/* Tools pinned on top, footer pinned at the bottom; only the middle scrolls. */
+	.sidebar_top {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 12px;
+		border-bottom: 1px solid var(--line);
+	}
+
 	.sidebar_body {
 		flex: 1 1 auto;
 		display: flex;
@@ -103,6 +113,11 @@
 		font-weight: 600;
 	}
 
+	.sidebar_body h2 {
+		color: var(--ink_faint);
+		font-weight: 500;
+	}
+
 	/* Label beside its controls; color and name are wide enough to stack. */
 	.sidebar .field {
 		display: grid;
@@ -121,8 +136,26 @@
 		font-size: 11.5px;
 	}
 
-	.sidebar .field.off {
-		opacity: 0.35;
+	/* .field and section set their own display, so hidden needs to win explicitly. */
+	.sidebar [hidden] {
+		display: none !important;
+	}
+
+	.context_label {
+		margin: 0 0 -6px;
+		overflow: hidden;
+		color: var(--ink);
+		font-size: 13px;
+		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.context_empty {
+		margin: 0;
+		color: var(--ink_faint);
+		font-size: 12.5px;
+		line-height: 1.5;
 	}
 
 	.sidebar .row {
@@ -153,13 +186,6 @@
 		color: var(--ink);
 	}
 
-	.sidebar button:disabled,
-	.sidebar .field.off button {
-		opacity: 1;
-		background: transparent;
-		color: var(--ink_soft);
-	}
-
 	.sidebar svg {
 		width: 19px;
 		height: 19px;
@@ -186,9 +212,128 @@
 		width: 32px;
 	}
 
+	.sidebar_head .board_button {
+		flex: 1 1 auto;
+		justify-content: flex-start;
+		gap: 4px;
+		width: auto;
+		min-width: 0;
+		margin-left: -4px;
+		padding: 0 6px;
+		color: var(--ink);
+		font-size: 13px;
+		font-weight: 600;
+	}
+
+	.board_name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.board_button svg {
+		flex: none;
+		width: 16px !important;
+		height: 16px !important;
+	}
+
+	/* The board menu drops down over the sidebar and spills onto the canvas. */
+	.board_menu {
+		position: absolute;
+		top: 50px;
+		left: 12px;
+		z-index: 6;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		width: 280px;
+		padding: 12px;
+		border-radius: var(--radius);
+		background: var(--surface);
+		box-shadow: var(--shadow_deep);
+	}
+
+	.board_menu[hidden] {
+		display: none;
+	}
+
+	.board_list {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		max-height: 280px;
+		overflow-y: auto;
+	}
+
+	.sidebar .board_row {
+		flex: none;
+		justify-content: space-between;
+		gap: 10px;
+		height: 32px;
+		padding: 0 8px;
+		font-size: 12.5px;
+		text-align: left;
+	}
+
+	.board_row .label {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	/* The export menu opens upward, above the footer. */
+	.sidebar_foot {
+		position: relative;
+	}
+
+	.export_menu {
+		position: absolute;
+		left: 12px;
+		bottom: 52px;
+		z-index: 6;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		width: 200px;
+		padding: 8px;
+		border-radius: var(--radius);
+		background: var(--surface);
+		box-shadow: var(--shadow_deep);
+	}
+
+	.export_menu[hidden] {
+		display: none;
+	}
+
+	.sidebar .export_menu button {
+		flex: none;
+		justify-content: flex-start;
+		height: 34px;
+		padding: 0 10px;
+		font-size: 12.5px;
+	}
+
+	.export_scope {
+		margin: 0 0 4px;
+		padding: 2px 10px 0;
+		color: var(--ink_faint);
+		font-size: 11.5px;
+	}
+
+	.sidebar #board_delete:hover {
+		color: #e5766c;
+	}
+
+	.board_row .time {
+		flex: none;
+		color: var(--ink_faint);
+		font-family: var(--mono);
+		font-size: 11px;
+	}
+
 	.tool_grid {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: 4px;
 	}
 
@@ -226,6 +371,34 @@
 		padding: 0;
 		border-radius: 50%;
 		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+	}
+
+	/* Surface swatches: two rows of five, still large enough for a fingertip. */
+	.swatches.compact {
+		grid-template-columns: repeat(5, 1fr);
+	}
+
+	.sidebar .swatches.compact .swatch {
+		width: 24px;
+		height: 24px;
+	}
+
+	/* Special swatches: default (depth shading), clear (dots show through), default border. */
+	.sidebar .swatch.auto {
+		background: var(--page);
+		box-shadow: inset 0 0 0 1px var(--line_strong);
+		color: var(--ink_faint);
+		font-size: 10px;
+	}
+
+	.sidebar .swatch.clear {
+		background: var(--well) radial-gradient(circle, var(--ink_faint) 0.9px, transparent 1.2px) 0 0 / 6px 6px;
+		box-shadow: inset 0 0 0 1px var(--line_strong);
+	}
+
+	.sidebar .swatch.ring {
+		background: transparent;
+		box-shadow: inset 0 0 0 2px var(--line_strong);
 	}
 
 	.sidebar .swatch.on {
@@ -269,13 +442,15 @@
 		width: 64px;
 	}
 
-	body.collapsed .sidebar_body {
+	body.collapsed .sidebar_top {
 		padding: 12px 8px;
+		border-bottom: 0;
 	}
 
-	body.collapsed .sidebar_body > :not(.tools_section),
+	body.collapsed .sidebar_body,
 	body.collapsed .sidebar_foot,
-	body.collapsed .sidebar_head h2,
+	body.collapsed .board_button,
+	body.collapsed .board_menu,
 	body.collapsed .tool_grid kbd {
 		display: none;
 	}
@@ -358,14 +533,17 @@
 		stroke: currentColor;
 	}
 
-	.glyph .cut {
-		fill: none;
-		stroke: var(--surface);
+	.picker_group {
+		grid-column: 1 / -1;
+		margin: 10px 0 2px;
+		padding: 0 4px;
+		color: var(--ink_faint);
+		font-size: 11.5px;
+		font-weight: 500;
 	}
 
-	.picker_grid button:hover .cut,
-	.picker_grid button.on .cut {
-		stroke: var(--raised);
+	.picker_group:first-child {
+		margin-top: 0;
 	}
 
 	/* ---------- text editor ---------- */
@@ -448,15 +626,45 @@
 <div class="workspace">
 
 	<aside class="sidebar" id="sidebar" aria-label="Canvas controls">
-		<div class="sidebar_body">
-			<section class="tools_section">
-				<div class="sidebar_head">
-					<h2>Tools</h2>
-					<button type="button" id="collapse_button" aria-label="Collapse sidebar" title="Collapse sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
-				</div>
-				<div class="tool_grid" id="tool_grid" role="toolbar" aria-label="Tools"></div>
-			</section>
+		<section class="sidebar_top">
+			<div class="sidebar_head">
+				<button type="button" class="board_button" id="board_button" aria-haspopup="true" aria-expanded="false" title="Boards">
+					<span class="board_name" id="board_name">Board</span>
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+				</button>
+				<button type="button" id="collapse_button" aria-label="Collapse sidebar" title="Collapse sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+			</div>
+			<div class="tool_grid" id="tool_grid" role="toolbar" aria-label="Tools"></div>
 
+			<div class="board_menu" id="board_menu" hidden>
+				<div class="field stacked">
+					<span>Board name</span>
+					<input type="text" id="board_rename" autocomplete="off" spellcheck="false" enterkeyhint="done" aria-label="Board name">
+				</div>
+				<div class="field stacked">
+					<span>Boards</span>
+					<div class="board_list" id="board_list"></div>
+				</div>
+				<div class="row">
+					<button type="button" id="board_new">New</button>
+					<button type="button" id="board_duplicate">Duplicate</button>
+					<button type="button" id="board_delete">Delete</button>
+				</div>
+			</div>
+		</section>
+
+		<div class="sidebar_body">
+			<p class="context_label" id="context_label"></p>
+			<p class="context_empty" id="context_empty">Select something on the canvas to edit it, or pick a tool to set its style.</p>
+			<section>
+				<h2>Image</h2>
+				<div class="field" data_section="image">
+					<span id="image_info"></span>
+					<div class="row">
+						<button type="button" id="image_natural" title="Show at the image's real pixel size">Actual size</button>
+					</div>
+				</div>
+			</section>
 			<section>
 				<h2>Style</h2>
 				<div class="field stacked" data_section="color">
@@ -493,7 +701,19 @@
 				<h2>Surface</h2>
 				<div class="field stacked" data_section="name">
 					<span>Name</span>
-					<input type="text" id="surface_name" placeholder="Select a surface" autocomplete="off" spellcheck="false" enterkeyhint="done" aria-label="Surface name">
+					<input type="text" id="surface_name" autocomplete="off" spellcheck="false" enterkeyhint="done" aria-label="Surface name">
+				</div>
+				<div class="field stacked" data_section="surface_fill">
+					<span>Fill</span>
+					<div class="swatches compact" id="surface_fills"></div>
+				</div>
+				<div class="field" data_section="surface_border">
+					<span>Border</span>
+					<div class="row" id="surface_borders"></div>
+				</div>
+				<div class="field stacked" data_section="surface_border_color">
+					<span>Border color</span>
+					<div class="swatches compact" id="surface_border_colors"></div>
 				</div>
 			</section>
 		</div>
@@ -514,10 +734,17 @@
 			<div class="file_grid">
 				<button type="button" id="open_button" title="Open a saved .json canvas">Open</button>
 				<button type="button" id="save_button" title="Save as .json (Ctrl + S)">Save</button>
-				<button type="button" id="png_button" title="Export the selection, or everything, as PNG">Export</button>
+				<button type="button" id="png_button" aria-haspopup="true" aria-expanded="false" title="Export the selection, or the whole board">Export</button>
 				<button type="button" id="clear_button">Clear</button>
 			</div>
 			<input type="file" id="file_input" accept=".json,application/json" hidden>
+
+			<div class="export_menu" id="export_menu" hidden>
+				<p class="export_scope" id="export_scope"></p>
+				<button type="button" id="export_png">Export PNG</button>
+				<button type="button" id="export_svg">Export SVG</button>
+				<button type="button" id="export_copy">Copy as PNG</button>
+			</div>
 		</div>
 	</aside>
 
@@ -526,7 +753,7 @@
 		<canvas id="overlay"></canvas>
 
 		<div class="empty" id="empty">
-			<p>Draw with the pen, or pick a tool from the sidebar. Make a surface (F) to group drawings, then link surfaces with the connector (A).</p>
+			<p>Draw with the pen, or pick a tool from the sidebar. Make a surface (F) to group drawings, link surfaces with the connector (A), and paste or drop screenshots anywhere.</p>
 		</div>
 
 		<div class="picker" id="picker" hidden>
@@ -570,11 +797,10 @@
 	const faint_color = token("--ink_faint");
 
 	/*
-		Icons are drawn on a 24 x 24 grid in up to three layers:
-		- fill: solid, rounded shapes in the icon color
-		- line: thick round-capped strokes in the icon color (pins, links, handles)
-		- cut: strokes in the background color that carve detail out of the fill
-		The same layers render in the picker (as SVG) and on the canvas (as Path2D).
+		Toolbar glyphs are drawn on a 24 x 24 grid in two layers:
+		- fill: solid, rounded shapes
+		- line: thick round-capped strokes (handles, links)
+		These helpers build their SVG path strings.
 	*/
 	function rr(x, y, w, h, r) {
 		return "M" + (x + r) + " " + y + "h" + (w - 2 * r) + "a" + r + " " + r + " 0 0 1 " + r + " " + r + "v" + (h - 2 * r) + "a" + r + " " + r + " 0 0 1 " + (-r) + " " + r + "h" + (2 * r - w) + "a" + r + " " + r + " 0 0 1 " + (-r) + " " + (-r) + "v" + (2 * r - h) + "a" + r + " " + r + " 0 0 1 " + r + " " + (-r) + "z";
@@ -601,51 +827,77 @@
 		return path + "z";
 	}
 
-	function gear(cx, cy, teeth, inner, outer) {
-		const points = [];
-		for (let k = 0; k < teeth; k++) {
-			const base = k * Math.PI * 2 / teeth;
-			for (const step of [[-0.34, inner], [-0.17, outer], [0.17, outer], [0.34, inner]])
-				points.push([cx + Math.cos(base + step[0]) * step[1], cy + Math.sin(base + step[0]) * step[1]]);
-		}
-		return soft_poly(points, 0.7);
-	}
-
+	/*
+		Icon library: Material Symbols, Rounded style, filled, by Google.
+		Licensed under the Apache License 2.0:
+		https://github.com/google/material-design-icons
+		Paths are on Material's 960 x 960 grid (viewBox 0 -960 960 960).
+		Keys stay stable so saved canvases keep their icons.
+	*/
 	const icons = {
-		database: { label: "Database", fill: "M4 6a8 3 0 0 1 16 0v12a8 3 0 0 1-16 0z", cut: "M4 6.6a8 3 0 0 0 16 0 M4 12.4a8 3 0 0 0 16 0", cut_width: 1.4 },
-		server: { label: "Server", fill: rr(3, 3, 18, 8, 2.5) + rr(3, 13, 18, 8, 2.5), cut: "M7 7h.01 M11 7h6 M7 17h.01 M11 17h6", cut_width: 1.8 },
-		cloud: { label: "Cloud", fill: "M7 19h10.5a4.5 4.5 0 0 0 .5-8.97A6 6 0 0 0 6 9.6A4.75 4.75 0 0 0 7 19z" },
-		container: { label: "Container", fill: soft_poly([[12, 2], [21, 7], [21, 17], [12, 22], [3, 17], [3, 7]], 1.6), cut: "M3.8 7.4L12 12l8.2-4.6 M12 12v9.4", cut_width: 1.4 },
-		bucket: { label: "Storage", fill: rr(3, 3, 18, 4.5, 1.6) + soft_poly([[4.5, 9], [19.5, 9], [18.2, 21], [5.8, 21]], 1.6), cut: "M9 13.5h6" },
-		cache: { label: "Cache", fill: soft_poly([[13.5, 2], [4, 14], [11, 14], [10, 22], [20, 10], [13, 10]], 1.2) },
-		queue: { label: "Queue", fill: rr(1.5, 6, 4.8, 12, 1.5) + rr(7.6, 6, 4.8, 12, 1.5) + rr(13.7, 6, 4.8, 12, 1.5), line: "M20.4 9l2.4 3-2.4 3" },
-		balancer: { label: "Load balancer", fill: circle(5, 12, 3.2) + rr(15, 2.5, 7, 5.5, 1.8) + rr(15, 9.25, 7, 5.5, 1.8) + rr(15, 16, 7, 5.5, 1.8), line: "M8 12h7 M8 12l7-6.75 M8 12l7 6.75", line_width: 1.8 },
-		api: { label: "API", fill: rr(2, 4, 20, 16, 4.5), cut: "M9 8.5c-1.5 0-1.8.7-1.8 1.8v.8c0 .6-.4.9-1 .9c.6 0 1 .3 1 .9v.8c0 1.1.3 1.8 1.8 1.8 M15 8.5c1.5 0 1.8.7 1.8 1.8v.8c0 .6.4.9 1 .9c-.6 0-1 .3-1 .9v.8c0 1.1-.3 1.8-1.8 1.8", cut_width: 1.5 },
-		lambda: { label: "Function", fill: rr(2, 2, 20, 20, 5), cut: "M8 6.5h1.6c.8 0 1.2.4 1.5 1l4.6 10 M11.6 11.8L8 17.5", cut_width: 1.8 },
-		gear: { label: "Service", fill: gear(12, 12, 8, 7.6, 10.4), cut: circle(12, 12, 1.6), cut_width: 3.2 },
-		cpu: { label: "CPU", fill: rr(6, 6, 12, 12, 2.5), line: "M9.5 2.5v2.5 M14.5 2.5v2.5 M9.5 19v2.5 M14.5 19v2.5 M2.5 9.5h2.5 M2.5 14.5h2.5 M19 9.5h2.5 M19 14.5h2.5", cut: rr(9.5, 9.5, 5, 5, 1), cut_width: 1.4 },
-		user: { label: "User", fill: circle(12, 7.5, 4.5) + "M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1z" },
-		browser: { label: "Browser", fill: rr(2, 3.5, 20, 17, 3), cut: "M2.8 8.6h18.4 M5.8 6h.01 M8.3 6h.01", cut_width: 1.5 },
-		mobile: { label: "Mobile", fill: rr(6, 1.5, 12, 21, 3), cut: "M10.5 18.5h3" },
-		desktop: { label: "Desktop", fill: rr(2, 3, 20, 13.5, 2.5), line: "M12 16v4 M8 20.5h8", line_width: 2.2 },
-		globe: { label: "Internet", fill: circle(12, 12, 9.5), cut: "M2.5 12h19 M12 2.5c-3 3.2-3 15.8 0 19 M12 2.5c3 3.2 3 15.8 0 19", cut_width: 1.4 },
-		lock: { label: "Auth", fill: rr(4, 10, 16, 12, 3), line: "M8 10.5V7a4 4 0 0 1 8 0v3.5", line_width: 2.4, cut: "M12 14.5v3", cut_width: 1.8 },
-		key: { label: "Key", fill: circle(7.5, 15.5, 5.5), line: "M11.4 11.6L20 3 M16.5 6.5l2.5 2.5 M18.5 4.5l2 2", line_width: 2.4, cut: "M7.5 15.5h.01", cut_width: 3.4 },
-		shield: { label: "Firewall", fill: "M12 2.2l7.2 2.7c.5.2.8.6.8 1.1V11c0 5-3.5 9-8 11c-4.5-2-8-6-8-11V6c0-.5.3-.9.8-1.1z", cut: "M8.8 12l2.2 2.2 4.2-4.4", cut_width: 1.8 },
-		file: { label: "File", fill: "M6.5 2H14l5.5 5.5V20a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z", cut: "M14 2.6V7.5h4.9 M8.5 13h7 M8.5 16.5h5", cut_width: 1.4 },
-		folder: { label: "Folder", fill: "M3 6a2 2 0 0 1 2-2h4.2l2 2.2H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", cut: "M3.6 9.5h16.8", cut_width: 1.3 },
-		code: { label: "Code", fill: rr(2, 4, 20, 16, 4.5), cut: "M9.5 9l-3 3 3 3 M14.5 9l3 3-3 3 M13 8l-2 8" },
-		terminal: { label: "Terminal", fill: rr(2, 4, 20, 16, 4.5), cut: "M6.5 9l3 3-3 3 M12 15h5", cut_width: 1.7 },
-		git: { label: "Branch", fill: circle(6, 5, 2.8) + circle(6, 19, 2.8) + circle(18, 7, 2.8), line: "M6 7.5v9 M18 9.8c0 4.5-4 6.2-9.6 7.6", line_width: 2.2 },
-		mail: { label: "Email", fill: rr(2, 4.5, 20, 15, 3), cut: "M3 6.5l9 6.5 9-6.5" },
-		bell: { label: "Notification", fill: "M12 2.5a6.5 6.5 0 0 0-6.5 6.5v4.3l-1.7 3.1c-.5.8.1 1.6 1 1.6h14.4c.9 0 1.5-.8 1-1.6l-1.7-3.1V9A6.5 6.5 0 0 0 12 2.5z M9.5 19.5h5a2.5 2.5 0 0 1-5 0z" },
-		clock: { label: "Cron", fill: circle(12, 12, 10), cut: "M12 6.5V12l3.5 2.5", cut_width: 1.8 },
-		bot: { label: "AI agent", fill: rr(4, 7.5, 16, 13, 4) + circle(12, 3.5, 1.8), line: "M12 5v2.5 M2.5 12.5v3 M21.5 12.5v3", cut: "M9 12.5v1.5 M15 12.5v1.5 M9.5 17h5", cut_width: 1.8 },
-		warning: { label: "Warning", fill: soft_poly([[12, 2.5], [22, 20.5], [2, 20.5]], 2), cut: "M12 9.5v5 M12 17.5h.01", cut_width: 2 },
-		check: { label: "Check", fill: circle(12, 12, 10), cut: "M7.5 12.2l3 3 6-6.4", cut_width: 2 }
+		// Infrastructure
+		server: { label: "Server", group: "Infrastructure", d: "M300-720q-25 0-42.5 17.5T240-660q0 25 17.5 42.5T300-600q25 0 42.5-17.5T360-660q0-25-17.5-42.5T300-720Zm0 400q-25 0-42.5 17.5T240-260q0 25 17.5 42.5T300-200q25 0 42.5-17.5T360-260q0-25-17.5-42.5T300-320ZM160-840h640q17 0 28.5 11.5T840-800v280q0 17-11.5 28.5T800-480H160q-17 0-28.5-11.5T120-520v-280q0-17 11.5-28.5T160-840Zm0 400h640q17 0 28.5 11.5T840-400v280q0 17-11.5 28.5T800-80H160q-17 0-28.5-11.5T120-120v-280q0-17 11.5-28.5T160-440Z" },
+		database: { label: "Database", group: "Infrastructure", d: "M480-520q150 0 255-47t105-113q0-66-105-113t-255-47q-150 0-255 47T120-680q0 66 105 113t255 47Zm0 100q41 0 102.5-8.5T701-456q57-19 98-49.5t41-74.5v100q0 44-41 74.5T701-356q-57 19-118.5 27.5T480-320q-41 0-102.5-8.5T259-356q-57-19-98-49.5T120-480v-100q0 44 41 74.5t98 49.5q57 19 118.5 27.5T480-420Zm0 200q41 0 102.5-8.5T701-256q57-19 98-49.5t41-74.5v100q0 44-41 74.5T701-156q-57 19-118.5 27.5T480-120q-41 0-102.5-8.5T259-156q-57-19-98-49.5T120-280v-100q0 44 41 74.5t98 49.5q57 19 118.5 27.5T480-220Z" },
+		bucket: { label: "Storage", group: "Infrastructure", d: "M200-80q-33 0-56.5-23.5T120-160v-451q-18-11-29-28.5T80-680v-120q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v120q0 23-11 40.5T840-611v451q0 33-23.5 56.5T760-80H200Zm-40-600h640v-120H160v120Zm240 280h160q17 0 28.5-11.5T600-440q0-17-11.5-28.5T560-480H400q-17 0-28.5 11.5T360-440q0 17 11.5 28.5T400-400Z" },
+		disk: { label: "Disk", group: "Infrastructure", d: "M680-320q25 0 42.5-17t17.5-43q0-25-17.5-42.5T680-440q-26 0-43 17.5T620-380q0 26 17 43t43 17ZM80-600l136-136q11-11 25.5-17.5T273-760h413q17 0 31.5 6.5T743-736l137 136H80Zm80 400q-34 0-57-23t-23-57v-240h800v240q0 34-23.5 57T800-200H160Z" },
+		cache: { label: "Cache", group: "Infrastructure", d: "M360-360H236q-24 0-35.5-21.5T203-423l299-430q10-14 26-19.5t33 .5q17 6 25 21t6 32l-32 259h155q26 0 36.5 23t-6.5 43L416-100q-11 13-27 17t-31-3q-15-7-23.5-21.5T328-139l32-221Z" },
+		queue: { label: "Queue", group: "Infrastructure", d: "M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h53q33 0 56.5 23.5T293-720v480q0 33-23.5 56.5T213-160h-53Zm294 0q-33 0-56.5-23.5T374-240v-480q0-33 23.5-56.5T454-800h53q33 0 56.5 23.5T587-720v480q0 33-23.5 56.5T507-160h-53Zm293 0q-33 0-56.5-23.5T667-240v-480q0-33 23.5-56.5T747-800h53q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160h-53Z" },
+		cloud: { label: "Cloud", group: "Infrastructure", d: "M260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H260Z" },
+		container: { label: "Container", group: "Infrastructure", d: "M440-91 160-252q-19-11-29.5-29T120-321v-318q0-22 10.5-40t29.5-29l280-161q19-11 40-11t40 11l280 161q19 11 29.5 29t10.5 40v318q0 22-10.5 40T800-252L520-91q-19 11-40 11t-40-11Zm0-366v274l40 23 40-23v-274l240-139v-42l-43-25-237 137-237-137-43 25v42l240 139Z" },
+		layers: { label: "Layers", group: "Infrastructure", d: "M480-411q-10 0-19.5-2.5T442-421L104-605q-11-6-15.5-15T84-640q0-11 4.5-20t15.5-15l338-184q9-5 18.5-7.5T480-869q10 0 19.5 2.5T518-859l338 184q11 6 15.5 15t4.5 20q0 11-4.5 20T856-605L518-421q-9 5-18.5 7.5T480-411Zm0 80 314-171q2-1 19-5 17 0 28.5 11.5T853-467q0 11-5 20t-16 15L518-261q-9 5-18.5 7.5T480-251q-10 0-19.5-2.5T442-261L128-432q-11-6-16-15t-5-20q0-17 11.5-28.5T147-507q5 0 9.5 1.5t9.5 3.5l314 171Zm0 160 314-171q2-1 19-5 17 0 28.5 11.5T853-307q0 11-5 20t-16 15L518-101q-9 5-18.5 7.5T480-91q-10 0-19.5-2.5T442-101L128-272q-11-6-16-15t-5-20q0-17 11.5-28.5T147-347q5 0 9.5 1.5t9.5 3.5l314 171Z" },
+		balancer: { label: "Load balancer", group: "Infrastructure", d: "M240-664v64q0 17-11.5 28.5T200-560q-17 0-28.5-11.5T160-600v-160q0-17 11.5-28.5T200-800h160q17 0 28.5 11.5T400-760q0 17-11.5 28.5T360-720h-64l201 201q11 11 17 25.5t6 30.5v263q0 17-11.5 28.5T480-160q-17 0-28.5-11.5T440-200v-264L240-664Zm480 0-98 99q-12 12-28.5 12T565-565q-12-12-12-29t12-29l99-97h-64q-17 0-28.5-11.5T560-760q0-17 11.5-28.5T600-800h160q17 0 28.5 11.5T800-760v160q0 17-11.5 28.5T760-560q-17 0-28.5-11.5T720-600v-64Z" },
+		network: { label: "Network", group: "Infrastructure", d: "M120-160v-120q0-33 23.5-56.5T200-360h40v-80q0-33 23.5-56.5T320-520h120v-80h-40q-33 0-56.5-23.5T320-680v-120q0-33 23.5-56.5T400-880h160q33 0 56.5 23.5T640-800v120q0 33-23.5 56.5T560-600h-40v80h120q33 0 56.5 23.5T720-440v80h40q33 0 56.5 23.5T840-280v120q0 33-23.5 56.5T760-80H600q-33 0-56.5-23.5T520-160v-120q0-33 23.5-56.5T600-360h40v-80H320v80h40q33 0 56.5 23.5T440-280v120q0 33-23.5 56.5T360-80H200q-33 0-56.5-23.5T120-160Z" },
+		router: { label: "Router", group: "Infrastructure", d: "M200-120q-33 0-56.5-23.5T120-200v-160q0-33 23.5-56.5T200-440h400v-120q0-17 11.5-28.5T640-600q17 0 28.5 11.5T680-560v120h80q33 0 56.5 23.5T840-360v160q0 33-23.5 56.5T760-120H200Zm80-120q17 0 28.5-11.5T320-280q0-17-11.5-28.5T280-320q-17 0-28.5 11.5T240-280q0 17 11.5 28.5T280-240Zm140 0q17 0 28.5-11.5T460-280q0-17-11.5-28.5T420-320q-17 0-28.5 11.5T380-280q0 17 11.5 28.5T420-240Zm140 0q17 0 28.5-11.5T600-280q0-17-11.5-28.5T560-320q-17 0-28.5 11.5T520-280q0 17 11.5 28.5T560-240Zm80-420q-11 0-20 2t-18 6q-16 7-32.5 6T541-659q-12-12-11.5-29t14.5-25q21-13 45.5-20t50.5-7q27 0 51 7t45 20q14 8 14.5 25T739-659q-12 12-29 13t-33-6q-8-4-17.5-6t-19.5-2Zm0-140q-39 0-74.5 11.5T500-755q-14 10-30.5 9T442-758q-12-12-12-28t13-26q41-32 91-50t106-18q56 0 106 18t91 50q13 10 13 26t-12 28q-11 11-27.5 12t-30.5-9q-30-22-65.5-33.5T640-800Z" },
+		hub: { label: "Hub", group: "Infrastructure", d: "M240-40q-50 0-85-35t-35-85q0-50 35-85t85-35q14 0 26 3t23 8l57-71q-28-31-39-70t-5-78l-81-27q-17 25-43 40t-58 15q-50 0-85-35T0-580q0-50 35-85t85-35q50 0 85 35t35 85v8l81 28q20-36 53.5-61t75.5-32v-87q-39-11-64.5-42.5T360-840q0-50 35-85t85-35q50 0 85 35t35 85q0 42-26 73.5T510-724v87q42 7 75.5 32t53.5 61l81-28v-8q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35q-32 0-58.5-15T739-515l-81 27q6 39-5 77.5T614-340l57 70q11-5 23-7.5t26-2.5q50 0 85 35t35 85q0 50-35 85t-85 35q-50 0-85-35t-35-85q0-20 6.5-38.5T624-232l-57-71q-41 23-87.5 23T392-303l-56 71q11 15 17.5 33.5T360-160q0 50-35 85t-85 35Z" },
+		// Code
+		api: { label: "API", group: "Code", d: "M600-160q-17 0-28.5-11.5T560-200q0-17 11.5-28.5T600-240h80q17 0 28.5-11.5T720-280v-80q0-38 22-69t58-44v-14q-36-13-58-44t-22-69v-80q0-17-11.5-28.5T680-720h-80q-17 0-28.5-11.5T560-760q0-17 11.5-28.5T600-800h80q50 0 85 35t35 85v80q0 17 11.5 28.5T840-560t28.5 11.5Q880-537 880-520v80q0 17-11.5 28.5T840-400t-28.5 11.5Q800-377 800-360v80q0 50-35 85t-85 35h-80Zm-320 0q-50 0-85-35t-35-85v-80q0-17-11.5-28.5T120-400t-28.5-11.5Q80-423 80-440v-80q0-17 11.5-28.5T120-560t28.5-11.5Q160-583 160-600v-80q0-50 35-85t85-35h80q17 0 28.5 11.5T400-760q0 17-11.5 28.5T360-720h-80q-17 0-28.5 11.5T240-680v80q0 38-22 69t-58 44v14q36 13 58 44t22 69v80q0 17 11.5 28.5T280-240h80q17 0 28.5 11.5T400-200q0 17-11.5 28.5T360-160h-80Z" },
+		lambda: { label: "Function", group: "Code", d: "M221-120q-45 0-73-24t-28-64q0-32 17-51.5t43-19.5q25 0 42.5 17t17.5 41q0 5-.5 9t-1.5 9q5-1 8.5-5.5T252-221l62-339h-74q-17 0-28.5-11.5T200-600q0-17 11.5-28.5T240-640h89l21-114q7-38 37.5-62t72.5-24q44 0 72 26t28 65q0 30-17 49.5T500-680q-25 0-42.5-17T440-739q0-5 .5-9t1.5-9q-6 2-9 6t-5 12l-17 99h149q17 0 28.5 11.5T600-600q0 15-9.5 26T567-561l53 60 53-60q-14-2-23.5-13t-9.5-26q0-17 11.5-28.5T680-640h120q17 0 28.5 11.5T840-600q0 17-11.5 28.5T800-560h-22L673-440l105 120h22q17 0 28.5 11.5T840-280q0 17-11.5 28.5T800-240H680q-17 0-28.5-11.5T640-280q0-15 9.5-26t23.5-13l-53-61-53 61q14 2 23.5 13t9.5 26q0 17-11.5 28.5T560-240H440q-17 0-28.5-11.5T400-280q0-17 11.5-28.5T440-320h22l105-120-105-120h-66l-64 344q-8 45-37 70.5T221-120Z" },
+		gear: { label: "Service", group: "Code", d: "M433-80q-27 0-46.5-18T363-142l-9-66q-13-5-24.5-12T307-235l-62 26q-25 11-50 2t-39-32l-47-82q-14-23-8-49t27-43l53-40q-1-7-1-13.5v-27q0-6.5 1-13.5l-53-40q-21-17-27-43t8-49l47-82q14-23 39-32t50 2l62 26q11-8 23-15t24-12l9-66q4-26 23.5-44t46.5-18h94q27 0 46.5 18t23.5 44l9 66q13 5 24.5 12t22.5 15l62-26q25-11 50-2t39 32l47 82q14 23 8 49t-27 43l-53 40q1 7 1 13.5v27q0 6.5-2 13.5l53 40q21 17 27 43t-8 49l-48 82q-14 23-39 32t-50-2l-60-26q-11 8-23 15t-24 12l-9 66q-4 26-23.5 44T527-80h-94Zm49-260q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Z" },
+		cpu: { label: "CPU", group: "Code", d: "M360-400v-160q0-17 11.5-28.5T400-600h160q17 0 28.5 11.5T600-560v160q0 17-11.5 28.5T560-360H400q-17 0-28.5-11.5T360-400Zm0 240v-40h-80q-33 0-56.5-23.5T200-280v-80h-40q-17 0-28.5-11.5T120-400q0-17 11.5-28.5T160-440h40v-80h-40q-17 0-28.5-11.5T120-560q0-17 11.5-28.5T160-600h40v-80q0-33 23.5-56.5T280-760h80v-40q0-17 11.5-28.5T400-840q17 0 28.5 11.5T440-800v40h80v-40q0-17 11.5-28.5T560-840q17 0 28.5 11.5T600-800v40h80q33 0 56.5 23.5T760-680v80h40q17 0 28.5 11.5T840-560q0 17-11.5 28.5T800-520h-40v80h40q17 0 28.5 11.5T840-400q0 17-11.5 28.5T800-360h-40v80q0 33-23.5 56.5T680-200h-80v40q0 17-11.5 28.5T560-120q-17 0-28.5-11.5T520-160v-40h-80v40q0 17-11.5 28.5T400-120q-17 0-28.5-11.5T360-160Zm320-120v-400H280v400h400Z" },
+		code: { label: "Code", group: "Code", d: "m193-479 155 155q11 11 11 28t-11 28q-11 11-28 11t-28-11L108-452q-6-6-8.5-13T97-480q0-8 2.5-15t8.5-13l184-184q12-12 28.5-12t28.5 12q12 12 12 28.5T349-635L193-479Zm574-2L612-636q-11-11-11-28t11-28q11-11 28-11t28 11l184 184q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L668-268q-12 12-28 11.5T612-269q-12-12-12-28.5t12-28.5l155-155Z" },
+		terminal: { label: "Terminal", group: "Code", d: "M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H160v400Zm187-200-76-76q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l104 104q12 12 12 28t-12 28L328-308q-11 11-27.5 11.5T272-308q-11-11-11-28t11-28l75-76Zm173 160q-17 0-28.5-11.5T480-320q0-17 11.5-28.5T520-360h160q17 0 28.5 11.5T720-320q0 17-11.5 28.5T680-280H520Z" },
+		git: { label: "Branch", group: "Code", d: "M400-120q-17 0-28.5-11.5T360-160v-527l-36 35q-11 11-28 11t-28-11q-12-12-11.5-28.5T268-708l104-104q12-12 28-12t28 12l104 104q12 12 11.5 28T532-652q-12 12-28 12.5T476-651l-36-36v261q35-31 79-44.5t88-13.5q11 0 21 1t19 3l-35-36q-11-11-11-28t11-28q12-12 28.5-11.5T668-572l104 104q12 12 12 28t-12 28L668-308q-11 11-28 11t-28-11q-12-12-12-28.5t11-27.5l36-36q-11-2-22-3.5t-22-1.5q-54 0-99.5 30.5T440-280v120q0 17-11.5 28.5T400-120Z" },
+		merge: { label: "Merge", group: "Code", d: "M480-344 284-148q-11 11-27.5 11.5T228-148q-11-11-11-28t11-28l165-166q23-23 35-52t12-61v-204l-36 36q-11 11-27.5 11T348-652q-11-11-11-28t11-28l104-104q12-12 28-12t28 12l104 104q11 11 11.5 27.5T612-652q-11 11-28 11t-28-11l-36-35v204q0 32 12 61t35 52l165 166q11 11 11.5 27.5T732-148q-11 11-28 11t-28-11L480-344Z" },
+		commit: { label: "Commit", group: "Code", d: "M480-280q-73 0-127.5-45.5T284-440H120q-17 0-28.5-11.5T80-480q0-17 11.5-28.5T120-520h164q14-69 68.5-114.5T480-680q73 0 127.5 45.5T676-520h164q17 0 28.5 11.5T880-480q0 17-11.5 28.5T840-440H676q-14 69-68.5 114.5T480-280Zm0-80q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35Z" },
+		webhook: { label: "Webhook", group: "Code", d: "M280-120q-83 0-141.5-58.5T80-320q0-56 27-101.5t72-71.5q21-12 41 .5t20 34.5q0 11-4.5 20T223-425q-28 15-45.5 43T160-320q0 50 35 85t85 35q50 0 85-35t35-85q0-17 9.5-28.5T436-360h199q8-9 19.5-14.5T680-380q25 0 42.5 17.5T740-320q0 25-17.5 42.5T680-260q-14 0-25.5-5.5T635-280H476q-14 69-68.5 114.5T280-120Zm0-140q-25 0-42.5-17.5T220-320q0-22 14-38t34-21l94-156q-29-27-45.5-64.5T300-680q0-83 58.5-141.5T500-880q70 0 123.5 42.5T694-730q5 19-7 34.5T655-680q-13 0-24.5-9.5T615-713q-11-38-42-62.5T500-800q-50 0-85 35t-35 85q0 33 16.5 60.5T439-576q14 8 17.5 20t-3.5 24L337-338q2 5 2.5 9t.5 9q0 25-17.5 42.5T280-260Zm400 140q-26 0-50.5-6.5T584-144q-27-15-21.5-45.5T603-220q5 0 11 2t11 5q13 7 26.5 10t28.5 3q50 0 85-35t35-85q0-50-35-85t-85-35q-10 0-19 1.5t-18 4.5q-16 5-30 .5T592-449L489-621q-21-4-35-20t-14-39q0-25 17.5-42.5T500-740q25 0 42.5 17.5T560-680v8.5q0 3.5-2 8.5l87 146q8-2 17-2.5t18-.5q83 0 141.5 58.5T880-320q0 83-58.5 141.5T680-120Z" },
+		schema: { label: "Schema", group: "Code", d: "M160-120v-80q0-33 23.5-56.5T240-280h20v-80h-20q-33 0-56.5-23.5T160-440v-80q0-33 23.5-56.5T240-600h20v-80h-20q-33 0-56.5-23.5T160-760v-80q0-33 23.5-56.5T240-920h120q33 0 56.5 23.5T440-840v80q0 33-23.5 56.5T360-680h-20v80h20q33 0 56.5 23.5T440-520h120q0-33 23.5-56.5T640-600h120q33 0 56.5 23.5T840-520v80q0 33-23.5 56.5T760-360H640q-33 0-56.5-23.5T560-440H440q0 33-23.5 56.5T360-360h-20v80h20q33 0 56.5 23.5T440-200v80q0 33-23.5 56.5T360-40H240q-33 0-56.5-23.5T160-120Z" },
+		table: { label: "Table", group: "Code", d: "M120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200q-33 0-56.5-23.5T120-200Zm80-400h560v-160H200v160Zm213 200h134v-120H413v120Zm0 200h134v-120H413v120ZM200-400h133v-120H200v120Zm427 0h133v-120H627v120ZM200-200h133v-120H200v120Zm427 0h133v-120H627v120Z" },
+		bug: { label: "Bug", group: "Code", d: "M480-120q-65 0-120.5-32T272-240h-72q-17 0-28.5-11.5T160-280q0-17 11.5-28.5T200-320h44q-3-20-3.5-40t-.5-40h-40q-17 0-28.5-11.5T160-440q0-17 11.5-28.5T200-480h40q0-20 .5-40t3.5-40h-44q-17 0-28.5-11.5T160-600q0-17 11.5-28.5T200-640h72q14-23 31.5-43t40.5-35l-37-38q-11-11-11-27.5t12-28.5q11-11 28-11t28 11l58 58q28-9 57-9t57 9l60-59q11-11 27.5-11t28.5 12q11 11 11 28t-11 28l-38 38q23 15 41.5 34.5T688-640h72q17 0 28.5 11.5T800-600q0 17-11.5 28.5T760-560h-44q3 20 3.5 40t.5 40h40q17 0 28.5 11.5T800-440q0 17-11.5 28.5T760-400h-40q0 20-.5 40t-3.5 40h44q17 0 28.5 11.5T800-280q0 17-11.5 28.5T760-240h-72q-32 56-87.5 88T480-120Zm-40-200h80q17 0 28.5-11.5T560-360q0-17-11.5-28.5T520-400h-80q-17 0-28.5 11.5T400-360q0 17 11.5 28.5T440-320Zm0-160h80q17 0 28.5-11.5T560-520q0-17-11.5-28.5T520-560h-80q-17 0-28.5 11.5T400-520q0 17 11.5 28.5T440-480Z" },
+		logs: { label: "Logs", group: "Code", d: "M240-80q-50 0-85-35t-35-85v-80q0-17 11.5-28.5T160-320h80v-536q0-7 6-9.5t11 2.5l29 29q6 6 14 6t14-6l32-32q6-6 14-6t14 6l32 32q6 6 14 6t14-6l32-32q6-6 14-6t14 6l32 32q6 6 14 6t14-6l32-32q6-6 14-6t14 6l32 32q6 6 14 6t14-6l32-32q6-6 14-6t14 6l32 32q6 6 14 6t14-6l29-29q5-5 11-2.5t6 9.5v656q0 50-35 85t-85 35H240Zm480-80q17 0 28.5-11.5T760-200v-560H320v440h320q17 0 28.5 11.5T680-280v80q0 17 11.5 28.5T720-160ZM400-680h160q17 0 28.5 11.5T600-640q0 17-11.5 28.5T560-600H400q-17 0-28.5-11.5T360-640q0-17 11.5-28.5T400-680Zm0 120h160q17 0 28.5 11.5T600-520q0 17-11.5 28.5T560-480H400q-17 0-28.5-11.5T360-520q0-17 11.5-28.5T400-560Zm280-40q-17 0-28.5-11.5T640-640q0-17 11.5-28.5T680-680q17 0 28.5 11.5T720-640q0 17-11.5 28.5T680-600Zm0 120q-17 0-28.5-11.5T640-520q0-17 11.5-28.5T680-560q17 0 28.5 11.5T720-520q0 17-11.5 28.5T680-480Z" },
+		// Clients
+		user: { label: "User", group: "Clients", d: "M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-240v-32q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v32q0 33-23.5 56.5T720-160H240q-33 0-56.5-23.5T160-240Z" },
+		users: { label: "Users", group: "Clients", d: "M40-272q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v32q0 33-23.5 56.5T600-160H120q-33 0-56.5-23.5T40-240v-32Zm698 112q11-18 16.5-38.5T760-240v-40q0-44-24.5-84.5T666-434q51 6 96 20.5t84 35.5q36 20 55 44.5t19 53.5v40q0 33-23.5 56.5T840-160H738ZM360-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47Zm400-160q0 66-47 113t-113 47q-11 0-28-2.5t-28-5.5q27-32 41.5-71t14.5-81q0-42-14.5-81T544-792q14-5 28-6.5t28-1.5q66 0 113 47t47 113Z" },
+		browser: { label: "Browser", group: "Clients", d: "M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h420v-140H160v140Zm500 0h140v-360H660v360ZM160-460h420v-140H160v140Z" },
+		mobile: { label: "Mobile", group: "Clients", d: "M280-40q-33 0-56.5-23.5T200-120v-720q0-33 23.5-56.5T280-920h400q33 0 56.5 23.5T760-840v720q0 33-23.5 56.5T680-40H280Zm0-200h400v-480H280v480Z" },
+		desktop: { label: "Desktop", group: "Clients", d: "M400-200v-80H160q-33 0-56.5-23.5T80-360v-400q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v400q0 33-23.5 56.5T800-280H560v80h40q17 0 28.5 11.5T640-160q0 17-11.5 28.5T600-120H360q-17 0-28.5-11.5T320-160q0-17 11.5-28.5T360-200h40Z" },
+		globe: { label: "Internet", group: "Clients", d: "M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-155.5t86-127Q252-817 325-848.5T480-880q83 0 155.5 31.5t127 86q54.5 54.5 86 127T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480-80Zm0-82q26-36 45-75t31-83H404q12 44 31 83t45 75Zm-104-16q-18-33-31.5-68.5T322-320H204q29 50 72.5 87t99.5 55Zm208 0q56-18 99.5-55t72.5-87H638q-9 38-22.5 73.5T584-178ZM170-400h136q-3-20-4.5-39.5T300-480q0-21 1.5-40.5T306-560H170q-5 20-7.5 39.5T160-480q0 21 2.5 40.5T170-400Zm216 0h188q3-20 4.5-39.5T580-480q0-21-1.5-40.5T574-560H386q-3 20-4.5 39.5T380-480q0 21 1.5 40.5T386-400Zm268 0h136q5-20 7.5-39.5T800-480q0-21-2.5-40.5T790-560H654q3 20 4.5 39.5T660-480q0 21-1.5 40.5T654-400Zm-16-240h118q-29-50-72.5-87T584-782q18 33 31.5 68.5T638-640Zm-234 0h152q-12-44-31-83t-45-75q-26 36-45 75t-31 83Zm-200 0h118q9-38 22.5-73.5T376-782q-56 18-99.5 55T204-640Z" },
+		bot: { label: "AI agent", group: "Clients", d: "M160-360q-50 0-85-35t-35-85q0-50 35-85t85-35v-80q0-33 23.5-56.5T240-760h120q0-50 35-85t85-35q50 0 85 35t35 85h120q33 0 56.5 23.5T800-680v80q50 0 85 35t35 85q0 50-35 85t-85 35v160q0 33-23.5 56.5T720-120H240q-33 0-56.5-23.5T160-200v-160Zm200-80q25 0 42.5-17.5T420-500q0-25-17.5-42.5T360-560q-25 0-42.5 17.5T300-500q0 25 17.5 42.5T360-440Zm240 0q25 0 42.5-17.5T660-500q0-25-17.5-42.5T600-560q-25 0-42.5 17.5T540-500q0 25 17.5 42.5T600-440ZM360-280h240q17 0 28.5-11.5T640-320q0-17-11.5-28.5T600-360H360q-17 0-28.5 11.5T320-320q0 17 11.5 28.5T360-280Z" },
+		// Security
+		lock: { label: "Auth", group: "Security", d: "M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm240-200q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80Z" },
+		key: { label: "Key", group: "Security", d: "M280-360q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm0 120q77 0 139-44t87-116h14l52 52q6 6 13 8.5t15 2.5q8 0 15-2.5t13-8.5l52-52 70 55q6 5 13.5 7.5T779-336q8-1 14.5-4.5T805-350l90-103q5-6 7.5-13t2.5-15q0-8-3-14.5t-8-11.5l-41-41q-6-6-13.5-9t-15.5-3H506q-24-68-84.5-114T280-720q-100 0-170 70T40-480q0 100 70 170t170 70Z" },
+		shield: { label: "Firewall", group: "Security", d: "M480-84q-7 0-13-1t-12-3q-135-45-215-166.5T160-516v-189q0-25 14.5-45t37.5-29l240-90q14-5 28-5t28 5l240 90q23 9 37.5 29t14.5 45v189q0 140-80 261.5T505-88q-6 2-12 3t-13 1Z" },
+		encrypted: { label: "Encryption", group: "Security", d: "M444-360h72q9 0 15.5-7.5T536-384l-19-105q20-10 31.5-29t11.5-42q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 23 11.5 42t31.5 29l-19 105q-2 9 4.5 16.5T444-360Zm36 276q-7 0-13-1t-12-3q-135-45-215-166.5T160-516v-189q0-25 14.5-45t37.5-29l240-90q14-5 28-5t28 5l240 90q23 9 37.5 29t14.5 45v189q0 140-80 261.5T505-88q-6 2-12 3t-13 1Z" },
+		token: { label: "Token", group: "Security", d: "M364-590q22-23 51.5-36.5T480-640q35 0 64.5 13.5T596-590l202-113-279-155q-18-11-39-11t-39 11L162-703l202 113Zm76 488v-223q-52-14-86-56.5T320-480q0-11 1-21t4-19L120-635v308q0 22 11 40.5t30 29.5l279 155Zm40-298q33 0 56.5-23.5T560-480q0-33-23.5-56.5T480-560q-33 0-56.5 23.5T400-480q0 33 23.5 56.5T480-400Zm40 298 279-155q19-11 30-29.5t11-40.5v-308L635-520q3 10 4 19.5t1 20.5q0 56-34 98.5T520-325v223Z" },
+		cookie: { label: "Cookie", group: "Security", d: "M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-81 33.5-157.5t93-134.5Q266-830 348-860t180-18q15 2 23 12.5t9 28.5q2 64 47.5 109.5T716-680q21 1 32 12t12 34q2 42 25.5 69t65.5 41q14 5 21.5 14.5T880-486q2 83-29 157t-85 129.5Q712-144 638-112T480-80Zm-60-480q25 0 42.5-17.5T480-620q0-25-17.5-42.5T420-680q-25 0-42.5 17.5T360-620q0 25 17.5 42.5T420-560Zm-80 200q25 0 42.5-17.5T400-420q0-25-17.5-42.5T340-480q-25 0-42.5 17.5T280-420q0 25 17.5 42.5T340-360Zm260 40q17 0 28.5-11.5T640-360q0-17-11.5-28.5T600-400q-17 0-28.5 11.5T560-360q0 17 11.5 28.5T600-320Z" },
+		// Operations
+		metrics: { label: "Metrics", group: "Operations", d: "M160-120q-17 0-28.5-11.5T120-160v-40q0-17 11.5-28.5T160-240q17 0 28.5 11.5T200-200v40q0 17-11.5 28.5T160-120Zm160 0q-17 0-28.5-11.5T280-160v-220q0-17 11.5-28.5T320-420q17 0 28.5 11.5T360-380v220q0 17-11.5 28.5T320-120Zm160 0q-17 0-28.5-11.5T440-160v-140q0-17 11.5-28.5T480-340q17 0 28.5 11.5T520-300v140q0 17-11.5 28.5T480-120Zm160 0q-17 0-28.5-11.5T600-160v-200q0-17 11.5-28.5T640-400q17 0 28.5 11.5T680-360v200q0 17-11.5 28.5T640-120Zm160 0q-17 0-28.5-11.5T760-160v-360q0-17 11.5-28.5T800-560q17 0 28.5 11.5T840-520v360q0 17-11.5 28.5T800-120ZM560-481q-16 0-30.5-6T503-504L400-607 188-395q-12 12-28.5 11.5T131-396q-11-12-10.5-28.5T132-452l211-211q12-12 26.5-17.5T400-686q16 0 31 5.5t26 17.5l103 103 212-212q12-12 28.5-11.5T829-771q11 12 10.5 28.5T828-715L617-504q-11 11-26 17t-31 6Z" },
+		speed: { label: "Performance", group: "Operations", d: "M418-340q25 25 63 23.5t55-27.5l169-253q9-14-2.5-25.5T677-625L424-456q-26 18-28.5 54.5T418-340ZM204-160q-22 0-40.5-9.5T134-198q-26-47-40-97.5T80-400q0-83 31.5-156T197-683q54-54 127-85.5T480-800q82 0 154 31t126 84.5q54 53.5 86 125T879-406q1 55-12.5 107.5T825-198q-11 19-29.5 28.5T755-160H204Z" },
+		sync: { label: "Sync", group: "Operations", d: "M240-478q0 45 17 87.5t53 78.5l10 10v-58q0-17 11.5-28.5T360-400q17 0 28.5 11.5T400-360v160q0 17-11.5 28.5T360-160H200q-17 0-28.5-11.5T160-200q0-17 11.5-28.5T200-240h70l-16-14q-52-46-73-105t-21-119q0-94 48-170.5T337-766q14-8 29.5-1t20.5 23q5 15-.5 30T367-691q-58 32-92.5 88.5T240-478Zm480-4q0-45-17-87.5T650-648l-10-10v58q0 17-11.5 28.5T600-560q-17 0-28.5-11.5T560-600v-160q0-17 11.5-28.5T600-800h160q17 0 28.5 11.5T800-760q0 17-11.5 28.5T760-720h-70l16 14q49 49 71.5 106.5T800-482q0 94-48 170.5T623-194q-14 8-29.5 1T573-216q-5-15 .5-30t19.5-23q58-32 92.5-88.5T720-482Z" },
+		clock: { label: "Cron", group: "Operations", d: "M520-496v-144q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640v159q0 8 3 15.5t9 13.5l132 132q11 11 28 11t28-11q11-11 11-28t-11-28L520-496ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z" },
+		timer: { label: "Timer", group: "Operations", d: "M400-840q-17 0-28.5-11.5T360-880q0-17 11.5-28.5T400-920h160q17 0 28.5 11.5T600-880q0 17-11.5 28.5T560-840H400Zm80 440q17 0 28.5-11.5T520-440v-160q0-17-11.5-28.5T480-640q-17 0-28.5 11.5T440-600v160q0 17 11.5 28.5T480-400Zm0 320q-74 0-139.5-28.5T226-186q-49-49-77.5-114.5T120-440q0-74 28.5-139.5T226-694q49-49 114.5-77.5T480-800q62 0 119 20t107 58l28-28q11-11 28-11t28 11q11 11 11 28t-11 28l-28 28q38 50 58 107t20 119q0 74-28.5 139.5T734-186q-49 49-114.5 77.5T480-80Z" },
+		bell: { label: "Notification", group: "Operations", d: "M200-200q-17 0-28.5-11.5T160-240q0-17 11.5-28.5T200-280h40v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h40q17 0 28.5 11.5T800-240q0 17-11.5 28.5T760-200H200ZM480-80q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80Z" },
+		mail: { label: "Email", group: "Operations", d: "M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm320-287q5 0 10.5-1.5T501-453l283-177q8-5 12-12.5t4-16.5q0-20-17-30t-35 1L480-520 212-688q-18-11-35-.5T160-659q0 10 4 17.5t12 11.5l283 177q5 3 10.5 4.5T480-447Z" },
+		chat: { label: "Chat", group: "Operations", d: "m240-240-92 92q-19 19-43.5 8.5T80-177v-623q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240Zm40-160h240q17 0 28.5-11.5T560-440q0-17-11.5-28.5T520-480H280q-17 0-28.5 11.5T240-440q0 17 11.5 28.5T280-400Zm0-120h400q17 0 28.5-11.5T720-560q0-17-11.5-28.5T680-600H280q-17 0-28.5 11.5T240-560q0 17 11.5 28.5T280-520Zm0-120h400q17 0 28.5-11.5T720-680q0-17-11.5-28.5T680-720H280q-17 0-28.5 11.5T240-680q0 17 11.5 28.5T280-640Z" },
+		send: { label: "Send", group: "Operations", d: "M176-183q-20 8-38-3.5T120-220v-180l320-80-320-80v-180q0-22 18-33.5t38-3.5l616 260q25 11 25 37t-25 37L176-183Z" },
+		upload: { label: "Upload", group: "Operations", d: "M260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H520v-286l36 35q11 11 27.5 11t28.5-12q11-11 11-28t-11-28L508-572q-12-12-28-12t-28 12L348-468q-11 11-11.5 27.5T348-412q11 11 27.5 11.5T404-411l36-35v286H260Z" },
+		payments: { label: "Payments", group: "Operations", d: "M120-160q-33 0-56.5-23.5T40-240v-400q0-17 11.5-28.5T80-680q17 0 28.5 11.5T120-640v400h640q17 0 28.5 11.5T800-200q0 17-11.5 28.5T760-160H120Zm160-160q-33 0-56.5-23.5T200-400v-320q0-33 23.5-56.5T280-800h560q33 0 56.5 23.5T920-720v320q0 33-23.5 56.5T840-320H280Zm80-80q0-33-23.5-56.5T280-480v80h80Zm400 0h80v-80q-33 0-56.5 23.5T760-400Zm-200-40q50 0 85-35t35-85q0-50-35-85t-85-35q-50 0-85 35t-35 85q0 50 35 85t85 35ZM280-640q33 0 56.5-23.5T360-720h-80v80Zm560 0v-80h-80q0 33 23.5 56.5T840-640Z" },
+		file: { label: "File", group: "Operations", d: "M360-240h240q17 0 28.5-11.5T640-280q0-17-11.5-28.5T600-320H360q-17 0-28.5 11.5T320-280q0 17 11.5 28.5T360-240Zm0-160h240q17 0 28.5-11.5T640-440q0-17-11.5-28.5T600-480H360q-17 0-28.5 11.5T320-440q0 17 11.5 28.5T360-400ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h287q16 0 30.5 6t25.5 17l194 194q11 11 17 25.5t6 30.5v447q0 33-23.5 56.5T720-80H240Zm280-560q0 17 11.5 28.5T560-600h160L520-800v160Z" },
+		folder: { label: "Folder", group: "Operations", d: "M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h207q16 0 30.5 6t25.5 17l57 57h320q33 0 56.5 23.5T880-640v400q0 33-23.5 56.5T800-160H160Z" },
+		search: { label: "Search", group: "Operations", d: "M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z" },
+		warning: { label: "Warning", group: "Operations", d: "M109-120q-11 0-20-5.5T75-140q-5-9-5.5-19.5T75-180l370-640q6-10 15.5-15t19.5-5q10 0 19.5 5t15.5 15l370 640q6 10 5.5 20.5T885-140q-5 9-14 14.5t-20 5.5H109Zm371-120q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm0-120q17 0 28.5-11.5T520-400v-120q0-17-11.5-28.5T480-560q-17 0-28.5 11.5T440-520v120q0 17 11.5 28.5T480-360Z" },
+		check: { label: "Check", group: "Operations", d: "m424-408-86-86q-11-11-28-11t-28 11q-11 11-11 28t11 28l114 114q12 12 28 12t28-12l226-226q11-11 11-28t-11-28q-11-11-28-11t-28 11L424-408Zm56 328q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z" }
 	};
 
-	// Toolbar glyphs use the same fill / line layers as the icon library, without cuts.
 	const tools = [
 		{ id: "select", key: "v", label: "Select", fill: soft_poly([[5, 2.5], [19.5, 10.5], [13, 12.5], [10, 19.5]], 1.4) },
 		{ id: "hand", key: "h", label: "Pan", fill: soft_poly([[12, 1.5], [15.5, 5.5], [8.5, 5.5]], 1) + soft_poly([[12, 22.5], [8.5, 18.5], [15.5, 18.5]], 1) + soft_poly([[1.5, 12], [5.5, 8.5], [5.5, 15.5]], 1) + soft_poly([[22.5, 12], [18.5, 15.5], [18.5, 8.5]], 1), line: "M12 5v14 M5 12h14", line_width: 2.2 },
@@ -654,16 +906,17 @@
 		{ id: "frame", key: "f", label: "Surface", fill: rr(3, 7.5, 18, 13.5, 3), line: "M4 3.8h7", line_width: 2.2 },
 		{ id: "connector", key: "a", label: "Connector", fill: circle(5, 19, 2.6) + soft_poly([[20.5, 3.5], [19.4, 12.5], [11.5, 4.6]], 1.2), line: "M6.5 17.5L16 8", line_width: 2.4 },
 		{ id: "text", key: "t", label: "Text", fill: rr(4, 3, 16, 4.2, 1.6) + rr(9.9, 3, 4.2, 18, 1.6) },
+		{ id: "image", key: "m", label: "Image", fill: soft_poly([[5, 18], [9.5, 11], [13, 15.5], [15.5, 12.5], [19, 18]], 1) + circle(16, 8, 1.9), line: "M6 4h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z", line_width: 2 },
 		{ id: "icon", key: "i", label: "Icons", fill: rr(3, 3, 8, 8, 2.2) + circle(17, 7, 4) + soft_poly([[7, 13.2], [11.2, 20.8], [2.8, 20.8]], 1.4) + rr(13, 13, 8, 8, 2.2) }
 	];
 
 	// Tools that stay active after use. The rest hand control back to select.
 	const sticky_tools = new Set(["select", "hand", "pen", "eraser"]);
-	const box_types = new Set(["frame", "icon"]);
+	const box_types = new Set(["frame", "icon", "image"]);
 	const labelled_types = new Set(["icon", "connector"]);
 	const default_sizes = {
 		frame: [480, 320],
-		icon: [56, 56]
+		icon: [64, 64]
 	};
 
 	// ---------- state ----------
@@ -672,7 +925,11 @@
 	let index = new Map();
 	const view = { x: 0, y: 0, zoom: 1 };
 	const selection = new Set();
-	const style = { color: colors[0], width: 1, dash: false, routing: "elbow", heads: "end", font: 1 };
+	const style = { color: colors[0], width: 1, dash: false, routing: "elbow", heads: "end", font: 1, surface_fill: "auto", surface_border: "solid", surface_border_color: "auto" };
+
+	// Sidebar keys for surface styling, and the element field each one sets.
+	const surface_fields = { surface_fill: "fill", surface_border: "border", surface_border_color: "border_color" };
+	const surface_defaults = { fill: "auto", border: "solid", border_color: "auto" };
 	const undo_stack = [];
 	const redo_stack = [];
 	let touched = new Set();
@@ -708,10 +965,20 @@
 		return frame && frame.type === "frame" ? frame : null;
 	}
 
-	function children_of(frame) {
-		return elements.filter(function (element) { return element.frame_id === frame.id && element.type !== "frame"; });
+	// Everything inside a surface, at every depth.
+	function descendants(frame) {
+		const found = new Set();
+		const queue = [frame.id];
+		while (queue.length) {
+			const parent_id = queue.shift();
+			for (const element of elements) {
+				if (element.frame_id !== parent_id || element.type === "connector" || found.has(element.id)) continue;
+				found.add(element.id);
+				if (element.type === "frame") queue.push(element.id);
+			}
+		}
+		return found;
 	}
-
 	function frames() {
 		return elements.filter(function (element) { return element.type === "frame"; });
 	}
@@ -903,17 +1170,8 @@
 
 	const icon_cache = new Map();
 
-	function icon_glyph(name) {
-		if (!icon_cache.has(name)) {
-			const icon = icons[name] || icons.database;
-			icon_cache.set(name, {
-				fill: new Path2D(icon.fill),
-				line: icon.line ? new Path2D(icon.line) : null,
-				cut: icon.cut ? new Path2D(icon.cut) : null,
-				line_width: icon.line_width || 2,
-				cut_width: icon.cut_width || 1.6
-			});
-		}
+	function icon_path(name) {
+		if (!icon_cache.has(name)) icon_cache.set(name, new Path2D((icons[name] || icons.database).d));
 		return icon_cache.get(name);
 	}
 
@@ -982,27 +1240,36 @@
 	// ---------- layering and hit testing ----------
 
 	/*
-		Draw order: surfaces first, each followed by its own children (clipped
-		to it), then loose elements, then connectors on top of everything.
-		Hit testing walks the same order backwards.
+		Surfaces form a tree. Every level is drawn the same way: its surfaces
+		first (each with its own subtree, clipped to it), then its other
+		elements. Connectors go on top of everything. Hit testing walks the
+		same order backwards.
 	*/
-	function layers() {
+	function layers(only) {
 		const surfaces = [], loose = [], connectors = [], kids = new Map();
+		// With an export filter, an element whose parent is filtered out is drawn as a root.
+		const parent_of = function (element) {
+			const frame = frame_of(element);
+			return frame && (!only || only.has(frame.id)) ? frame : null;
+		};
 		for (const element of elements) {
-			if (element.type === "frame") {
-				surfaces.push(element);
-				if (!kids.has(element.id)) kids.set(element.id, []);
+			if (element.type === "frame" && !kids.has(element.id)) kids.set(element.id, { surfaces: [], items: [] });
+			if (element.type === "connector") {
+				connectors.push(element);
+				continue;
 			}
-			else if (element.type === "connector") connectors.push(element);
-			else if (frame_of(element)) {
-				if (!kids.has(element.frame_id)) kids.set(element.frame_id, []);
-				kids.get(element.frame_id).push(element);
+			const parent = parent_of(element);
+			if (!parent) {
+				if (element.type === "frame") surfaces.push(element);
+				else loose.push(element);
+				continue;
 			}
-			else loose.push(element);
+			if (!kids.has(parent.id)) kids.set(parent.id, { surfaces: [], items: [] });
+			if (element.type === "frame") kids.get(parent.id).surfaces.push(element);
+			else kids.get(parent.id).items.push(element);
 		}
 		return { surfaces: surfaces, loose: loose, connectors: connectors, kids: kids };
 	}
-
 	function title_box(frame) {
 		const size = 12 / view.zoom;
 		const width = measure_text(frame.name || "Surface", 12, mono).w / view.zoom;
@@ -1047,27 +1314,45 @@
 		};
 		if (!options.bindable)
 			for (let i = layer.connectors.length - 1; i >= 0; i--) if (usable(layer.connectors[i])) return layer.connectors[i];
-		for (let i = layer.loose.length - 1; i >= 0; i--) if (usable(layer.loose[i])) return layer.loose[i];
-		for (let i = layer.surfaces.length - 1; i >= 0; i--) {
-			const frame = layer.surfaces[i];
-			if (!hits(frame, x, y, 0)) continue;
-			if (contains(frame, x, y)) {
-				const kids = layer.kids.get(frame.id) || [];
-				for (let k = kids.length - 1; k >= 0; k--) if (usable(kids[k])) return kids[k];
+		const search_level = function (surfaces, items) {
+			for (let i = items.length - 1; i >= 0; i--) if (usable(items[i])) return items[i];
+			for (let i = surfaces.length - 1; i >= 0; i--) {
+				const frame = surfaces[i];
+				if (!hits(frame, x, y, 0)) continue;
+				if (contains(frame, x, y)) {
+					const level = layer.kids.get(frame.id);
+					const inner = search_level(level.surfaces, level.items);
+					if (inner) return inner;
+				}
+				if (!options.exclude || !options.exclude.has(frame.id)) return frame;
 			}
-			if (!options.exclude || !options.exclude.has(frame.id)) return frame;
-		}
-		return null;
+			return null;
+		};
+		return search_level(layer.surfaces, layer.loose);
 	}
 
-	// The surface an element belongs to: the topmost one containing its center.
-	function frame_at(x, y, skip_id) {
-		const list = frames();
-		for (let i = list.length - 1; i >= 0; i--)
-			if (list[i].id !== skip_id && contains(list[i], x, y)) return list[i];
-		return null;
+	// The innermost surface containing a point.
+	function frame_at(x, y, skip) {
+		return deepest_frame(function (frame) { return contains(frame, x, y); }, skip);
 	}
 
+	// A surface goes into another only when it fits entirely inside it.
+	function frame_around(box, skip) {
+		return deepest_frame(function (frame) { return inside(box, frame); }, skip);
+	}
+
+	function deepest_frame(test, skip) {
+		const layer = layers();
+		const search = function (surfaces) {
+			for (let i = surfaces.length - 1; i >= 0; i--) {
+				const frame = surfaces[i];
+				if ((skip && skip.has(frame.id)) || !test(frame)) continue;
+				return search(layer.kids.get(frame.id).surfaces) || frame;
+			}
+			return null;
+		};
+		return search(layer.surfaces);
+	}
 	// ---------- history ----------
 
 	/*
@@ -1163,12 +1448,12 @@
 		}
 	}
 
-	// A selection plus everything inside selected surfaces.
+	// A selection plus everything inside selected surfaces, at every depth.
 	function with_children(ids) {
 		const all = new Set(ids);
 		for (const id of ids) {
 			const element = index.get(id);
-			if (element && element.type === "frame") for (const child of children_of(element)) all.add(child.id);
+			if (element && element.type === "frame") for (const child of descendants(element)) all.add(child);
 		}
 		return all;
 	}
@@ -1249,33 +1534,97 @@
 			return intersects({ x: box.x - pad, y: box.y - pad, w: box.w + pad * 2, h: box.h + pad * 2 }, area);
 		};
 
-		const layer = layers();
-		for (const frame of layer.surfaces) {
-			if (!seen(frame)) continue;
-			draw_frame(context, frame, camera.zoom);
-			context.save();
-			context.beginPath();
-			context.rect(frame.x, frame.y, frame.w, frame.h);
-			context.clip();
-			for (const child of layer.kids.get(frame.id) || []) if (seen(child)) draw_element(context, child);
-			context.restore();
-		}
-		for (const element of layer.loose) if (seen(element)) draw_element(context, element);
+		const layer = layers(only);
+		const draw_level = function (surfaces, items, depth) {
+			for (const frame of surfaces) {
+				if (!seen(frame)) continue;
+				draw_frame(context, frame, camera, depth);
+				const level = layer.kids.get(frame.id);
+				context.save();
+				surface_path(context, frame);
+				context.clip();
+				draw_level(level.surfaces, level.items, depth + 1);
+				context.restore();
+			}
+			for (const element of items) if (seen(element)) draw_element(context, element);
+		};
+		draw_level(layer.surfaces, layer.loose, 0);
 		for (const connector of layer.connectors) if (seen(connector)) draw_connector(context, connector);
 	}
 
-	function draw_frame(context, frame, zoom) {
-		context.fillStyle = page_color;
-		context.fillRect(frame.x, frame.y, frame.w, frame.h);
-		context.lineWidth = 1 / zoom;
-		context.strokeStyle = selection.has(frame.id) ? ink_color : line_color;
-		context.strokeRect(frame.x, frame.y, frame.w, frame.h);
+	// Each level of nesting is one step lighter, so depth reads at a glance.
+	const depth_colors = [page_color, token("--surface"), token("--raised")];
+
+	/*
+		fill: "auto" uses the depth shade, "clear" draws nothing so the dot grid
+		shows through, a color tints the depth shade. border: solid, dashed or
+		none; border_color "auto" is the neutral line. A colored border also
+		colors the title, so a surface's identity reads from far away.
+	*/
+	function surface_style(frame) {
+		return {
+			fill: frame.fill || surface_defaults.fill,
+			border: frame.border || surface_defaults.border,
+			border_color: frame.border_color || surface_defaults.border_color
+		};
+	}
+
+	/*
+		Surfaces get rounded corners in world units, so they keep their shape at
+		every zoom level, and a soft drop shadow that lifts them off whatever is
+		behind them. Canvas shadows are measured in device pixels and ignore the
+		zoom, so they stay the same soft size on screen.
+	*/
+	const surface_radius = 12;
+
+	function surface_corner(frame) {
+		return Math.min(surface_radius, frame.w / 4, frame.h / 4);
+	}
+
+	function surface_path(context, frame) {
+		const r = surface_corner(frame);
+		context.beginPath();
+		if (context.roundRect) context.roundRect(frame.x, frame.y, frame.w, frame.h, r);
+		else context.rect(frame.x, frame.y, frame.w, frame.h);
+	}
+
+	function draw_frame(context, frame, camera, depth) {
+		const zoom = camera.zoom;
+		const look = surface_style(frame);
+		const selected = selection.has(frame.id);
+		const accent = look.border_color === "auto" ? null : look.border_color;
+		if (look.fill !== "clear") {
+			context.save();
+			context.shadowColor = "rgba(0, 0, 0, 0.45)";
+			context.shadowBlur = 22 * camera.ratio;
+			context.shadowOffsetY = 6 * camera.ratio;
+			context.fillStyle = depth_colors[Math.min(depth, depth_colors.length - 1)];
+			surface_path(context, frame);
+			context.fill();
+			context.restore();
+			if (look.fill !== "auto") {
+				context.globalAlpha = 0.14;
+				context.fillStyle = look.fill;
+				surface_path(context, frame);
+				context.fill();
+				context.globalAlpha = 1;
+			}
+		}
+		// A borderless surface still shows its edge while selected, so it can be found and resized.
+		if (look.border !== "none" || selected) {
+			context.lineWidth = (accent ? 1.5 : 1) / zoom;
+			context.setLineDash(look.border === "dashed" ? [6 / zoom, 4 / zoom] : []);
+			context.strokeStyle = selected ? ink_color : accent || line_color;
+			surface_path(context, frame);
+			context.stroke();
+			context.setLineDash([]);
+		}
 		const size = 12 / zoom;
 		context.font = size + "px " + mono;
-		context.fillStyle = selection.has(frame.id) ? ink_color : faint_color;
+		context.fillStyle = selected ? ink_color : accent || faint_color;
 		context.textBaseline = "alphabetic";
 		context.textAlign = "left";
-		context.fillText(frame.name || "Surface", frame.x, frame.y - size * 0.6);
+		context.fillText(frame.name || "Surface", frame.x + Math.min(surface_corner(frame), 4 / zoom + 2), frame.y - size * 0.6);
 	}
 
 	function apply_line(context, width, dash) {
@@ -1294,8 +1643,41 @@
 		for (let i = 0; i < lines.length; i++) context.fillText(lines[i], x, y + i * size * 1.3 + size * 0.12);
 	}
 
+	function draw_image(context, element) {
+		const entry = asset_image(element.asset);
+		const r = Math.min(6, element.w / 8, element.h / 8);
+		context.save();
+		context.beginPath();
+		context.roundRect ? context.roundRect(element.x, element.y, element.w, element.h, r) : context.rect(element.x, element.y, element.w, element.h);
+		if (entry.state === "ready") {
+			context.clip();
+			context.imageSmoothingQuality = "high";
+			context.drawImage(entry.bitmap, element.x, element.y, element.w, element.h);
+		}
+		else {
+			context.fillStyle = page_color;
+			context.fill();
+			context.strokeStyle = line_color;
+			context.lineWidth = 1;
+			context.setLineDash([6, 4]);
+			context.stroke();
+			context.setLineDash([]);
+			const size = Math.min(14, element.h / 4);
+			context.font = size + "px " + sans;
+			context.fillStyle = faint_color;
+			context.textAlign = "center";
+			context.textBaseline = "middle";
+			context.fillText(entry.state === "missing" ? "Image missing" : "Loading image", element.x + element.w / 2, element.y + element.h / 2);
+		}
+		context.restore();
+	}
+
 	function draw_element(context, element) {
 		const is_editing = editing && editing.id === element.id;
+		if (element.type === "image") {
+			draw_image(context, element);
+			return;
+		}
 		if (element.type === "stroke") {
 			context.save();
 			context.translate(element.x, element.y);
@@ -1311,21 +1693,11 @@
 		if (element.type === "icon") {
 			context.save();
 			context.translate(element.x, element.y);
-			context.scale(element.w / 24, element.h / 24);
-			const glyph = icon_glyph(element.icon);
+			// Material paths live on a 960 grid whose y runs from -960 to 0.
+			context.scale(element.w / 960, element.h / 960);
+			context.translate(0, 960);
 			context.fillStyle = element.color;
-			context.fill(glyph.fill);
-			if (glyph.line) {
-				apply_line(context, glyph.line_width, false);
-				context.strokeStyle = element.color;
-				context.stroke(glyph.line);
-			}
-			// Cuts are painted in whatever sits behind the icon: the surface or the canvas.
-			if (glyph.cut) {
-				apply_line(context, glyph.cut_width, false);
-				context.strokeStyle = frame_of(element) ? page_color : well_color;
-				context.stroke(glyph.cut);
-			}
+			context.fill(icon_path(element.icon));
 			context.restore();
 			if (element.label && !is_editing)
 				draw_text_block(context, element.label, element.x + element.w / 2, element.y + element.h + 8, label_size, element.color, "center");
@@ -1580,6 +1952,7 @@
 
 	scene_canvas.addEventListener("pointermove", function (event) {
 		const point = local_point(event);
+		if (event.pointerType !== "touch") last_pointer = point;
 		const tracked = pointers.get(event.pointerId);
 		if (tracked) {
 			tracked.x = point.x;
@@ -1609,6 +1982,7 @@
 	});
 
 	scene_canvas.addEventListener("pointerleave", function () {
+		last_pointer = null;
 		if (!hover) return;
 		hover = null;
 		invalidate(false);
@@ -1898,11 +2272,12 @@
 		end_change();
 	}
 
+	// Surfaces and images are never erased: rubbing out ink drawn over a screenshot must not delete the screenshot.
 	function erase_at(world) {
 		const radius = 10 / view.zoom;
 		const doomed = new Set();
 		for (const element of elements)
-			if (element.type !== "frame" && hits(element, world.x, world.y, radius)) doomed.add(element.id);
+			if (element.type !== "frame" && element.type !== "image" && hits(element, world.x, world.y, radius)) doomed.add(element.id);
 		if (!doomed.size) return;
 		remove_ids(doomed);
 		action.erased += doomed.size;
@@ -2020,17 +2395,32 @@
 		invalidate();
 	}
 
-	// Dropping an element over a surface puts it on that surface; dropping it outside takes it off.
+	/*
+		Dropping an element over a surface puts it on that surface; dropping it
+		outside takes it off. Drawings go by their center, surfaces must fit
+		entirely inside. A surface is never placed inside itself or its own
+		children, which keeps the tree free of loops.
+	*/
 	function reparent(element) {
-		if (element.type === "frame" || element.type === "connector") return;
-		const center = center_of(box_of(element));
-		const frame = frame_at(center.x, center.y);
+		if (element.type === "connector") return;
+		let frame;
+		if (element.type === "frame") {
+			const skip = descendants(element);
+			skip.add(element.id);
+			frame = frame_around(element, skip);
+		}
+		else {
+			const center = center_of(box_of(element));
+			frame = frame_at(center.x, center.y);
+		}
 		const frame_id = frame ? frame.id : null;
 		if ((element.frame_id || null) !== frame_id) edit(element.id).frame_id = frame_id;
 	}
-
 	function finish_move(current) {
-		for (const id of current.ids) {
+		const ordered = Array.from(current.ids).sort(function (a, b) {
+			return (index.get(b) && index.get(b).type === "frame") - (index.get(a) && index.get(a).type === "frame");
+		});
+		for (const id of ordered) {
 			const element = index.get(id);
 			if (!element) continue;
 			// Children travelling with their surface stay where they are.
@@ -2050,7 +2440,7 @@
 		const anchor_y = sign_y < 0 ? origin.y + origin.h : origin.y;
 		let w = Math.max(8, (snap(world.x) - anchor_x) * sign_x);
 		let h = Math.max(8, (snap(world.y) - anchor_y) * sign_y);
-		if (element.type === "icon" || event.shiftKey) {
+		if (element.type === "icon" || element.type === "image" || event.shiftKey) {
 			const aspect = origin.w / origin.h;
 			if (w / h > aspect) h = w / aspect;
 			else w = h * aspect;
@@ -2064,27 +2454,27 @@
 
 	function finish_resize(current) {
 		const element = index.get(current.id);
-		if (element.type === "frame") adopt(element, true);
-		else reparent(element);
+		reparent(element);
+		if (element.type === "frame") adopt(index.get(element.id), true);
 		end_change();
 	}
 
 	/*
-		Surface membership after a surface is drawn or resized: loose elements
-		fully inside join it. With release, children whose center fell outside
-		the new edge are let go instead of silently clipped away.
+		Surface membership after a surface is drawn or resized: anything on the
+		same level that fits fully inside joins it, surfaces included. With
+		release, children that no longer fit are let go instead of silently
+		clipped away.
 	*/
 	function adopt(frame, release_outside) {
 		for (const element of elements) {
-			if (element.type === "frame" || element.type === "connector") continue;
+			if (element.type === "connector" || element.id === frame.id) continue;
 			if (element.frame_id === frame.id) {
-				const center = center_of(box_of(element));
-				if (release_outside && !contains(frame, center.x, center.y)) reparent(element);
+				if (release_outside) reparent(element);
 			}
-			else if (!frame_of(element) && inside(box_of(element), frame)) edit(element.id).frame_id = frame.id;
+			// Only siblings can be adopted: things on the same level the surface sits on.
+			else if ((element.frame_id || null) === (frame.frame_id || null) && inside(box_of(element), frame)) edit(element.id).frame_id = frame.id;
 		}
 	}
-
 	// ---------- surfaces and icons ----------
 
 	function start_box(kind, world, base) {
@@ -2092,7 +2482,15 @@
 		ensure_change();
 		const x = snap(world.x), y = snap(world.y);
 		const element = { id: new_id(), type: kind, x: x, y: y, w: 0, h: 0 };
-		if (kind === "frame") element.name = "Surface " + (frames().length + 1);
+		if (kind === "frame") {
+			Object.assign(element, {
+				name: "Surface " + (frames().length + 1),
+				fill: style.surface_fill,
+				border: style.surface_border,
+				border_color: style.surface_border_color,
+				frame_id: null
+			});
+		}
 		else Object.assign(element, { icon: current_icon, color: style.color, label: icons[current_icon].label, frame_id: null });
 		add(element);
 		selection.clear();
@@ -2129,8 +2527,8 @@
 		}
 		element.w = Math.max(element.w, 8);
 		element.h = Math.max(element.h, 8);
-		if (element.type === "frame") adopt(element, false);
-		else reparent(element);
+		reparent(element);
+		if (element.type === "frame") adopt(index.get(element.id), false);
 		end_change();
 		refresh_panel();
 		after_tool_use();
@@ -2495,11 +2893,13 @@
 				event.preventDefault();
 				duplicate();
 			}
-			else if (key === "c") copy_selection();
-			else if (key === "x") {
-				if (copy_selection()) delete_selection();
+			// Copy, cut and paste run in the clipboard events below. If a browser skips the paste event, fall back to the in-page clipboard.
+			else if (key === "v") {
+				paste_handled = false;
+				setTimeout(function () {
+					if (!paste_handled) paste(snap_on ? snap_size * 2 : 20);
+				}, 120);
 			}
-			else if (key === "v") paste(snap_on ? snap_size * 2 : 20);
 			else if (key === "0") {
 				event.preventDefault();
 				zoom_at({ x: screen_width / 2, y: screen_height / 2 }, 1 / view.zoom);
@@ -2515,6 +2915,8 @@
 		else if (key === "escape") {
 			if (action) abort_action();
 			close_picker();
+			close_board_menu();
+			close_export_menu();
 			selection.clear();
 			refresh_panel();
 			invalidate();
@@ -2582,6 +2984,12 @@
 	}
 
 	function activate_tool(id) {
+		// Image opens the photo / file picker right away; it is not a mode.
+		if (id === "image") {
+			close_picker();
+			image_input.click();
+			return;
+		}
 		if (id === "icon") {
 			if (picker.hidden) open_picker();
 			else close_picker();
@@ -2625,23 +3033,34 @@
 
 	// icon picker
 
-	function glyph_svg(icon) {
-		let markup = "<svg class=\"glyph\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path class=\"fill\" d=\"" + icon.fill + "\"/>";
-		if (icon.line) markup += "<path class=\"line\" style=\"stroke-width: " + (icon.line_width || 2) + "\" d=\"" + icon.line + "\"/>";
-		if (icon.cut) markup += "<path class=\"cut\" style=\"stroke-width: " + (icon.cut_width || 1.6) + "\" d=\"" + icon.cut + "\"/>";
+	function glyph_svg(glyph) {
+		let markup = "<svg class=\"glyph\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path class=\"fill\" d=\"" + glyph.fill + "\"/>";
+		if (glyph.line) markup += "<path class=\"line\" style=\"stroke-width: " + (glyph.line_width || 2) + "\" d=\"" + glyph.line + "\"/>";
 		return markup + "</svg>";
+	}
+
+	function icon_svg(icon) {
+		return "<svg class=\"glyph\" viewBox=\"0 -960 960 960\" aria-hidden=\"true\"><path class=\"fill\" d=\"" + icon.d + "\"/></svg>";
 	}
 
 	function build_picker() {
 		const query = picker_search.value.trim().toLowerCase();
 		picker_grid.innerHTML = "";
+		let group = null;
 		for (const name in icons) {
 			const label = icons[name].label;
-			if (query && !label.toLowerCase().includes(query) && !name.includes(query)) continue;
+			if (query && !label.toLowerCase().includes(query) && !name.includes(query) && !icons[name].group.toLowerCase().includes(query)) continue;
+			if (icons[name].group !== group) {
+				group = icons[name].group;
+				const heading = document.createElement("h3");
+				heading.className = "picker_group";
+				heading.textContent = group;
+				picker_grid.append(heading);
+			}
 			const button = document.createElement("button");
 			button.type = "button";
 			button.className = name === current_icon && tool === "icon" ? "on" : "";
-			button.innerHTML = glyph_svg(icons[name]) + "<span></span>";
+			button.innerHTML = icon_svg(icons[name]) + "<span></span>";
 			button.lastChild.textContent = label;
 			button.addEventListener("click", function () {
 				current_icon = name;
@@ -2681,20 +3100,32 @@
 		dashes: { key: "dash", options: [[false, "Solid"], [true, "Dashed"]] },
 		routings: { key: "routing", options: [["straight", "Straight"], ["elbow", "Elbow"]] },
 		heads: { key: "heads", options: [["none", "None"], ["end", "End"], ["both", "Both"]] },
-		fonts: { key: "font", options: [[0, "S"], [1, "M"], [2, "L"], [3, "XL"]] }
+		fonts: { key: "font", options: [[0, "S"], [1, "M"], [2, "L"], [3, "XL"]] },
+		surface_borders: { key: "surface_border", options: [["solid", "Solid"], ["dashed", "Dashed"], ["none", "None"]] }
 	};
 	const panel_buttons = [];
 
-	for (const color of colors) {
+	function add_swatch(container_id, key, value, label, kind) {
 		const button = document.createElement("button");
 		button.type = "button";
-		button.className = "swatch";
-		button.style.background = color;
-		button.setAttribute("aria-label", "Color " + color);
-		button.addEventListener("click", function () { set_style("color", color); });
-		document.getElementById("swatches").append(button);
-		panel_buttons.push({ key: "color", value: color, button: button });
+		button.className = "swatch" + (kind ? " " + kind : "");
+		if (!kind) button.style.background = value;
+		if (kind === "auto") button.textContent = "A";
+		button.title = label;
+		button.setAttribute("aria-label", label);
+		button.addEventListener("click", function () { set_style(key, value); });
+		document.getElementById(container_id).append(button);
+		panel_buttons.push({ key: key, value: value, button: button });
 	}
+
+	for (const color of colors) add_swatch("swatches", "color", color, "Color " + color);
+
+	add_swatch("surface_fills", "surface_fill", "auto", "Default fill", "auto");
+	add_swatch("surface_fills", "surface_fill", "clear", "Clear, no fill", "clear");
+	for (const color of colors) add_swatch("surface_fills", "surface_fill", color, "Tint " + color);
+
+	add_swatch("surface_border_colors", "surface_border_color", "auto", "Default border", "ring");
+	for (const color of colors) add_swatch("surface_border_colors", "surface_border_color", color, "Border " + color);
 
 	for (const row in panel_rows) {
 		const spec = panel_rows[row];
@@ -2719,6 +3150,8 @@
 		stroke: ["color", "width"],
 		connector: ["color", "width", "dash", "routing", "heads"],
 		text: ["color", "font"],
+		image: ["image"],
+		frame: ["surface_fill", "surface_border", "surface_border_color"],
 		icon: ["color"]
 	};
 
@@ -2734,6 +3167,7 @@
 	function current_value(key) {
 		const first = selection.size ? index.get(selection.values().next().value) : null;
 		if (!first) return style[key];
+		if (surface_fields[key]) return first.type === "frame" ? surface_style(first)[surface_fields[key]] : style[key];
 		if (key === "width") {
 			if (first.type === "stroke") return pen_sizes.indexOf(first.size);
 			return first.width !== undefined ? line_widths.indexOf(first.width) : style.width;
@@ -2747,20 +3181,53 @@
 		for the next thing you draw. With a selection, only the controls that
 		affect the selected elements stay live; the rest dim in place.
 	*/
+	// What the sidebar edits when nothing is selected: the defaults of the active tool.
+	const tool_contexts = {
+		pen: ["stroke", "Pen"],
+		connector: ["connector", "New connectors"],
+		text: ["text", "New text"],
+		icon: ["icon", "New icons"],
+		frame: ["frame", "New surfaces"]
+	};
+
+	function context_label() {
+		if (selection.size > 1) return selection.size + " selected";
+		const one = single_selected();
+		if (!one) return tool_contexts[tool] ? tool_contexts[tool][1] : "";
+		if (one.type === "frame") return one.name || "Surface";
+		if (one.type === "icon") return (icons[one.icon] || icons.database).label;
+		return { stroke: "Drawing", connector: "Connector", text: "Text", image: "Image" }[one.type] || "";
+	}
+
+	/*
+		The middle of the sidebar shows only what applies to the current
+		context: the selection if there is one, otherwise the active tool's
+		defaults. Tools on top and the footer never move.
+	*/
 	function refresh_panel() {
-		const live = new Set();
+		const visible = new Set();
 		if (selection.size)
-			for (const type of selection_types()) for (const section of panel_sections[type] || []) live.add(section);
-		else
-			for (const section of ["color", "width", "font", "dash", "routing", "heads"]) live.add(section);
+			for (const type of selection_types()) for (const section of panel_sections[type] || []) visible.add(section);
+		else if (tool_contexts[tool])
+			for (const section of panel_sections[tool_contexts[tool][0]]) visible.add(section);
 		const frame = selected_frame();
-		if (frame) live.add("name");
+		if (frame) visible.add("name");
+		const one = single_selected();
+		if (one && one.type === "image") document.getElementById("image_info").textContent = (one.natural_w || "?") + " × " + (one.natural_h || "?");
+		else visible.delete("image");
 		if (document.activeElement !== surface_name) surface_name.value = frame ? frame.name || "" : "";
-		for (const field of sidebar.querySelectorAll(".field")) {
-			const on = live.has(field.getAttribute("data_section"));
-			field.classList.toggle("off", !on);
-			for (const control of field.querySelectorAll("button, input")) control.disabled = !on;
-		}
+
+		for (const field of sidebar.querySelectorAll(".sidebar_body .field")) field.hidden = !visible.has(field.getAttribute("data_section"));
+		const sections = Array.from(sidebar.querySelectorAll(".sidebar_body section"));
+		for (const section of sections) section.hidden = !section.querySelector(".field:not([hidden])");
+		// A lone section needs no heading: the context label already names it.
+		const shown = sections.filter(function (section) { return !section.hidden; });
+		for (const section of sections) section.querySelector("h2").hidden = shown.length === 1;
+		const label = context_label();
+		document.getElementById("context_label").textContent = label;
+		document.getElementById("context_label").hidden = !visible.size;
+		document.getElementById("context_empty").hidden = visible.size > 0;
+
 		for (const entry of panel_buttons) {
 			const on = current_value(entry.key) === entry.value;
 			entry.button.classList.toggle("on", on);
@@ -2768,14 +3235,18 @@
 		}
 	}
 
+	// With a selection, a control edits only the selection. With nothing selected, it sets the default for what you make next.
 	function set_style(key, value) {
-		style[key] = value;
-		if (selection.size) {
+		if (!selection.size) style[key] = value;
+		else {
 			begin_change();
 			for (const id of selection) {
 				const element = index.get(id);
 				if (!element) continue;
-				if (key === "color" && element.color !== undefined) edit(id).color = value;
+				if (surface_fields[key]) {
+					if (element.type === "frame") edit(id)[surface_fields[key]] = value;
+				}
+				else if (key === "color" && element.color !== undefined) edit(id).color = value;
 				else if (key === "width" && element.type === "stroke") edit(id).size = pen_sizes[value];
 				else if (key === "width" && element.width !== undefined) edit(id).width = line_widths[value];
 				else if (key === "font" && element.type === "text") {
@@ -2860,6 +3331,20 @@
 
 	try { set_collapsed(localStorage.getItem(storage_key + ".collapsed") === "1"); } catch (error) {}
 
+	document.getElementById("image_natural").addEventListener("click", function () {
+		const one = single_selected();
+		if (!one || one.type !== "image" || !one.natural_w) return;
+		begin_change();
+		const copy = edit(one.id);
+		const center = center_of(copy);
+		copy.w = one.natural_w;
+		copy.h = one.natural_h;
+		copy.x = center.x - copy.w / 2;
+		copy.y = center.y - copy.h / 2;
+		reparent(copy);
+		end_change();
+	});
+
 	// view and file actions
 
 	undo_button.addEventListener("click", undo);
@@ -2871,7 +3356,6 @@
 	snap_button.addEventListener("click", toggle_snap);
 	document.getElementById("clear_button").addEventListener("click", clear_canvas);
 	document.getElementById("save_button").addEventListener("click", save_file);
-	document.getElementById("png_button").addEventListener("click", export_png);
 	document.getElementById("open_button").addEventListener("click", function () { document.getElementById("file_input").click(); });
 	document.getElementById("file_input").addEventListener("change", function (event) {
 		const file = event.target.files[0];
@@ -2885,22 +3369,841 @@
 	const toast_undo = document.getElementById("toast_undo");
 	let toast_timer = null;
 
-	function show_toast(message, with_undo) {
+	// action: true for a plain undo, or a function to run when Undo is pressed.
+	let toast_action = null;
+
+	function show_toast(message, action) {
 		document.getElementById("toast_message").textContent = message;
-		toast_undo.hidden = !with_undo;
+		toast_action = action || null;
+		toast_undo.hidden = !action;
 		toast.hidden = false;
 		clearTimeout(toast_timer);
-		toast_timer = setTimeout(function () { toast.hidden = true; }, with_undo ? 6000 : 2600);
+		toast_timer = setTimeout(function () { toast.hidden = true; }, action ? 6000 : 2600);
 	}
 
 	toast_undo.addEventListener("click", function () {
 		toast.hidden = true;
-		undo();
+		if (typeof toast_action === "function") toast_action();
+		else undo();
 	});
+
+	// ---------- images ----------
+
+	/*
+		Image bytes live in IndexedDB, keyed by a hash of their content; a board
+		only stores that key. Pasting the same screenshot twice, or on two
+		boards, stores it once. Saved .json files embed the images so they
+		travel.
+	*/
+	const max_image_side = 2560;
+	const image_cache = new Map();
+	let database = null;
+
+	function open_database() {
+		if (!database) {
+			database = new Promise(function (resolve, reject) {
+				const request = indexedDB.open(storage_key, 2);
+				request.onupgradeneeded = function () {
+					const db = request.result;
+					if (!db.objectStoreNames.contains("assets")) db.createObjectStore("assets");
+					if (!db.objectStoreNames.contains("boards")) db.createObjectStore("boards", { keyPath: "id" });
+				};
+				request.onsuccess = function () { resolve(request.result); };
+				request.onerror = function () { reject(request.error); };
+			});
+		}
+		return database;
+	}
+
+	function object_store(name, mode, work) {
+		return open_database().then(function (db) {
+			return new Promise(function (resolve, reject) {
+				const transaction = db.transaction(name, mode);
+				const request = work(transaction.objectStore(name));
+				transaction.oncomplete = function () { resolve(request ? request.result : undefined); };
+				transaction.onerror = function () { reject(transaction.error); };
+			});
+		});
+	}
+
+	function asset_put(id, blob) {
+		return object_store("assets", "readwrite", function (store) { return store.put(blob, id); });
+	}
+
+	function asset_get(id) {
+		return object_store("assets", "readonly", function (store) { return store.get(id); });
+	}
+
+	function asset_keys() {
+		return object_store("assets", "readonly", function (store) { return store.getAllKeys(); });
+	}
+
+	function asset_delete(id) {
+		return object_store("assets", "readwrite", function (store) { return store.delete(id); });
+	}
+
+	function decode_image(blob) {
+		if (window.createImageBitmap) return createImageBitmap(blob);
+		return new Promise(function (resolve, reject) {
+			const url = URL.createObjectURL(blob);
+			const image = new Image();
+			image.onload = function () {
+				URL.revokeObjectURL(url);
+				resolve(image);
+			};
+			image.onerror = function () {
+				URL.revokeObjectURL(url);
+				reject(new Error("decode failed"));
+			};
+			image.src = url;
+		});
+	}
+
+	// Decoded images, loaded on first draw. entry.ready resolves once it can be drawn (or is known missing).
+	function asset_image(asset) {
+		let entry = image_cache.get(asset);
+		if (entry) return entry;
+		entry = { state: "loading", bitmap: null };
+		entry.ready = asset_get(asset).then(function (blob) {
+			if (!blob) throw new Error("missing");
+			return decode_image(blob);
+		}).then(function (bitmap) {
+			entry.bitmap = bitmap;
+			entry.state = "ready";
+		}).catch(function () {
+			entry.state = "missing";
+		}).then(function () {
+			invalidate();
+		});
+		image_cache.set(asset, entry);
+		return entry;
+	}
+
+	async function hash_blob(blob) {
+		if (!window.crypto || !crypto.subtle) return new_id() + new_id();
+		const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+		return Array.from(new Uint8Array(digest).slice(0, 12), function (byte) { return byte.toString(16).padStart(2, "0"); }).join("");
+	}
+
+	// Very large photos are scaled down once, on the way in. Screenshots stay PNG so text stays crisp.
+	async function prepare_image(file) {
+		let bitmap = await decode_image(file);
+		const longest = Math.max(bitmap.width, bitmap.height);
+		if (longest <= max_image_side) return { blob: file, bitmap: bitmap };
+		const scale = max_image_side / longest;
+		const canvas = document.createElement("canvas");
+		canvas.width = Math.round(bitmap.width * scale);
+		canvas.height = Math.round(bitmap.height * scale);
+		const context = canvas.getContext("2d");
+		context.imageSmoothingQuality = "high";
+		context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+		const type = file.type === "image/png" ? "image/png" : "image/jpeg";
+		const blob = await new Promise(function (resolve) { canvas.toBlob(resolve, type, 0.9); });
+		bitmap = await decode_image(blob);
+		return { blob: blob, bitmap: bitmap };
+	}
+
+	// Where pasted things land: under the pointer if it is over the canvas, else the middle of the view.
+	let last_pointer = null;
+
+	function drop_point() {
+		return to_world(last_pointer || { x: screen_width / 2, y: screen_height / 2 });
+	}
+
+	async function insert_images(files, world) {
+		const images = Array.from(files).filter(function (file) { return file.type.startsWith("image/"); });
+		if (!images.length) return false;
+		finish_everything();
+		const added = [];
+		for (let i = 0; i < images.length; i++) {
+			let prepared;
+			try {
+				prepared = await prepare_image(images[i]);
+			}
+			catch (error) {
+				show_toast("Could not read " + (images[i].name || "that image") + ".", false);
+				continue;
+			}
+			const asset = await hash_blob(prepared.blob);
+			try {
+				await asset_put(asset, prepared.blob);
+			}
+			catch (error) {
+				show_toast("Could not store the image: browser storage is unavailable or full.", false);
+				return true;
+			}
+			image_cache.set(asset, { state: "ready", bitmap: prepared.bitmap, ready: Promise.resolve() });
+			// Fit inside 60% of the visible area, never above natural size.
+			const natural_w = prepared.bitmap.width, natural_h = prepared.bitmap.height;
+			const limit = Math.min(screen_width, screen_height) * 0.6 / view.zoom;
+			const scale = Math.min(1, limit / Math.max(natural_w, natural_h));
+			const w = natural_w * scale, h = natural_h * scale;
+			const offset = i * 28 / view.zoom;
+			added.push({
+				id: new_id(),
+				type: "image",
+				asset: asset,
+				x: snap(world.x - w / 2 + offset),
+				y: snap(world.y - h / 2 + offset),
+				w: w,
+				h: h,
+				natural_w: natural_w,
+				natural_h: natural_h,
+				frame_id: null
+			});
+		}
+		if (!added.length) return true;
+		begin_change();
+		selection.clear();
+		for (const element of added) {
+			add(element);
+			reparent(element);
+			selection.add(element.id);
+		}
+		end_change();
+		set_tool("select", true);
+		return true;
+	}
+
+	function insert_text(world, text) {
+		const size = font_sizes[style.font];
+		const frame = frame_at(world.x, world.y);
+		const measured = measure_text(text, size);
+		begin_change();
+		const element = add({
+			id: new_id(),
+			type: "text",
+			x: snap(world.x - measured.w / 2),
+			y: snap(world.y - measured.h / 2),
+			w: measured.w,
+			h: measured.h,
+			text: text,
+			color: style.color,
+			font_size: size,
+			frame_id: frame ? frame.id : null
+		});
+		selection.clear();
+		selection.add(element.id);
+		end_change();
+		set_tool("select", true);
+	}
+
+	// Removes stored images that no board uses any more. Runs once, after start-up.
+	async function prune_assets() {
+		try {
+			// Images that undo or redo could bring back count as used too.
+			const used = new Set();
+			const lists = [elements].concat(undo_stack, redo_stack);
+			for (const record of await board_list()) if (!board || record.id !== board.id) lists.push(record.elements || []);
+			for (const list of lists)
+				for (const element of list) if (element.type === "image") used.add(element.asset);
+			for (const key of await asset_keys()) if (!used.has(key)) asset_delete(key);
+		}
+		catch (error) {}
+	}
+
+	function blob_to_data_url(blob) {
+		return new Promise(function (resolve, reject) {
+			const reader = new FileReader();
+			reader.onload = function () { resolve(reader.result); };
+			reader.onerror = function () { reject(reader.error); };
+			reader.readAsDataURL(blob);
+		});
+	}
+
+	// ---------- clipboard and drop ----------
+
+	/*
+		Copy writes the elements to the system clipboard as text with a marker
+		prefix, so a paste can tell "my own elements" apart from text copied
+		elsewhere, even across tabs. Paste then picks, in order: image files,
+		our elements, plain text (becomes a text element).
+	*/
+	const clipboard_marker = "web_tools/infinite_canvas:";
+	let paste_handled = false;
+
+	function editable_target(target) {
+		return target && target.closest && target.closest("input, textarea, select");
+	}
+
+	document.addEventListener("copy", function (event) {
+		if (editable_target(event.target) || !copy_selection()) return;
+		event.preventDefault();
+		event.clipboardData.setData("text/plain", clipboard_marker + JSON.stringify(clipboard));
+	});
+
+	document.addEventListener("cut", function (event) {
+		if (editable_target(event.target) || !copy_selection()) return;
+		event.preventDefault();
+		event.clipboardData.setData("text/plain", clipboard_marker + JSON.stringify(clipboard));
+		delete_selection();
+	});
+
+	document.addEventListener("paste", function (event) {
+		if (editable_target(event.target)) return;
+		paste_handled = true;
+		event.preventDefault();
+		const data = event.clipboardData;
+		let files = data ? Array.from(data.files || []) : [];
+		// Some browsers only expose pasted images through items.
+		if (!files.length && data && data.items)
+			files = Array.from(data.items).filter(function (item) { return item.kind === "file"; }).map(function (item) { return item.getAsFile(); }).filter(Boolean);
+		if (files.some(function (file) { return file.type.startsWith("image/"); })) {
+			insert_images(files, drop_point());
+			return;
+		}
+		const text = data ? data.getData("text/plain") : "";
+		if (text.startsWith(clipboard_marker)) {
+			try {
+				const list = JSON.parse(text.slice(clipboard_marker.length));
+				if (Array.isArray(list)) clipboard = list.filter(valid_element);
+			}
+			catch (error) {}
+			paste(snap_on ? snap_size * 2 : 20);
+			return;
+		}
+		if (text.trim()) insert_text(drop_point(), text.replace(/\s+$/, ""));
+		else paste(snap_on ? snap_size * 2 : 20);
+	});
+
+	viewport.addEventListener("dragover", function (event) {
+		if (!event.dataTransfer || !Array.from(event.dataTransfer.types).includes("Files")) return;
+		event.preventDefault();
+		event.dataTransfer.dropEffect = "copy";
+	});
+
+	viewport.addEventListener("drop", function (event) {
+		if (!event.dataTransfer || !event.dataTransfer.files.length) return;
+		event.preventDefault();
+		last_pointer = local_point(event);
+		insert_images(event.dataTransfer.files, to_world(last_pointer));
+	});
+
+	const image_input = document.createElement("input");
+	image_input.type = "file";
+	image_input.accept = "image/*";
+	image_input.multiple = true;
+	image_input.hidden = true;
+	document.body.append(image_input);
+	image_input.addEventListener("change", function () {
+		const files = Array.from(image_input.files);
+		image_input.value = "";
+		insert_images(files, to_world({ x: screen_width / 2, y: screen_height / 2 }));
+	});
+
+	// ---------- boards ----------
+
+	/*
+		Each board is one record in IndexedDB: its elements, its camera, a
+		name and timestamps. Images stay in the shared asset store, so a
+		screenshot used on two boards is stored once. Undo history belongs to
+		the open board and starts fresh when you switch.
+	*/
+	const board_key = storage_key + ".board";
+	let board = null;
+	let boards_available = true;
+
+	function board_put(record) {
+		return object_store("boards", "readwrite", function (store) { return store.put(record); });
+	}
+
+	function board_get(id) {
+		return object_store("boards", "readonly", function (store) { return store.get(id); });
+	}
+
+	function board_delete(id) {
+		return object_store("boards", "readwrite", function (store) { return store.delete(id); });
+	}
+
+	// Boards are listed by name, so the order stays put no matter which one you open.
+	const name_order = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+	function board_list() {
+		return object_store("boards", "readonly", function (store) { return store.getAll(); }).then(function (list) {
+			return list.sort(function (a, b) { return name_order.compare(a.name || "", b.name || "") || a.created - b.created; });
+		});
+	}
+
+	function make_board(name, list, camera) {
+		const now = Date.now();
+		return { id: new_id() + new_id(), name: name, created: now, updated: now, elements: list || [], view: camera || null };
+	}
+
+	function board_record() {
+		return {
+			id: board.id,
+			name: board.name,
+			created: board.created,
+			updated: board.updated,
+			elements: elements,
+			view: { x: view.x, y: view.y, zoom: view.zoom }
+		};
+	}
+
+	function save_board() {
+		clearTimeout(save_timer);
+		if (!board || !boards_available) return Promise.resolve();
+		board.updated = Date.now();
+		return board_put(board_record()).catch(function () {
+			if (save_warned) return;
+			save_warned = true;
+			show_toast("Autosave failed: browser storage is full or unavailable. Use Save to keep a copy.");
+		});
+	}
+
+	function schedule_save() {
+		clearTimeout(save_timer);
+		save_timer = setTimeout(save_board, 300);
+	}
+
+	function load_board(record) {
+		board = { id: record.id, name: record.name || "Untitled board", created: record.created || Date.now(), updated: record.updated || Date.now() };
+		elements = read_data({ elements: record.elements || [] }) || [];
+		reindex();
+		undo_stack.length = 0;
+		redo_stack.length = 0;
+		selection.clear();
+		const camera = record.view;
+		if (camera && is_number(camera.x) && is_number(camera.y) && is_number(camera.zoom)) {
+			view.x = camera.x;
+			view.y = camera.y;
+			view.zoom = clamp_zoom(camera.zoom);
+		}
+		else {
+			view.zoom = 1;
+			view.x = screen_width / 2;
+			view.y = screen_height / 2;
+		}
+		try { localStorage.setItem(board_key, board.id); } catch (error) {}
+		show_board_name();
+		refresh_panel();
+		invalidate();
+	}
+
+	function show_board_name() {
+		document.getElementById("board_name").textContent = board.name;
+		document.title = board.name + " – infinite canvas";
+	}
+
+	function next_board_name(list) {
+		const names = new Set(list.map(function (record) { return record.name; }));
+		let n = list.length + 1;
+		while (names.has("Board " + n)) n++;
+		return "Board " + n;
+	}
+
+	async function switch_board(id) {
+		if (!board || id === board.id) return;
+		finish_everything();
+		await save_board();
+		const record = await board_get(id);
+		if (record) load_board(record);
+	}
+
+	async function new_board() {
+		finish_everything();
+		await save_board();
+		const record = make_board(next_board_name(await board_list()));
+		await board_put(record);
+		load_board(record);
+	}
+
+	async function duplicate_board() {
+		finish_everything();
+		await save_board();
+		const record = make_board(board.name + " copy", JSON.parse(JSON.stringify(elements)), { x: view.x, y: view.y, zoom: view.zoom });
+		await board_put(record);
+		load_board(record);
+	}
+
+	// Deleting is immediate, with a few seconds to undo from the toast.
+	async function delete_board() {
+		finish_everything();
+		await save_board();
+		const removed = board_record();
+		await board_delete(board.id);
+		const rest = await board_list();
+		let next = rest[0];
+		if (!next) {
+			next = make_board("Board 1");
+			await board_put(next);
+		}
+		load_board(next);
+		show_toast("Deleted “" + removed.name + "”.", async function () {
+			await save_board();
+			await board_put(removed);
+			load_board(removed);
+		});
+	}
+
+	// The board menu
+
+	const board_button = document.getElementById("board_button");
+	const board_menu = document.getElementById("board_menu");
+	const board_rename = document.getElementById("board_rename");
+
+	function relative_time(time) {
+		const minutes = Math.round((Date.now() - time) / 60000);
+		if (minutes < 1) return "now";
+		if (minutes < 60) return minutes + "m";
+		if (minutes < 60 * 24) return Math.round(minutes / 60) + "h";
+		return Math.round(minutes / 60 / 24) + "d";
+	}
+
+	async function open_board_menu() {
+		finish_everything();
+		await save_board();
+		board_rename.value = board.name;
+		const list_element = document.getElementById("board_list");
+		list_element.innerHTML = "";
+		for (const record of await board_list()) {
+			const row = document.createElement("button");
+			row.type = "button";
+			row.className = "board_row" + (record.id === board.id ? " on" : "");
+			const name = document.createElement("span");
+			name.className = "label";
+			name.textContent = record.name;
+			const time = document.createElement("span");
+			time.className = "time";
+			time.textContent = record.id === board.id ? "open" : relative_time(record.updated);
+			row.append(name, time);
+			row.addEventListener("click", function () {
+				close_board_menu();
+				switch_board(record.id);
+			});
+			list_element.append(row);
+		}
+		board_menu.hidden = false;
+		board_button.setAttribute("aria-expanded", "true");
+	}
+
+	function close_board_menu() {
+		if (board_menu.hidden) return;
+		board_menu.hidden = true;
+		board_button.setAttribute("aria-expanded", "false");
+	}
+
+	board_button.addEventListener("click", function () {
+		if (board_menu.hidden) open_board_menu();
+		else close_board_menu();
+	});
+
+	board_rename.addEventListener("input", function () {
+		board.name = board_rename.value.trim() || "Untitled board";
+		show_board_name();
+		schedule_save();
+	});
+
+	board_rename.addEventListener("keydown", function (event) {
+		if (event.key === "Enter" || event.key === "Escape") close_board_menu();
+	});
+
+	document.getElementById("board_new").addEventListener("click", function () {
+		close_board_menu();
+		new_board();
+	});
+
+	document.getElementById("board_duplicate").addEventListener("click", function () {
+		close_board_menu();
+		duplicate_board();
+	});
+
+	document.getElementById("board_delete").addEventListener("click", function () {
+		close_board_menu();
+		delete_board();
+	});
+
+	// A press anywhere outside the menu closes it.
+	document.addEventListener("pointerdown", function (event) {
+		if (board_menu.hidden || board_menu.contains(event.target) || board_button.contains(event.target)) return;
+		close_board_menu();
+	}, true);
+
+	// ---------- export ----------
+
+	/*
+		All three exports share one job description: the selection (with
+		everything inside selected surfaces) or, with nothing selected, the
+		whole board, plus the padded bounds around it.
+	*/
+	function export_job() {
+		const ids = selection.size ? with_children(selection) : null;
+		const list = ids ? elements.filter(function (element) { return ids.has(element.id); }) : elements.slice();
+		const box = union(list.map(box_of));
+		if (!box) return null;
+		const pad = 32, title_room = 24;
+		return {
+			ids: ids,
+			list: list,
+			x: box.x - pad,
+			y: box.y - pad - title_room,
+			w: box.w + pad * 2,
+			h: box.h + pad * 2 + title_room
+		};
+	}
+
+	function board_slug() {
+		return ((board ? board.name : "canvas").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "canvas") + "_" + stamp();
+	}
+
+	async function render_png(job) {
+		// Images draw only once decoded, so wait for every one in the export.
+		await Promise.all(job.list.filter(function (element) { return element.type === "image"; }).map(function (element) { return asset_image(element.asset).ready; }));
+		const scale = Math.min(2, 8000 / Math.max(job.w, job.h));
+		const canvas = document.createElement("canvas");
+		canvas.width = Math.ceil(job.w * scale);
+		canvas.height = Math.ceil(job.h * scale);
+		// Selection outlines and highlights are not part of the picture.
+		const kept = new Set(selection);
+		selection.clear();
+		draw_scene(canvas.getContext("2d"), { x: -job.x, y: -job.y, zoom: 1, ratio: scale, width: job.w, height: job.h }, job.ids, well_color);
+		for (const id of kept) selection.add(id);
+		return new Promise(function (resolve, reject) {
+			canvas.toBlob(function (blob) {
+				if (blob) resolve(blob);
+				else reject(new Error("encode failed"));
+			}, "image/png");
+		});
+	}
+
+	async function export_png() {
+		finish_everything();
+		const job = export_job();
+		if (!job) {
+			show_toast("Nothing to export yet.");
+			return;
+		}
+		download(await render_png(job), board_slug() + ".png");
+	}
+
+	/*
+		Copy as PNG. Safari only allows clipboard writes that start inside the
+		tap itself, so the ClipboardItem is created right away with a promise
+		of the image, and the rendering finishes afterwards.
+	*/
+	function copy_png() {
+		finish_everything();
+		const job = export_job();
+		if (!job) {
+			show_toast("Nothing to copy yet.");
+			return;
+		}
+		if (!window.ClipboardItem || !navigator.clipboard || !navigator.clipboard.write) {
+			show_toast("This browser cannot copy images. Use Export PNG instead.");
+			return;
+		}
+		navigator.clipboard.write([new ClipboardItem({ "image/png": render_png(job) })]).then(function () {
+			show_toast(job.ids ? "Selection copied as an image." : "Board copied as an image.");
+		}).catch(function () {
+			show_toast("Copy was blocked by the browser. Use Export PNG instead.");
+		});
+	}
+
+	// SVG building blocks
+
+	function xml(text) {
+		return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+	}
+
+	function num(value) {
+		return String(fixed(value));
+	}
+
+	// Canvas text is laid out from its top edge; SVG places text on its baseline.
+	function svg_text(text, x, y, size, color, anchor, family) {
+		const lines = text_lines(text);
+		let markup = "<text font-family=\"" + xml(family || sans) + "\" font-size=\"" + num(size) + "\" fill=\"" + color + "\"" + (anchor === "middle" ? " text-anchor=\"middle\"" : "") + ">";
+		for (let i = 0; i < lines.length; i++)
+			markup += "<tspan x=\"" + num(x) + "\" y=\"" + num(y + size * 0.92 + i * size * 1.3) + "\" xml:space=\"preserve\">" + xml(lines[i]) + "</tspan>";
+		return markup + "</text>";
+	}
+
+	// The same rounded polyline the canvas draws with arcTo, written as lines and quadratic corners.
+	function rounded_polyline(points) {
+		let d = "M" + num(points[0].x) + " " + num(points[0].y);
+		for (let i = 1; i < points.length - 1; i++) {
+			const before = points[i - 1], at = points[i], after = points[i + 1];
+			const in_length = Math.hypot(at.x - before.x, at.y - before.y);
+			const out_length = Math.hypot(after.x - at.x, after.y - at.y);
+			const r = Math.min(10, in_length / 2, out_length / 2);
+			if (!r) {
+				d += "L" + num(at.x) + " " + num(at.y);
+				continue;
+			}
+			d += "L" + num(at.x - (at.x - before.x) / in_length * r) + " " + num(at.y - (at.y - before.y) / in_length * r);
+			d += "Q" + num(at.x) + " " + num(at.y) + " " + num(at.x + (after.x - at.x) / out_length * r) + " " + num(at.y + (after.y - at.y) / out_length * r);
+		}
+		const last = points[points.length - 1];
+		return d + "L" + num(last.x) + " " + num(last.y);
+	}
+
+	function svg_arrowhead(from, to, size, color) {
+		const angle = Math.atan2(to.y - from.y, to.x - from.x);
+		const left = { x: to.x - size * Math.cos(angle - 0.42), y: to.y - size * Math.sin(angle - 0.42) };
+		const right = { x: to.x - size * Math.cos(angle + 0.42), y: to.y - size * Math.sin(angle + 0.42) };
+		return "<path d=\"M" + num(to.x) + " " + num(to.y) + "L" + num(left.x) + " " + num(left.y) + "L" + num(right.x) + " " + num(right.y) + "Z\" fill=\"" + color + "\"/>";
+	}
+
+	function svg_connector(connector) {
+		const points = connector_points(connector);
+		const last = points.length - 1;
+		const head = 7 + connector.width * 2.2;
+		const trimmed = points.map(function (point) { return { x: point.x, y: point.y }; });
+		const trim = function (tip, from) {
+			const length = Math.hypot(tip.x - from.x, tip.y - from.y);
+			if (length < head) return;
+			tip.x -= (tip.x - from.x) / length * head * 0.6;
+			tip.y -= (tip.y - from.y) / length * head * 0.6;
+		};
+		if (connector.heads !== "none") trim(trimmed[last], points[last - 1]);
+		if (connector.heads === "both") trim(trimmed[0], points[1]);
+		let markup = "<path d=\"" + rounded_polyline(trimmed) + "\" fill=\"none\" stroke=\"" + connector.color + "\" stroke-width=\"" + num(connector.width) + "\" stroke-linecap=\"round\" stroke-linejoin=\"round\"" + (connector.dash ? " stroke-dasharray=\"" + num(connector.width * 4) + " " + num(connector.width * 3) + "\"" : "") + "/>";
+		if (connector.heads !== "none") markup += svg_arrowhead(points[last - 1], points[last], head, connector.color);
+		if (connector.heads === "both") markup += svg_arrowhead(points[1], points[0], head, connector.color);
+		if (connector.label) {
+			const box = label_box(connector, points);
+			markup += "<rect x=\"" + num(box.x) + "\" y=\"" + num(box.y) + "\" width=\"" + num(box.w) + "\" height=\"" + num(box.h) + "\" fill=\"" + well_color + "\"/>";
+			markup += svg_text(connector.label, box.x + box.w / 2, box.y + 3, label_size, connector.color, "middle");
+		}
+		return markup;
+	}
+
+	async function build_svg(job) {
+		const defs = [];
+		let clip_count = 0;
+		const images = new Map();
+		for (const element of job.list) {
+			if (element.type !== "image" || images.has(element.asset)) continue;
+			try {
+				const blob = await asset_get(element.asset);
+				images.set(element.asset, blob ? await blob_to_data_url(blob) : null);
+			}
+			catch (error) {
+				images.set(element.asset, null);
+			}
+		}
+
+		const clip = function (x, y, w, h, r) {
+			const id = "clip_" + (++clip_count);
+			defs.push("<clipPath id=\"" + id + "\"><rect x=\"" + num(x) + "\" y=\"" + num(y) + "\" width=\"" + num(w) + "\" height=\"" + num(h) + "\"" + (r ? " rx=\"" + num(r) + "\"" : "") + "/></clipPath>");
+			return id;
+		};
+
+		const element_svg = function (element) {
+			if (element.type === "stroke")
+				return "<path transform=\"translate(" + num(element.x) + " " + num(element.y) + ")\" d=\"" + stroke_outline(element.points, element.size) + "\" fill=\"" + element.color + "\"/>";
+			if (element.type === "text") return svg_text(element.text, element.x, element.y, element.font_size, element.color, "start");
+			if (element.type === "icon") {
+				const icon = icons[element.icon] || icons.database;
+				let markup = "<path transform=\"translate(" + num(element.x) + " " + num(element.y) + ") scale(" + num(element.w / 960) + " " + num(element.h / 960) + ") translate(0 960)\" d=\"" + icon.d + "\" fill=\"" + element.color + "\"/>";
+				if (element.label) markup += svg_text(element.label, element.x + element.w / 2, element.y + element.h + 8, label_size, element.color, "middle");
+				return markup;
+			}
+			if (element.type === "image") {
+				const data = images.get(element.asset);
+				const r = Math.min(6, element.w / 8, element.h / 8);
+				if (!data) return "<rect x=\"" + num(element.x) + "\" y=\"" + num(element.y) + "\" width=\"" + num(element.w) + "\" height=\"" + num(element.h) + "\" rx=\"" + num(r) + "\" fill=\"" + page_color + "\" stroke=\"" + line_color + "\" stroke-dasharray=\"6 4\"/>";
+				return "<image href=\"" + data + "\" x=\"" + num(element.x) + "\" y=\"" + num(element.y) + "\" width=\"" + num(element.w) + "\" height=\"" + num(element.h) + "\" preserveAspectRatio=\"none\" clip-path=\"url(#" + clip(element.x, element.y, element.w, element.h, r) + ")\"/>";
+			}
+			return "";
+		};
+
+		defs.push("<filter id=\"surface_shadow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"150%\"><feDropShadow dx=\"0\" dy=\"6\" stdDeviation=\"11\" flood-color=\"#000\" flood-opacity=\"0.45\"/></filter>");
+
+		const frame_svg = function (frame, depth) {
+			const look = surface_style(frame);
+			const accent = look.border_color === "auto" ? null : look.border_color;
+			const rect = "x=\"" + num(frame.x) + "\" y=\"" + num(frame.y) + "\" width=\"" + num(frame.w) + "\" height=\"" + num(frame.h) + "\" rx=\"" + num(surface_corner(frame)) + "\"";
+			let markup = "";
+			if (look.fill !== "clear") {
+				markup += "<rect " + rect + " fill=\"" + depth_colors[Math.min(depth, depth_colors.length - 1)] + "\" filter=\"url(#surface_shadow)\"/>";
+				if (look.fill !== "auto") markup += "<rect " + rect + " fill=\"" + look.fill + "\" fill-opacity=\"0.14\"/>";
+			}
+			if (look.border !== "none")
+				markup += "<rect " + rect + " fill=\"none\" stroke=\"" + (accent || line_color) + "\" stroke-width=\"" + (accent ? 1.5 : 1) + "\"" + (look.border === "dashed" ? " stroke-dasharray=\"6 4\"" : "") + "/>";
+			markup += svg_text(frame.name || "Surface", frame.x + Math.min(surface_corner(frame), 6), frame.y - 12 * 1.52, 12, accent || faint_color, "start", mono);
+			return markup;
+		};
+
+		const layer = layers(job.ids);
+		const level_svg = function (surfaces, items, depth) {
+			let markup = "";
+			for (const frame of surfaces) {
+				markup += frame_svg(frame, depth);
+				const level = layer.kids.get(frame.id);
+				const inner = level_svg(level.surfaces, level.items, depth + 1);
+				if (inner) markup += "<g clip-path=\"url(#" + clip(frame.x, frame.y, frame.w, frame.h, surface_corner(frame)) + ")\">" + inner + "</g>";
+			}
+			for (const element of items) markup += element_svg(element);
+			return markup;
+		};
+
+		let body = level_svg(layer.surfaces, layer.loose, 0);
+		for (const connector of layer.connectors) body += svg_connector(connector);
+
+		return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + Math.ceil(job.w) + "\" height=\"" + Math.ceil(job.h) + "\" viewBox=\"" + [job.x, job.y, job.w, job.h].map(num).join(" ") + "\">"
+			+ "<defs>" + defs.join("") + "</defs>"
+			+ "<rect x=\"" + num(job.x) + "\" y=\"" + num(job.y) + "\" width=\"" + num(job.w) + "\" height=\"" + num(job.h) + "\" fill=\"" + well_color + "\"/>"
+			+ body + "</svg>";
+	}
+
+	async function export_svg() {
+		finish_everything();
+		const job = export_job();
+		if (!job) {
+			show_toast("Nothing to export yet.");
+			return;
+		}
+		const markup = await build_svg(job);
+		download(new Blob([markup], { type: "image/svg+xml" }), board_slug() + ".svg");
+	}
+
+	// The export menu opens above the Export button.
+
+	const export_menu = document.getElementById("export_menu");
+	const export_button = document.getElementById("png_button");
+
+	function open_export_menu() {
+		finish_everything();
+		document.getElementById("export_scope").textContent = selection.size ? "Exports the selection" : "Exports the whole board";
+		export_menu.hidden = false;
+		export_button.setAttribute("aria-expanded", "true");
+	}
+
+	function close_export_menu() {
+		if (export_menu.hidden) return;
+		export_menu.hidden = true;
+		export_button.setAttribute("aria-expanded", "false");
+	}
+
+	export_button.addEventListener("click", function () {
+		if (export_menu.hidden) open_export_menu();
+		else close_export_menu();
+	});
+
+	document.getElementById("export_png").addEventListener("click", function () {
+		close_export_menu();
+		export_png();
+	});
+
+	document.getElementById("export_svg").addEventListener("click", function () {
+		close_export_menu();
+		export_svg();
+	});
+
+	document.getElementById("export_copy").addEventListener("click", function () {
+		close_export_menu();
+		copy_png();
+	});
+
+	document.addEventListener("pointerdown", function (event) {
+		if (export_menu.hidden || export_menu.contains(event.target) || export_button.contains(event.target)) return;
+		close_export_menu();
+	}, true);
 
 	// ---------- files and storage ----------
 
-	const known_types = new Set(["stroke", "frame", "icon", "text", "connector"]);
+	const known_types = new Set(["stroke", "frame", "icon", "text", "connector", "image"]);
 	let save_timer = null;
 	let save_warned = false;
 
@@ -2912,6 +4215,7 @@
 		if (!element || typeof element.id !== "string" || !known_types.has(element.type)) return false;
 		if (element.type === "connector") return Boolean(element.start && element.end);
 		if (element.type === "stroke" && (!Array.isArray(element.points) || element.points.length % 3 !== 0 || !element.points.length)) return false;
+		if (element.type === "image" && typeof element.asset !== "string") return false;
 		return is_number(element.x) && is_number(element.y) && is_number(element.w) && is_number(element.h);
 	}
 
@@ -2923,43 +4227,25 @@
 
 	function read_data(data) {
 		if (!data || !Array.isArray(data.elements)) return null;
-		return data.elements.filter(valid_element);
+		const list = data.elements.filter(valid_element);
+		break_loops(list);
+		return list;
 	}
 
-	function schedule_save() {
-		clearTimeout(save_timer);
-		save_timer = setTimeout(save_local, 400);
-	}
-
-	function save_local() {
-		clearTimeout(save_timer);
-		try {
-			localStorage.setItem(storage_key, JSON.stringify(serialize(true)));
-		}
-		catch (error) {
-			if (save_warned) return;
-			save_warned = true;
-			show_toast("Autosave failed: browser storage is full. Use Save to keep a copy.", false);
-		}
-	}
-
-	function load_local() {
-		try {
-			const data = JSON.parse(localStorage.getItem(storage_key) || "null");
-			const list = read_data(data);
-			if (!list) return false;
-			elements = list;
-			reindex();
-			if (data.view && is_number(data.view.x) && is_number(data.view.y) && is_number(data.view.zoom)) {
-				view.x = data.view.x;
-				view.y = data.view.y;
-				view.zoom = clamp_zoom(data.view.zoom);
-				return "view";
+	// A hand-edited file could make a surface its own ancestor; such an element becomes top-level.
+	function break_loops(list) {
+		const by_id = new Map(list.map(function (element) { return [element.id, element]; }));
+		for (const element of list) {
+			const chain = new Set([element.id]);
+			let parent = by_id.get(element.frame_id);
+			while (parent) {
+				if (chain.has(parent.id)) {
+					element.frame_id = null;
+					break;
+				}
+				chain.add(parent.id);
+				parent = by_id.get(parent.frame_id);
 			}
-			return true;
-		}
-		catch (error) {
-			return false;
 		}
 	}
 
@@ -2978,16 +4264,31 @@
 		setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
 	}
 
-	function save_file() {
+	// The saved file embeds every image it uses, so it opens anywhere.
+	async function save_file() {
 		finish_everything();
-		download(new Blob([JSON.stringify(serialize(false))], { type: "application/json" }), "canvas_" + stamp() + ".json");
+		const data = serialize(false);
+		const assets = {};
+		for (const element of elements) {
+			if (element.type !== "image" || assets[element.asset]) continue;
+			try {
+				const blob = await asset_get(element.asset);
+				if (blob) assets[element.asset] = await blob_to_data_url(blob);
+			}
+			catch (error) {}
+		}
+		if (Object.keys(assets).length) data.assets = assets;
+		const slug = (board ? board.name : "canvas").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "canvas";
+		data.name = board ? board.name : undefined;
+		download(new Blob([JSON.stringify(data)], { type: "application/json" }), slug + "_" + stamp() + ".json");
 	}
 
 	function open_file(file) {
-		file.text().then(function (text) {
-			let list = null;
+		file.text().then(async function (text) {
+			let data = null, list = null;
 			try {
-				list = read_data(JSON.parse(text));
+				data = JSON.parse(text);
+				list = read_data(data);
 			}
 			catch (error) {
 				list = null;
@@ -2996,45 +4297,32 @@
 				show_toast("That file is not a saved canvas. Open a .json made with Save.", false);
 				return;
 			}
+			if (data.assets && typeof data.assets === "object") {
+				for (const id in data.assets) {
+					try {
+						const blob = await (await fetch(data.assets[id])).blob();
+						await asset_put(id, blob);
+						image_cache.delete(id);
+					}
+					catch (error) {}
+				}
+			}
+			// An opened file becomes a new board; nothing open gets replaced.
 			finish_everything();
-			begin_change();
-			elements = list;
-			reindex();
-			selection.clear();
-			end_change();
-			refresh_panel();
+			await save_board();
+			const name = typeof data.name === "string" && data.name.trim() ? data.name.trim() : file.name.replace(/\.json$/i, "");
+			const record = make_board(name, list);
+			if (boards_available) await board_put(record).catch(function () {});
+			load_board(record);
 			fit_view();
-			show_toast("Opened " + file.name + ".", true);
+			show_toast("Opened “" + name + "” as a new board.");
 		});
 	}
 
-	function export_png() {
-		finish_everything();
-		const ids = selection.size ? with_children(selection) : null;
-		const list = ids ? elements.filter(function (element) { return ids.has(element.id); }) : elements;
-		const box = union(list.map(box_of));
-		if (!box) {
-			show_toast("Nothing to export yet.", false);
-			return;
-		}
-		const pad = 32, title_room = 24;
-		const width = box.w + pad * 2, height = box.h + pad * 2 + title_room;
-		const scale = Math.min(2, 8000 / Math.max(width, height));
-		const canvas = document.createElement("canvas");
-		canvas.width = Math.ceil(width * scale);
-		canvas.height = Math.ceil(height * scale);
-		const kept = new Set(selection);
-		selection.clear();
-		draw_scene(canvas.getContext("2d"), { x: pad - box.x, y: pad + title_room - box.y, zoom: 1, ratio: scale, width: width, height: height }, ids, well_color);
-		for (const id of kept) selection.add(id);
-		canvas.toBlob(function (blob) {
-			if (blob) download(blob, "canvas_" + stamp() + ".png");
-		}, "image/png");
-	}
 
-	window.addEventListener("pagehide", save_local);
+	window.addEventListener("pagehide", save_board);
 	document.addEventListener("visibilitychange", function () {
-		if (document.visibilityState === "hidden") save_local();
+		if (document.visibilityState === "hidden") save_board();
 	});
 
 	// ---------- start ----------
@@ -3053,15 +4341,43 @@
 		resize();
 	}
 
-	const restored = load_local();
 	measure_viewport();
 	new ResizeObserver(measure_viewport).observe(viewport);
 	window.addEventListener("resize", measure_viewport);
-	if (restored !== "view") {
-		view.x = screen_width / 2;
-		view.y = screen_height / 2;
-	}
 	set_tool(tool);
+
+	/*
+		Start-up picks the last open board. On the first run after this update,
+		the canvas that used to live in localStorage becomes "Board 1", then
+		the old copy is removed. If IndexedDB is unavailable, a temporary
+		in-memory board still works and Save keeps a copy.
+	*/
+	async function start() {
+		let list = [];
+		try {
+			list = await board_list();
+		}
+		catch (error) {
+			boards_available = false;
+			load_board(make_board("Board 1"));
+			show_toast("Browser storage is unavailable. Your board will not autosave; use Save to keep a copy.");
+			return;
+		}
+		if (!list.length) {
+			let legacy = null;
+			try { legacy = JSON.parse(localStorage.getItem(storage_key) || "null"); } catch (error) {}
+			const record = make_board("Board 1", legacy && Array.isArray(legacy.elements) ? legacy.elements : [], legacy ? legacy.view : null);
+			await board_put(record);
+			try { localStorage.removeItem(storage_key); } catch (error) {}
+			list = [record];
+		}
+		let wanted = null;
+		try { wanted = localStorage.getItem(board_key); } catch (error) {}
+		load_board(list.find(function (record) { return record.id === wanted; }) || list[0]);
+		setTimeout(prune_assets, 3000);
+	}
+
+	start();
 </script>
 
 </body>
