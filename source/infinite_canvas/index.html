@@ -909,6 +909,90 @@
 </dialog>
 
 <script>
+	/*
+		PROTOCOL: infinite_canvas
+		Read /AGENTS.md first. This block adds the rules specific to this tool.
+		Update it in the same change whenever any of it stops being true.
+
+		THE AI FORMAT SPEC COMES FIRST
+		"Format for AI" (format_spec() in "file format for AI") is the protocol other AIs read to write boards for this app.
+		Any change to what a saved board can hold, or to how a file is read, must update format_spec() in the same change.
+		Lists built from constants update themselves (colors, size_ranges, icons, node_shapes, panel_rows, element_defaults); the prose does not.
+		The "Format spec:" comments next to those constants say exactly which part of the spec to touch.
+		format_example must stay valid: it is read the same way a file is read.
+		Bump format_version only when old files would be read differently.
+
+		MAP (sections in this script, in order)
+		constants: palette, size_ranges (sliders), Material Symbols icons, toolbar glyphs
+		state: elements, view (camera), selection, style defaults
+		elements, geometry: boxes, pressure-stroke outlines, path caches
+		connectors: bound ends, edge points, elbow routing
+		layering and hit testing: the surface tree, draw and hit order
+		history: snapshot undo (begin_change, edit, end_change, cancel_change)
+		rendering: draw_scene, surfaces, elements, connectors
+		flowchart nodes, flow building: node shapes, sizing, + handles, chaining
+		overlay: selection, handles, live pen stroke, hover
+		input, touch navigation, actions: pointer model, pinch, tool actions
+		pen and eraser; select, move, resize; surfaces and icons; connectors
+		text: in-place editor
+		commands, keyboard: delete, copy, paste, nudge, shortcuts
+		chrome: sidebar tools, context panel, size sliders, surface name, collapse, toast
+		images: IndexedDB asset store, paste, drop, picker
+		clipboard and drop; boards: one IndexedDB record per board
+		export: PNG, SVG, copy as PNG
+		files and storage: element_defaults, complete_element, valid_element, parse_document, .json save and open
+		file format for AI: format_spec(), format_example, the dialog
+		start: async start-up and migration
+
+		INVARIANTS
+		Never change an element in place. Inside a change, call edit(id) and change the copy it returns; older undo snapshots share the originals.
+		Every begin_change() ends with end_change() or cancel_change(). Use undo_stack.pop() only when nothing was edited. A slider drag is one change (set_size, end_sizing).
+		Stroke points are never mutated after a stroke is committed. Path caches and undo depend on it.
+		Surfaces form a tree through frame_id only. Never place a surface inside itself or its descendants (reparent skips them).
+		A missing stored field means its default from element_defaults. Old boards, hand-written files and AI-written files must keep opening.
+		Board data lives in IndexedDB ("boards"), image bytes in "assets", keyed by content hash. localStorage holds only small settings.
+		The screen, PNG export and SVG export draw in the same order: surfaces (each clipped, contents inside), then loose items, then connectors.
+		Sizes in world units scale with zoom; on-screen chrome (titles, handles, shadows) is sized in screen pixels.
+		Pencil draws; once a pen is seen, fingers only pan and pinch. Keep this palm-rejection model.
+
+		CHECKLIST: adding or changing an element type
+		1. known_types, element_defaults, complete_element (if fields can be measured), valid_element.
+		2. format_spec(): a section under "Element types", plus "Sizing" and "What the loader does" if they change.
+		3. box_of and hits: its bounds and hit area.
+		4. draw_element (and a draw_* helper): canvas drawing.
+		5. build_svg, element_svg: SVG export. PNG export reuses draw_element.
+		6. panel_sections and context_label; tool_contexts if it has a tool.
+		7. box_types if it gets resize handles; resize_to if it keeps its aspect ratio.
+		8. bound_target and connector edges if connectors attach to it (node_edge for exact outlines).
+		9. editor_placement and commit_editor if it has editable text; double_tap and the Enter key.
+		10. erase_at if the eraser must leave it alone; reparent if its surface membership differs.
+		11. prune_assets if it references stored images.
+
+		CHECKLIST: adding a style option or a size
+		Option rows: panel_rows (or a custom row like node_shapes), style defaults, set_style, current_value, a field mapping (surface_fields, node_fields), and its line in format_spec().
+		Sizes: an entry in size_ranges (types, field, range, initial) and a slider field in the sidebar; format_spec() picks up the range by itself.
+
+		CHECKLIST: adding a tool button
+		tools list (glyph, key, label); activate_tool if it is an action rather than a mode; sticky_tools if it stays active after use; tool_contexts for its sidebar defaults.
+
+		MANUAL TESTS before finishing
+		Pencil or pen drawing with pressure; finger pan and pinch; mouse and keyboard shortcuts.
+		Undo and redo across the change; reload (autosave); switch boards.
+		Save, then open the .json as a new board; PNG and SVG export match the screen.
+		Open the "Format for AI" text, check the change is described, and open the example board it contains.
+		iPad portrait width (about 820px) and the collapsed sidebar.
+
+		DECISIONS
+		Removed: generic shapes (rectangle, ellipse, diamond); flow nodes cover flowcharts instead.
+		Removed: the lock tool; two- and three-finger tap undo and redo.
+		Removed: surface list and presentation mode; align and distribute. Tried and not wanted.
+		Removed: renaming surfaces by double-tapping the title or pressing Enter. The sidebar name field is the only way.
+		Kept: one fixed left sidebar; tools pinned on top, footer pinned at the bottom, the middle shows only what applies to the selection or the active tool.
+		Kept: sizes are sliders (pen size, line width, font size), not presets.
+		Kept: decision branches are labeled True and False.
+		Not built yet: share link; connector routing around nodes; Mermaid import.
+	*/
+
 	// ---------- constants ----------
 
 	const colors = ["#e9ebee", "#8d96a0", "#e5766c", "#e3a061", "#e2c870", "#86c39a", "#74abe0", "#ad9ae0"];

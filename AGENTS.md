@@ -69,8 +69,9 @@ These apply to code you write or change. Do not reformat untouched legacy code.
 2. Keep saved data backward compatible. New stored fields are optional and have a default. Never rename or repurpose a stored key. Files saved by older versions must still open.
 3. When you change a tool's architecture, invariants or the places a feature touches, update that tool's protocol block in the same change.
 4. When a feature is added, removed or declined, record it in the tool's decisions list, so it is not added back by accident.
-5. Keep the change scoped to what was asked. No unrelated refactors.
-6. Before finishing: no console errors, test with mouse and touch, reload the page, and check save, open and export where the tool has them.
+5. If the tool publishes a spec for AI (a description of its file format that other AIs read to write files for it), update that spec in the same change whenever what a file can hold, or how a file is read, changes. A stale spec makes AIs write broken files.
+6. Keep the change scoped to what was asked. No unrelated refactors.
+7. Before finishing: no console errors, test with mouse and touch, reload the page, and check save, open and export where the tool has them.
 
 ## Tool protocol blocks
 
@@ -79,12 +80,13 @@ A tool with enough internal structure keeps a protocol block as the first thing 
 - a map of the script's sections, in order;
 - invariants that must not break;
 - checklists for common changes (for example, "adding an element type");
+- the spec for AI, if the tool has one, and which code feeds it;
 - a manual test list;
 - decisions: features added, removed or declined, and why.
 
 Tools that have a protocol block:
 
-- `source/infinite_canvas/index.html`
+- `source/infinite_canvas/index.html` (also publishes a spec for AI: "Format for AI" in the sidebar, built by `format_spec()`)
 
 ## Decisions (repo-wide)
 
