@@ -406,11 +406,28 @@
 		outline-offset: 2px;
 	}
 
-	.sidebar .weight {
-		display: block;
-		width: 22px;
-		border-radius: 3px;
-		background: currentColor;
+	/* A size slider with its current value beside it. */
+	.sidebar .slider {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		height: 30px;
+	}
+
+	.sidebar .slider input {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding: 0;
+		accent-color: var(--ink_soft);
+		cursor: pointer;
+	}
+
+	.sidebar .slider output {
+		flex: 0 0 4ch;
+		color: var(--ink_soft);
+		font-family: var(--mono);
+		font-size: 11px;
+		text-align: right;
 	}
 
 	.sidebar_foot {
@@ -613,6 +630,90 @@
 	.toast button[hidden] {
 		display: none;
 	}
+
+	/* ---------- file format dialog ---------- */
+
+	/* The format an AI needs to answer as a board, shown read-only so it can be read, selected or copied. */
+	.format_dialog {
+		width: min(760px, calc(100vw - 32px));
+		height: min(720px, calc(100dvh - 32px));
+		margin: auto;
+		padding: 16px;
+		border: 0;
+		border-radius: var(--radius);
+		background: var(--surface);
+		box-shadow: var(--shadow_deep);
+		color: var(--ink);
+	}
+
+	.format_dialog[open] {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.format_dialog::backdrop {
+		background: rgba(0, 0, 0, 0.5);
+	}
+
+	.format_dialog h2 {
+		margin: 0 0 4px;
+		font-size: 15px;
+		font-weight: 600;
+	}
+
+	.format_dialog p {
+		max-width: 64ch;
+		margin: 0;
+		color: var(--ink_soft);
+		font-size: 13px;
+		line-height: 1.5;
+	}
+
+	.format_dialog textarea {
+		flex: 1 1 auto;
+		min-height: 0;
+		padding: 12px;
+		border: 0;
+		border-radius: var(--radius);
+		background: var(--well);
+		color: var(--ink_soft);
+		font-family: var(--mono);
+		font-size: 12px;
+		line-height: 1.55;
+		tab-size: 4;
+		white-space: pre;
+		overflow: auto;
+		resize: none;
+	}
+
+	.format_actions {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.format_actions .gap {
+		flex: 1 1 auto;
+	}
+
+	.format_dialog button {
+		height: 32px;
+		padding: 0 12px;
+		background: transparent;
+		color: var(--ink_soft);
+		font-size: 12.5px;
+	}
+
+	.format_dialog button:hover {
+		background: var(--raised);
+		color: var(--ink);
+	}
+
+	.format_dialog #format_copy {
+		background: var(--accent_wash);
+		color: var(--ink);
+	}
 </style>
 </head>
 <body>
@@ -671,13 +772,17 @@
 					<span>Color</span>
 					<div class="swatches" id="swatches"></div>
 				</div>
-				<div class="field" data_section="width">
-					<span>Width</span>
-					<div class="row" id="widths"></div>
+				<div class="field" data_section="pen_size">
+					<span>Size</span>
+					<div class="slider" id="pen_size"></div>
 				</div>
-				<div class="field" data_section="font">
+				<div class="field" data_section="line_width">
+					<span>Width</span>
+					<div class="slider" id="line_width"></div>
+				</div>
+				<div class="field" data_section="font_size">
 					<span>Text</span>
-					<div class="row" id="fonts"></div>
+					<div class="slider" id="font_size"></div>
 				</div>
 			</section>
 
@@ -752,6 +857,9 @@
 				<button type="button" id="png_button" aria-haspopup="true" aria-expanded="false" title="Export the selection, or the whole board">Export</button>
 				<button type="button" id="clear_button">Clear</button>
 			</div>
+			<div class="row">
+				<button type="button" id="format_button" aria-haspopup="dialog" title="The file format an AI needs to answer as a board">Format for AI</button>
+			</div>
 			<input type="file" id="file_input" accept=".json,application/json" hidden>
 
 			<div class="export_menu" id="export_menu" hidden>
@@ -786,13 +894,34 @@
 	<button type="button" id="toast_undo">Undo</button>
 </div>
 
+<dialog class="format_dialog" id="format_dialog" aria-labelledby="format_title">
+	<div>
+		<h2 id="format_title">File format for AI</h2>
+		<p>Give this to an AI, then ask it to explain something as a board. Save its reply as a .json file and use Open.</p>
+	</div>
+	<textarea id="format_text" readonly spellcheck="false" aria-label="File format"></textarea>
+	<div class="format_actions">
+		<button type="button" id="format_copy">Copy</button>
+		<button type="button" id="format_download">Download .md</button>
+		<span class="gap"></span>
+		<button type="button" id="format_close">Close</button>
+	</div>
+</dialog>
+
 <script>
 	// ---------- constants ----------
 
 	const colors = ["#e9ebee", "#8d96a0", "#e5766c", "#e3a061", "#e2c870", "#86c39a", "#74abe0", "#ad9ae0"];
-	const pen_sizes = [2, 4, 8];
-	const line_widths = [1.5, 2.5, 4];
-	const font_sizes = [14, 20, 28, 40];
+	/*
+		Sizes picked with a slider. initial is the default for new elements.
+		types and field say which elements each slider edits.
+		Format spec: the ranges are printed in format_spec() from here.
+	*/
+	const size_ranges = {
+		pen_size: { min: 1, max: 24, step: 1, initial: 4, types: ["stroke"], field: "size" },
+		line_width: { min: 1, max: 8, step: 0.5, initial: 2.5, types: ["connector", "node"], field: "width" },
+		font_size: { min: 10, max: 96, step: 1, initial: 20, types: ["text"], field: "font_size" }
+	};
 	const grid_size = 24;
 	const snap_size = 12;
 	const min_zoom = 0.1;
@@ -848,6 +977,7 @@
 		https://github.com/google/material-design-icons
 		Paths are on Material's 960 x 960 grid (viewBox 0 -960 960 960).
 		Keys stay stable so saved canvases keep their icons.
+		Format spec: new icons are listed in format_spec() automatically.
 	*/
 	const icons = {
 		// Infrastructure
@@ -941,7 +1071,7 @@
 	let index = new Map();
 	const view = { x: 0, y: 0, zoom: 1 };
 	const selection = new Set();
-	const style = { color: colors[0], width: 1, dash: false, routing: "elbow", heads: "end", font: 1, surface_fill: "auto", surface_border: "solid", surface_border_color: "auto", node_shape: "process", node_fill: "solid", node_dash: false };
+	const style = { color: colors[0], pen_size: size_ranges.pen_size.initial, line_width: size_ranges.line_width.initial, font_size: size_ranges.font_size.initial, dash: false, routing: "elbow", heads: "end", surface_fill: "auto", surface_border: "solid", surface_border_color: "auto", node_shape: "process", node_fill: "solid", node_dash: false };
 
 	// Sidebar keys for surface styling, and the element field each one sets.
 	const surface_fields = { surface_fill: "fill", surface_border: "border", surface_border_color: "border_color" };
@@ -953,7 +1083,7 @@
 	const redo_stack = [];
 	let touched = new Set();
 
-	let tool = "pen";
+	let tool = "select";
 	let current_icon = "database";
 	let snap_on = false;
 	let pen_seen = false;
@@ -1798,6 +1928,7 @@
 		canvas (Path2D), for SVG export, and for hit and edge geometry.
 	*/
 	const node_font = 15;
+	// Format spec: new shapes are listed automatically; if node_size() changes, update the sizing formulas in format_spec().
 	const node_shapes = {
 		terminal: { label: "Start / End", glyph: "M7 7h10a5 5 0 0 1 0 10H7a5 5 0 0 1 0-10z" },
 		process: { label: "Process", glyph: "M6 6h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3z" },
@@ -2029,7 +2160,7 @@
 			start: { id: source.id, x: 0, y: 0 },
 			end: { id: target.id, x: 0, y: 0 },
 			color: style.color,
-			width: line_widths[style.width],
+			width: style.line_width,
 			dash: false,
 			routing: style.routing,
 			heads: "end",
@@ -2082,7 +2213,7 @@
 		begin_change();
 		const node = add(make_node(style.node_shape, world, {
 			color: style.color,
-			width: line_widths[style.width],
+			width: style.line_width,
 			fill: style.node_fill,
 			dash: style.node_dash
 		}));
@@ -2465,7 +2596,7 @@
 			return;
 		}
 		if (kind === "pen") {
-			action = Object.assign(base, { kind: "stroke", points: [], color: style.color, size: pen_sizes[style.width], pressure: null, last: null });
+			action = Object.assign(base, { kind: "stroke", points: [], color: style.color, size: style.pen_size, pressure: null, last: null });
 			add_samples(event);
 			invalidate(false);
 			return;
@@ -2957,7 +3088,7 @@
 			start: start,
 			end: { id: null, x: start.x, y: start.y },
 			color: style.color,
-			width: line_widths[style.width],
+			width: style.line_width,
 			dash: style.dash,
 			routing: style.routing,
 			heads: style.heads,
@@ -3012,7 +3143,7 @@
 
 	function create_text(world) {
 		begin_change();
-		const size = font_sizes[style.font];
+		const size = style.font_size;
 		const frame = frame_at(world.x, world.y);
 		const element = add({
 			id: new_id(),
@@ -3268,7 +3399,7 @@
 
 	window.addEventListener("keydown", function (event) {
 		const target = event.target;
-		if (target && target.closest && target.closest("input, textarea, select")) return;
+		if (target && target.closest && target.closest("input, textarea, select, dialog")) return;
 		/*
 			A clicked sidebar button keeps keyboard focus, and the browser shows
 			its focus ring as soon as a key is pressed. Shortcuts act on the
@@ -3518,12 +3649,11 @@
 
 	// style panel
 
+	// Format spec: option values are listed in format_spec() from here; a new row that is saved on elements needs its own line there.
 	const panel_rows = {
-		widths: { key: "width", options: [[0, "Thin"], [1, "Medium"], [2, "Thick"]] },
 		dashes: { key: "dash", options: [[false, "Solid"], [true, "Dashed"]] },
 		routings: { key: "routing", options: [["straight", "Straight"], ["elbow", "Elbow"]] },
 		heads: { key: "heads", options: [["none", "None"], ["end", "End"], ["both", "Both"]] },
-		fonts: { key: "font", options: [[0, "S"], [1, "M"], [2, "L"], [3, "XL"]] },
 		surface_borders: { key: "surface_border", options: [["solid", "Solid"], ["dashed", "Dashed"], ["none", "None"]] },
 		node_fills: { key: "node_fill", options: [["none", "None"], ["solid", "Solid"], ["tint", "Tint"]] },
 		node_dashes: { key: "node_dash", options: [[false, "Solid"], [true, "Dashed"]] }
@@ -3557,14 +3687,7 @@
 		for (const option of spec.options) {
 			const button = document.createElement("button");
 			button.type = "button";
-			if (spec.key === "width") {
-				button.setAttribute("aria-label", option[1]);
-				const weight = document.createElement("span");
-				weight.className = "weight";
-				weight.style.height = [1.5, 3, 5][option[0]] + "px";
-				button.append(weight);
-			}
-			else button.textContent = option[1];
+			button.textContent = option[1];
 			button.addEventListener("click", function () { set_style(spec.key, option[0]); });
 			document.getElementById(row).append(button);
 			panel_buttons.push({ key: spec.key, value: option[0], button: button });
@@ -3582,12 +3705,88 @@
 		panel_buttons.push({ key: "node_shape", value: shape, button: button });
 	}
 
+	// size sliders
+
+	const size_inputs = {};
+
+	for (const key in size_ranges) {
+		const range = size_ranges[key];
+		const input = document.createElement("input");
+		input.type = "range";
+		input.min = range.min;
+		input.max = range.max;
+		input.step = range.step;
+		input.value = range.initial;
+		input.setAttribute("aria-label", document.querySelector("[data_section=\"" + key + "\"] > span").textContent);
+		const output = document.createElement("output");
+		document.getElementById(key).append(input, output);
+		size_inputs[key] = { input: input, output: output };
+		input.addEventListener("input", function () { set_size(key, Number(input.value)); });
+		input.addEventListener("change", end_sizing);
+		input.addEventListener("blur", end_sizing);
+	}
+
+	function show_size(key, value) {
+		const entry = size_inputs[key];
+		if (document.activeElement !== entry.input) entry.input.value = value;
+		entry.output.textContent = String(value);
+	}
+
+	// The first selected element the slider applies to, else the default for new ones.
+	function current_size(key) {
+		const range = size_ranges[key];
+		for (const id of selection) {
+			const element = index.get(id);
+			if (element && range.types.includes(element.type) && is_number(element[range.field])) return element[range.field];
+		}
+		return style[key];
+	}
+
+	/*
+		A drag fires input many times; the whole drag is one undo step, opened
+		on the first input and closed on change (release) or blur. With nothing
+		selected, the slider sets the default for what you make next.
+	*/
+	let sizing = null;
+
+	function set_size(key, value) {
+		show_size(key, value);
+		if (!selection.size) {
+			style[key] = value;
+			return;
+		}
+		const range = size_ranges[key];
+		if (sizing !== key) {
+			end_sizing();
+			begin_change();
+			sizing = key;
+		}
+		for (const id of selection) {
+			const element = index.get(id);
+			if (!element || !range.types.includes(element.type)) continue;
+			const copy = edit(id);
+			copy[range.field] = value;
+			if (copy.type === "text") {
+				const measured = measure_text(copy.text, copy.font_size);
+				copy.w = measured.w;
+				copy.h = measured.h;
+			}
+		}
+		invalidate();
+	}
+
+	function end_sizing() {
+		if (!sizing) return;
+		sizing = null;
+		end_change();
+	}
+
 	const panel_sections = {
-		stroke: ["color", "width"],
-		connector: ["color", "width", "dash", "routing", "heads"],
-		text: ["color", "font"],
+		stroke: ["color", "pen_size"],
+		connector: ["color", "line_width", "dash", "routing", "heads"],
+		text: ["color", "font_size"],
 		image: ["image"],
-		node: ["color", "width", "node_shape", "node_fill", "node_dash"],
+		node: ["color", "line_width", "node_shape", "node_fill", "node_dash"],
 		frame: ["surface_fill", "surface_border", "surface_border_color"],
 		icon: ["color"]
 	};
@@ -3606,11 +3805,6 @@
 		if (!first) return style[key];
 		if (surface_fields[key]) return first.type === "frame" ? surface_style(first)[surface_fields[key]] : style[key];
 		if (node_fields[key]) return first.type === "node" ? first[node_fields[key]] : style[key];
-		if (key === "width") {
-			if (first.type === "stroke") return pen_sizes.indexOf(first.size);
-			return first.width !== undefined ? line_widths.indexOf(first.width) : style.width;
-		}
-		if (key === "font") return first.font_size !== undefined ? font_sizes.indexOf(first.font_size) : style.font;
 		return first[key] !== undefined ? first[key] : style[key];
 	}
 
@@ -3668,6 +3862,8 @@
 		document.getElementById("context_label").hidden = !visible.size;
 		document.getElementById("context_empty").hidden = visible.size > 0;
 
+		for (const key in size_ranges) show_size(key, current_size(key));
+
 		for (const entry of panel_buttons) {
 			const on = current_value(entry.key) === entry.value;
 			entry.button.classList.toggle("on", on);
@@ -3693,16 +3889,7 @@
 					if (key === "node_shape") fit_node(copy);
 				}
 				else if (key === "color" && element.color !== undefined) edit(id).color = value;
-				else if (key === "width" && element.type === "stroke") edit(id).size = pen_sizes[value];
-				else if (key === "width" && element.width !== undefined) edit(id).width = line_widths[value];
-				else if (key === "font" && element.type === "text") {
-					const copy = edit(id);
-					copy.font_size = font_sizes[value];
-					const measured = measure_text(copy.text, copy.font_size);
-					copy.w = measured.w;
-					copy.h = measured.h;
-				}
-				else if (key !== "color" && key !== "width" && key !== "font" && element[key] !== undefined) edit(id)[key] = value;
+				else if (key !== "color" && element[key] !== undefined) edit(id)[key] = value;
 			}
 			end_change();
 		}
@@ -4012,7 +4199,7 @@
 	}
 
 	function insert_text(world, text) {
-		const size = font_sizes[style.font];
+		const size = style.font_size;
 		const frame = frame_at(world.x, world.y);
 		const measured = measure_text(text, size);
 		begin_change();
@@ -4069,7 +4256,7 @@
 	let paste_handled = false;
 
 	function editable_target(target) {
-		return target && target.closest && target.closest("input, textarea, select");
+		return target && target.closest && target.closest("input, textarea, select, dialog");
 	}
 
 	document.addEventListener("copy", function (event) {
@@ -4663,7 +4850,65 @@
 
 	// ---------- files and storage ----------
 
+	// Format spec: a new type also needs element_defaults, valid_element and its own section in format_spec().
 	const known_types = new Set(["stroke", "frame", "icon", "text", "connector", "image", "node"]);
+	const format_app = "web_tools/infinite_canvas";
+	const format_version = 1;
+
+	/*
+		What an element gets when a field is missing. Saved boards always carry
+		every field; these exist for files written by hand or by an AI, which
+		may leave optional ones out. format_spec() prints this table, so a new
+		field added here is documented automatically.
+	*/
+	const element_defaults = {
+		frame: { name: "Surface", fill: "auto", border: "solid", border_color: "auto", frame_id: null },
+		text: { text: "", color: colors[0], font_size: size_ranges.font_size.initial, frame_id: null },
+		node: { text: "", color: colors[0], width: size_ranges.line_width.initial, fill: "solid", dash: false, frame_id: null },
+		icon: { icon: "database", color: colors[0], label: "", w: default_sizes.icon[0], h: default_sizes.icon[1], frame_id: null },
+		connector: { color: colors[0], width: size_ranges.line_width.initial, dash: false, routing: "elbow", heads: "end", label: "" },
+		stroke: { color: colors[0], size: size_ranges.pen_size.initial, frame_id: null },
+		image: { frame_id: null }
+	};
+
+	// Fills missing fields in place and measures what follows from text, so a terse file still draws correctly.
+	function complete_element(element) {
+		if (!element || typeof element !== "object") return element;
+		if (typeof element.id === "number") element.id = String(element.id);
+		const defaults = element_defaults[element.type];
+		if (defaults)
+			for (const key in defaults) if (element[key] === undefined) element[key] = defaults[key];
+		const sized = is_number(element.w) && is_number(element.h);
+		if (element.type === "text" && !sized) {
+			const measured = measure_text(element.text, element.font_size);
+			element.w = measured.w;
+			element.h = measured.h;
+		}
+		if (element.type === "node" && !sized && node_shapes[element.shape]) {
+			const size = node_size(element.shape, element.text);
+			element.w = size.w;
+			element.h = size.h;
+		}
+		if (element.type === "stroke" && !sized && Array.isArray(element.points)) {
+			let w = 0, h = 0;
+			for (let i = 0; i + 1 < element.points.length; i += 3) {
+				w = Math.max(w, element.points[i]);
+				h = Math.max(h, element.points[i + 1]);
+			}
+			element.w = w;
+			element.h = h;
+		}
+		if (element.type === "connector") {
+			for (const which of ["start", "end"]) {
+				const end = element[which];
+				if (!end || typeof end !== "object") continue;
+				if (end.id === undefined) end.id = null;
+				if (!is_number(end.x)) end.x = 0;
+				if (!is_number(end.y)) end.y = 0;
+			}
+		}
+		return element;
+	}
 	let save_timer = null;
 	let save_warned = false;
 
@@ -4680,17 +4925,65 @@
 		return is_number(element.x) && is_number(element.y) && is_number(element.w) && is_number(element.h);
 	}
 
+	// Format spec: anything added to the saved document belongs in the "Document" section of format_spec().
 	function serialize(with_view) {
-		const data = { app: "web_tools/infinite_canvas", version: 1, elements: elements };
+		const data = { app: format_app, version: format_version, elements: elements };
 		if (with_view) data.view = { x: view.x, y: view.y, zoom: view.zoom };
 		return data;
 	}
 
 	function read_data(data) {
 		if (!data || !Array.isArray(data.elements)) return null;
-		const list = data.elements.filter(valid_element);
+		const list = data.elements.map(complete_element).filter(valid_element);
 		break_loops(list);
+		settle_links(list);
 		return list;
+	}
+
+	// A connector end bound to an element that is not in the list keeps its spot as a free point.
+	function settle_links(list) {
+		const ids = new Set(list.map(function (element) { return element.id; }));
+		for (const element of list) {
+			if (element.type !== "connector") continue;
+			for (const which of ["start", "end"])
+				if (element[which].id && !ids.has(element[which].id)) element[which] = { id: null, x: element[which].x, y: element[which].y };
+		}
+	}
+
+	/*
+		Reads a board from text that may not be a clean file: an AI's reply
+		often wraps the JSON in a code fence, with prose around it. Tries each
+		fenced block, then the whole text, then the outermost braces. Returns
+		the parsed document, or null if no candidate has an elements list.
+	*/
+	function parse_document(text) {
+		const candidates = [];
+		const fence = /```[a-z]*\s*\n([\s\S]*?)```/gi;
+		let match;
+		while ((match = fence.exec(text))) candidates.push(match[1]);
+		candidates.push(text);
+		const first = text.indexOf("{"), last = text.lastIndexOf("}");
+		if (first >= 0 && last > first) candidates.push(text.slice(first, last + 1));
+		for (const candidate of candidates) {
+			try {
+				const data = JSON.parse(candidate);
+				if (data && Array.isArray(data.elements)) return data;
+			}
+			catch (error) {}
+		}
+		return null;
+	}
+
+	async function import_assets(assets) {
+		if (!assets || typeof assets !== "object") return;
+		for (const id in assets) {
+			try {
+				const blob = await (await fetch(assets[id])).blob();
+				await asset_put(id, blob);
+				image_cache.delete(id);
+			}
+			catch (error) {}
+		}
 	}
 
 	// A hand-edited file could make a surface its own ancestor; such an element becomes top-level.
@@ -4748,8 +5041,8 @@
 		file.text().then(async function (text) {
 			let data = null, list = null;
 			try {
-				data = JSON.parse(text);
-				list = read_data(data);
+				data = parse_document(text);
+				list = data ? read_data(data) : null;
 			}
 			catch (error) {
 				list = null;
@@ -4758,16 +5051,7 @@
 				show_toast("That file is not a saved canvas. Open a .json made with Save.", false);
 				return;
 			}
-			if (data.assets && typeof data.assets === "object") {
-				for (const id in data.assets) {
-					try {
-						const blob = await (await fetch(data.assets[id])).blob();
-						await asset_put(id, blob);
-						image_cache.delete(id);
-					}
-					catch (error) {}
-				}
-			}
+			await import_assets(data.assets);
 			// An opened file becomes a new board; nothing open gets replaced.
 			finish_everything();
 			await save_board();
@@ -4780,6 +5064,281 @@
 		});
 	}
 
+
+	// ---------- file format for AI ----------
+
+	/*
+		The format spec is what an AI reads to write boards for this app, so it
+		must describe every element type, field, option and loader rule.
+
+		Lists built from constants update themselves: colors, sizes, icons,
+		node shapes, option rows (panel_rows) and defaults (element_defaults).
+		The prose does not. When a change affects what a saved file can hold
+		or how it is read, update this spec in the same change:
+		- new element type: known_types, element_defaults, valid_element, and a section under "Element types"
+		- new field on an element: element_defaults, and a line in that type's section
+		- new option value: usually automatic; check the section still explains what it does
+		- new top-level document field: the "Document" section
+		- new loader rule (defaults, validation, repair): the "What the loader does" section
+		- changed sizing (measure_text, node_size, icon labels, surface titles): the "Sizing" section
+		Bump format_version only when old files would be read differently.
+	*/
+	const color_names = {
+		"#e9ebee": "white, the default for text and lines",
+		"#8d96a0": "grey, for secondary text and quiet lines",
+		"#e5766c": "red",
+		"#e3a061": "orange",
+		"#e2c870": "yellow",
+		"#86c39a": "green",
+		"#74abe0": "blue",
+		"#ad9ae0": "purple"
+	};
+
+	// The example board in the spec. Keep it valid: it is checked by reading it the way a file is read.
+	const format_example = {
+		app: format_app,
+		version: format_version,
+		name: "Request flow",
+		elements: [
+			{ id: "backend", type: "frame", name: "Backend", x: 0, y: 0, w: 456, h: 216, fill: "auto", border: "solid", border_color: "#74abe0", frame_id: null },
+			{ id: "app", type: "icon", icon: "server", label: "Flask app", x: 72, y: 64, w: 64, h: 64, color: "#e9ebee", frame_id: "backend" },
+			{ id: "db", type: "icon", icon: "database", label: "PostgreSQL", x: 320, y: 64, w: 64, h: 64, color: "#86c39a", frame_id: "backend" },
+			{ id: "request", type: "node", shape: "terminal", text: "Request", x: -312, y: 0, color: "#e9ebee", width: 1.5, fill: "solid", dash: false, frame_id: null },
+			{ id: "check", type: "node", shape: "decision", text: "Signed in?", x: -327, y: 120, color: "#e3a061", width: 1.5, fill: "tint", dash: false, frame_id: null },
+			{ id: "reject", type: "node", shape: "terminal", text: "401", x: -312, y: 300, color: "#e5766c", width: 1.5, fill: "solid", dash: false, frame_id: null },
+			{ id: "note", type: "text", text: "Every query goes through\nthe connection pool.", x: 0, y: 252, color: "#8d96a0", font_size: 14, frame_id: null },
+			{ id: "underline", type: "stroke", x: 0, y: 296, w: 160, h: 2, points: [0, 1, 0.5, 80, 0, 0.6, 160, 2, 0.5], color: "#e3a061", size: 2, frame_id: null },
+			{ id: "c1", type: "connector", start: { id: "request" }, end: { id: "check" }, color: "#8d96a0", width: 1.5, dash: false, routing: "elbow", heads: "end", label: "" },
+			{ id: "c2", type: "connector", start: { id: "check" }, end: { id: "app" }, color: "#86c39a", width: 1.5, dash: false, routing: "elbow", heads: "end", label: "Yes" },
+			{ id: "c3", type: "connector", start: { id: "check" }, end: { id: "reject" }, color: "#e5766c", width: 1.5, dash: false, routing: "elbow", heads: "end", label: "No" },
+			{ id: "c4", type: "connector", start: { id: "app" }, end: { id: "db" }, color: "#8d96a0", width: 2.5, dash: true, routing: "straight", heads: "both", label: "SQL" }
+		]
+	};
+
+	// One element per line: short enough to read whole, and each element reads as a pattern to copy.
+	function example_json() {
+		const head = Object.assign({}, format_example);
+		delete head.elements;
+		const lines = format_example.elements.map(function (element) { return "\t\t" + JSON.stringify(element); });
+		return JSON.stringify(head).slice(0, -1) + ",\n\t\"elements\": [\n" + lines.join(",\n") + "\n\t]\n}";
+	}
+
+	function format_spec() {
+		const code = function (value) { return "`" + JSON.stringify(value) + "`"; };
+		const values = function (list) { return list.map(code).join(", "); };
+		const options = function (row) { return values(panel_rows[row].options.map(function (option) { return option[0]; })); };
+		const span = function (key) {
+			const range = size_ranges[key];
+			return "any number from " + range.min + " to " + range.max + " in steps of " + range.step + " (default " + range.initial + ")";
+		};
+		const defaults = function (type) { return "`" + JSON.stringify(element_defaults[type]) + "`"; };
+
+		const icon_groups = new Map();
+		for (const key in icons) {
+			const group = icons[key].group || "Other";
+			if (!icon_groups.has(group)) icon_groups.set(group, []);
+			icon_groups.get(group).push("`" + key + "` (" + icons[key].label + ")");
+		}
+		const icon_lines = Array.from(icon_groups, function (entry) { return "- " + entry[0] + ": " + entry[1].join(", "); });
+		const shape_lines = Object.keys(node_shapes).map(function (key) { return "- `" + key + "`: " + node_shapes[key].label; });
+		const color_lines = colors.map(function (color) { return "- `" + color + "`: " + (color_names[color] || "palette color"); });
+
+		return [
+			"# infinite_canvas board format, version " + format_version,
+			"",
+			"infinite_canvas is a whiteboard web app: https://woxroox.github.io/web_tools/source/infinite_canvas/index.html",
+			"A board is a JSON document. When asked to explain or show something as a board, write one in this format.",
+			"",
+			"## How to answer",
+			"",
+			"- Put the whole board in a single ```json code block. Explanation can go outside the block.",
+			"- Plain JSON only: no comments, no trailing commas, double-quoted keys and strings.",
+			"- The user saves the reply as a .json file and uses Open; it becomes a new board. Text around the code block is ignored.",
+			"- Lay the board out so it reads on its own: group with surfaces, link with connectors, label everything.",
+			"",
+			"## Document",
+			"",
+			"```json",
+			"{ \"app\": \"" + format_app + "\", \"version\": " + format_version + ", \"name\": \"Short board title\", \"elements\": [] }",
+			"```",
+			"",
+			"- `app`: always " + code(format_app) + ".",
+			"- `version`: always " + format_version + ".",
+			"- `name`: the board's name, shown in the boards list. Always set it: a short title for what the board explains, e.g. \"Login flow\" or \"Payment services\". Without it the board is named after the file.",
+			"- `elements`: every element on the board, in drawing order. Required.",
+			"- `assets`: optional object mapping an image asset id to a `data:` URL. Only needed for `image` elements.",
+			"",
+			"## Coordinates and layering",
+			"",
+			"- World units equal CSS pixels at 100% zoom. x grows to the right, y grows downward. The origin is arbitrary; the app fits the view to the board when it opens.",
+			"- Every element except connectors has `x`, `y` (top-left corner), `w` and `h`.",
+			"- Surfaces (type `frame`) form a tree through `frame_id`. Each level draws its surfaces first (each with its own contents, clipped to the surface's rectangle), then its other elements in array order. Connectors are always drawn on top of everything.",
+			"- Contents are clipped to their surface: an element whose `frame_id` points at a surface must lie fully inside that surface's rectangle.",
+			"- The background is dark. Use the light palette colors below; dark colors will not be visible.",
+			"",
+			"## Shared fields",
+			"",
+			"- `id`: unique string within the document. Short readable ids help, e.g. \"db\", \"auth_check\". Connectors and `frame_id` refer to these.",
+			"- `type`: one of " + values(Array.from(known_types)) + ".",
+			"- `frame_id`: id of the surface this element sits in, or null for the board itself. Connectors ignore it.",
+			"- `color`: a CSS color, normally one from the palette.",
+			"",
+			"## Element types",
+			"",
+			"### frame (surface)",
+			"",
+			"A rounded panel that groups other elements; moving it moves its contents. Use one per region, layer, service or step.",
+			"- `name`: title drawn in small monospace text just above the top-left corner.",
+			"- `fill`: `\"auto\"` (neutral panel; nested surfaces get lighter at each depth, up to 3 levels), `\"clear\"` (no fill, dots show through) or a palette color (a light tint over the panel).",
+			"- `border`: " + options("surface_borders") + ".",
+			"- `border_color`: `\"auto\"` (neutral line) or a palette color. A colored border also colors the title.",
+			"- `frame_id`: set it to nest this surface inside another.",
+			"- Defaults: " + defaults("frame"),
+			"",
+			"### text",
+			"",
+			"Free text, left-aligned, drawn from its top-left corner. It never wraps: break lines with \\n.",
+			"- `text`: the content.",
+			"- `font_size`: " + span("font_size") + ". 14 for notes, 20 for body text, 28 to 40 for headings.",
+			"- `color`.",
+			"- `w`, `h`: optional; the app measures the text.",
+			"- Defaults: " + defaults("text"),
+			"",
+			"### node (flowchart node)",
+			"",
+			"Centered text inside a shape. Its size always follows its text, so `w` and `h` are optional and are computed when left out (see Sizing). Connectors attach to the shape's real outline.",
+			"- `shape`: required, one of:",
+			shape_lines.join("\n"),
+			"- `text`: centered, " + node_font + "px, \\n for line breaks. Keep it to a few words.",
+			"- `color`: outline and text color.",
+			"- `width`: outline width, " + span("line_width") + ".",
+			"- `fill`: " + options("node_fills") + ". `\"solid\"` is an opaque panel, `\"tint\"` adds a light wash of `color`, `\"none\"` is outline only.",
+			"- `dash`: true for a dashed outline.",
+			"- Defaults: " + defaults("node"),
+			"",
+			"### icon",
+			"",
+			"A system icon with an optional caption centered below it.",
+			"- `icon`: a key from the icon list below.",
+			"- `w`, `h`: keep them equal; 48 to 96 reads well.",
+			"- `color`: icon and caption color.",
+			"- `label`: caption text, \"\" for none. It hangs below the icon box (see Sizing).",
+			"- Defaults: " + defaults("icon"),
+			"",
+			"### connector",
+			"",
+			"A line or arrow between two ends. Each end is either bound to an element, `{ \"id\": \"db\" }`, or a free point, `{ \"id\": null, \"x\": 0, \"y\": 0 }`. Bound ends attach to the element's edge and follow it when it moves; prefer them. Any element except strokes and other connectors can be a target, including surfaces.",
+			"- `start`, `end`: required.",
+			"- `routing`: " + options("routings") + ". `\"elbow\"` leaves and enters through side midpoints along the longer axis and turns halfway, with rounded corners; it looks cleanest when the two ends are roughly aligned in a row or column.",
+			"- `heads`: " + options("heads") + ". `\"end\"` puts the arrowhead at `end`.",
+			"- `width`: " + span("line_width") + ".",
+			"- `dash`: true for a dashed line, e.g. async calls or optional paths.",
+			"- `label`: text drawn on a small chip at the line's midpoint, \"\" for none. Short verbs work best: \"reads\", \"Yes\", \"HTTPS\".",
+			"- `color`.",
+			"- Defaults: " + defaults("connector"),
+			"",
+			"### stroke (freehand ink)",
+			"",
+			"A pressure-sensitive pen stroke. Rarely needed when writing a board; useful for an underline or a circle around something.",
+			"- `points`: flat array of [x, y, pressure] triples, relative to the stroke's `x`, `y`. Pressure runs from 0 to 1; 0.5 is the normal width.",
+			"- `x`, `y`: top-left of the points' bounding box. `w`, `h`: its size (computed when left out).",
+			"- `size`: pen size, " + span("pen_size") + ".",
+			"- `color`.",
+			"- Defaults: " + defaults("stroke"),
+			"",
+			"### image",
+			"",
+			"A picture. Only use it when you have the image data.",
+			"- `asset`: an id from the document's `assets` object, whose value is a `data:` URL (PNG or JPEG).",
+			"- `w`, `h`: drawn size. `natural_w`, `natural_h`: the image's pixel size.",
+			"- Defaults: " + defaults("image"),
+			"",
+			"## Values",
+			"",
+			"Palette:",
+			color_lines.join("\n"),
+			"",
+			"Line widths (connectors, nodes): " + span("line_width") + ". Font sizes (text): " + span("font_size") + ". Pen sizes (strokes): " + span("pen_size") + ".",
+			"",
+			"Icons:",
+			icon_lines.join("\n"),
+			"",
+			"## Sizing",
+			"",
+			"Use these to leave room and to align things. The font is a sans-serif; a character is about 0.55 x the font size wide.",
+			"- Text: width = longest line x font_size x 0.55, height = lines x font_size x 1.3.",
+			"- Node text is " + node_font + "px. With tw, th the text's width and height: terminal max(120, tw + 48) x max(48, th + 20); process max(120, tw + 32) x max(56, th + 24); decision w = max(140, tw + 1.6 th + 40), h = max(84, w / 1.6); io h = max(56, th + 24), w = max(140, tw + 32 + 0.7 h); data max(120, tw + 32) x max(68, th + 44).",
+			"- Icon caption: " + label_size + "px, starts 8 below the icon box and is centered on it, so the icon takes about h + 26 of height per caption line.",
+			"- Surface title: about 24 high, sitting above the surface's top edge. Leave at least 32 between a surface and anything above it.",
+			"",
+			"## What the loader does",
+			"",
+			"- Fills every missing field from the defaults listed for its type, and measures `w`, `h` when they are left out of text, nodes and strokes.",
+			"- Drops an element that has no string `id`, an unknown `type`, non-numeric `x`, `y`, `w` or `h`, a node `shape` not in the list, a stroke whose `points` are empty or not in triples, an image without an `asset`, or a connector without `start` and `end`.",
+			"- Turns a connector end bound to an id that is not in the document into a free point.",
+			"- Moves a surface that is its own ancestor to the top level.",
+			"",
+			"## Making a good board",
+			"",
+			"- Work on a 24 grid. Space flow nodes about 72 apart, and keep about 32 of padding inside surfaces.",
+			"- One idea per surface; name surfaces after what they hold. Nest surfaces for parts of a whole.",
+			"- Bind connectors by id instead of placing free ends. Label the ones whose meaning is not obvious.",
+			"- Use color to encode meaning (for example green for success paths, red for failures) and keep it consistent across the board.",
+			"- Lay flows out in one direction, top to bottom or left to right, so elbow connectors run straight.",
+			"- Keep labels short. Put longer explanations in a text element next to what they explain.",
+			"",
+			"## Example",
+			"",
+			"```json",
+			example_json(),
+			"```",
+			""
+		].join("\n");
+	}
+
+	const format_dialog = document.getElementById("format_dialog");
+	const format_text = document.getElementById("format_text");
+
+	function open_format_dialog() {
+		finish_everything();
+		close_board_menu();
+		close_export_menu();
+		format_text.value = format_spec();
+		format_dialog.showModal();
+		document.getElementById("format_copy").focus();
+		format_text.scrollTop = 0;
+	}
+
+	// The async Clipboard API needs a secure context; selecting the text and using execCommand covers the rest.
+	function copy_format() {
+		const text = format_text.value;
+		const fallback = function () {
+			format_text.focus();
+			format_text.select();
+			const copied = document.execCommand && document.execCommand("copy");
+			show_toast(copied ? "Format copied." : "Select the text and copy it.", false);
+		};
+		if (!navigator.clipboard || !navigator.clipboard.writeText) {
+			fallback();
+			return;
+		}
+		navigator.clipboard.writeText(text).then(function () { show_toast("Format copied.", false); }, fallback);
+	}
+
+	document.getElementById("format_button").addEventListener("click", open_format_dialog);
+	document.getElementById("format_copy").addEventListener("click", copy_format);
+	document.getElementById("format_download").addEventListener("click", function () {
+		download(new Blob([format_text.value], { type: "text/markdown" }), "infinite_canvas_format.md");
+	});
+	document.getElementById("format_close").addEventListener("click", function () { format_dialog.close(); });
+
+	// A press on the backdrop, outside the dialog's box, closes it.
+	format_dialog.addEventListener("click", function (event) {
+		if (event.target !== format_dialog) return;
+		const rect = format_dialog.getBoundingClientRect();
+		const outside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+		if (outside) format_dialog.close();
+	});
 
 	window.addEventListener("pagehide", save_board);
 	document.addEventListener("visibilitychange", function () {
