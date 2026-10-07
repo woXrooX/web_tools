@@ -373,6 +373,80 @@
 		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
 	}
 
+	/* The color row: eight presets and the picker swatch, two rows of five. */
+	.swatches:not(.compact) {
+		grid-template-columns: repeat(5, 1fr);
+	}
+
+	/* The picker swatch: a hue wheel with a plus, or the custom color it holds. */
+	.sidebar .swatch.custom {
+		position: relative;
+		background: conic-gradient(#e5766c, #e2c870, #86c39a, #74abe0, #ad9ae0, #e5766c);
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+	}
+
+	.sidebar .swatch.custom::after {
+		content: "+";
+		position: absolute;
+		inset: 3px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: var(--surface);
+		color: var(--ink_soft);
+		font-size: 14px;
+		line-height: 1;
+	}
+
+	.sidebar .swatch.custom.filled {
+		background: linear-gradient(var(--chip), var(--chip)), var(--checker) 0 0 / 8px 8px;
+	}
+
+	.sidebar .swatch.custom.filled::after {
+		content: none;
+	}
+
+	/* Recent colors under a color row, and the chips inside the picker. */
+	.recent_row,
+	.color_chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.chip {
+		flex: none;
+		width: 20px;
+		height: 20px;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: linear-gradient(var(--chip), var(--chip)), var(--checker) 0 0 / 8px 8px;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+		cursor: pointer;
+	}
+
+	/* Chips beat the generic button rules (transparent background, hover tint), so their color always shows. */
+	.sidebar .chip,
+	.sidebar .chip:hover,
+	.color_picker .chip,
+	.color_picker .chip:hover {
+		flex: none;
+		min-width: 0;
+		padding: 0;
+		background: linear-gradient(var(--chip), var(--chip)), var(--checker) 0 0 / 8px 8px;
+	}
+
+	.sidebar .chip {
+		height: 20px;
+	}
+
+	.chip.on {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
 	/* Surface swatches: two rows of five, still large enough for a fingertip. */
 	.swatches.compact {
 		grid-template-columns: repeat(5, 1fr);
@@ -631,6 +705,189 @@
 		display: none;
 	}
 
+	/* ---------- color picker ---------- */
+
+	/* Opens beside the sidebar, level with the row that opened it. */
+	.color_picker {
+		position: fixed;
+		z-index: 8;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		width: 248px;
+		padding: 12px;
+		border-radius: var(--radius);
+		background: var(--surface);
+		box-shadow: var(--shadow_deep);
+		touch-action: none;
+	}
+
+	.color_picker[hidden] {
+		display: none;
+	}
+
+	.color_title {
+		margin: 0;
+		color: var(--ink);
+		font-size: 13px;
+		font-weight: 600;
+	}
+
+	.color_area {
+		position: relative;
+		height: 150px;
+		border-radius: var(--radius);
+		background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, var(--hue));
+		cursor: crosshair;
+	}
+
+	.color_area_handle {
+		position: absolute;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0, 0, 0, 0.5), 0 1px 4px rgba(0, 0, 0, 0.6);
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+	}
+
+	.color_track {
+		position: relative;
+		height: 14px;
+		border-radius: 7px;
+		cursor: pointer;
+	}
+
+	.color_hue {
+		background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+	}
+
+	.color_alpha {
+		background: linear-gradient(to right, transparent, var(--solid)), var(--checker) 0 0 / 10px 10px;
+	}
+
+	.color_thumb {
+		position: absolute;
+		top: 50%;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: transparent;
+		box-shadow: 0 0 0 3px #fff, 0 0 0 4px rgba(0, 0, 0, 0.5), 0 1px 4px rgba(0, 0, 0, 0.6);
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+	}
+
+	.color_area:focus-visible,
+	.color_track:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	.color_value {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.color_picker .color_preview {
+		width: 28px;
+		height: 28px;
+		cursor: default;
+	}
+
+	.color_value input {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding: 7px 8px;
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	.color_value input.invalid {
+		outline: 1px solid var(--danger);
+	}
+
+	.color_picker button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 30px;
+		padding: 0 8px;
+		background: transparent;
+		color: var(--ink_soft);
+		font-size: 12px;
+	}
+
+	.color_picker button:hover {
+		background: var(--raised);
+		color: var(--ink);
+	}
+
+	.color_picker svg {
+		width: 17px;
+		height: 17px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.7;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.color_actions {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.color_actions > button {
+		flex: none;
+		width: 30px;
+		padding: 0 !important;
+	}
+
+	.color_formats {
+		flex: 1 1 auto;
+		display: flex;
+		gap: 2px;
+		padding: 2px;
+		border-radius: var(--radius);
+		background: var(--well);
+	}
+
+	.color_formats button {
+		flex: 1 1 0;
+		height: 26px !important;
+		font-family: var(--mono);
+		font-size: 11px !important;
+	}
+
+	.color_formats button.on {
+		background: var(--accent_wash);
+		color: var(--ink);
+	}
+
+	.color_group {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.color_group > span {
+		color: var(--ink_faint);
+		font-size: 11.5px;
+	}
+
+	.color_group[hidden] {
+		display: none;
+	}
+
+	.color_picker .chip {
+		width: 22px;
+		height: 22px;
+		padding: 0;
+	}
+
 	/* ---------- file format dialog ---------- */
 
 	/* The format an AI needs to answer as a board, shown read-only so it can be read, selected or copied. */
@@ -771,6 +1028,7 @@
 				<div class="field stacked" data_section="color">
 					<span>Color</span>
 					<div class="swatches" id="swatches"></div>
+					<div class="recent_row" id="recent_color" hidden></div>
 				</div>
 				<div class="field" data_section="pen_size">
 					<span>Size</span>
@@ -826,6 +1084,7 @@
 				<div class="field stacked" data_section="surface_fill">
 					<span>Fill</span>
 					<div class="swatches compact" id="surface_fills"></div>
+					<div class="recent_row" id="recent_surface_fill" hidden></div>
 				</div>
 				<div class="field" data_section="surface_border">
 					<span>Border</span>
@@ -834,6 +1093,7 @@
 				<div class="field stacked" data_section="surface_border_color">
 					<span>Border color</span>
 					<div class="swatches compact" id="surface_border_colors"></div>
+					<div class="recent_row" id="recent_surface_border_color" hidden></div>
 				</div>
 			</section>
 		</div>
@@ -894,6 +1154,40 @@
 	<button type="button" id="toast_undo">Undo</button>
 </div>
 
+<div class="color_picker" id="color_picker" role="dialog" aria-labelledby="color_title" hidden>
+	<p class="color_title" id="color_title">Color</p>
+	<div class="color_area" id="color_area" tabindex="0" role="slider" aria-label="Saturation and brightness">
+		<div class="color_area_handle" id="color_area_handle"></div>
+	</div>
+	<div class="color_track color_hue" id="color_hue" tabindex="0" role="slider" aria-label="Hue" aria-valuemin="0" aria-valuemax="360">
+		<div class="color_thumb" id="color_hue_thumb"></div>
+	</div>
+	<div class="color_track color_alpha" id="color_alpha" tabindex="0" role="slider" aria-label="Opacity" aria-valuemin="0" aria-valuemax="100">
+		<div class="color_thumb" id="color_alpha_thumb"></div>
+	</div>
+	<div class="color_value">
+		<span class="chip color_preview" id="color_preview" aria-hidden="true"></span>
+		<input type="text" id="color_text" spellcheck="false" autocomplete="off" autocapitalize="off" enterkeyhint="done" aria-label="Color value: hex, hsla, rgba or a color name">
+	</div>
+	<div class="color_actions">
+		<div class="color_formats" id="color_formats" role="group" aria-label="Value format">
+			<button type="button" data_format="hex">HEX</button>
+			<button type="button" data_format="hsla">HSLA</button>
+			<button type="button" data_format="rgba">RGBA</button>
+		</div>
+		<button type="button" id="color_copy" aria-label="Copy value" title="Copy value"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v11H8z M5 16V5h11"/></svg></button>
+		<button type="button" id="color_dropper" aria-label="Pick a color from the screen" title="Pick a color from the screen" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6l4 4 M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4z"/></svg></button>
+	</div>
+	<div class="color_group">
+		<span>Presets</span>
+		<div class="color_chips" id="color_presets"></div>
+	</div>
+	<div class="color_group" id="color_recent_group">
+		<span>Recent</span>
+		<div class="color_chips" id="color_recent"></div>
+	</div>
+</div>
+
 <dialog class="format_dialog" id="format_dialog" aria-labelledby="format_title">
 	<div>
 		<h2 id="format_title">File format for AI</h2>
@@ -936,7 +1230,7 @@
 		pen and eraser; select, move, resize; surfaces and icons; connectors
 		text: in-place editor
 		commands, keyboard: delete, copy, paste, nudge, shortcuts
-		chrome: sidebar tools, context panel, size sliders, surface name, collapse, toast
+		chrome: sidebar tools, context panel, color picker, size sliders, surface name, collapse, toast
 		images: IndexedDB asset store, paste, drop, picker
 		clipboard and drop; boards: one IndexedDB record per board
 		export: PNG, SVG, copy as PNG
@@ -954,6 +1248,7 @@
 		The screen, PNG export and SVG export draw in the same order: surfaces (each clipped, contents inside), then loose items, then connectors.
 		Sizes in world units scale with zoom; on-screen chrome (titles, handles, shadows) is sized in screen pixels.
 		Pencil draws; once a pen is seen, fingers only pan and pinch. Keep this palm-rejection model.
+		Colors are stored as lowercase hex, #rrggbb or #rrggbbaa. complete_element normalizes them on load; SVG export writes them through paint(), which splits alpha into an opacity attribute.
 
 		CHECKLIST: adding or changing an element type
 		1. known_types, element_defaults, complete_element (if fields can be measured), valid_element.
@@ -971,6 +1266,7 @@
 		CHECKLIST: adding a style option or a size
 		Option rows: panel_rows (or a custom row like node_shapes), style defaults, set_style, current_value, a field mapping (surface_fields, node_fields), and its line in format_spec().
 		Sizes: an entry in size_ranges (types, field, range, initial) and a slider field in the sidebar; format_spec() picks up the range by itself.
+		Colors: an entry in color_keys, a recent_<key> row and add_custom_swatch() in the sidebar, normalization in complete_element, paint() in SVG export, and its line in format_spec().
 
 		CHECKLIST: adding a tool button
 		tools list (glyph, key, label); activate_tool if it is an action rather than a mode; sticky_tools if it stays active after use; tool_contexts for its sidebar defaults.
@@ -989,6 +1285,7 @@
 		Removed: renaming surfaces by double-tapping the title or pressing Enter. The sidebar name field is the only way.
 		Kept: one fixed left sidebar; tools pinned on top, footer pinned at the bottom, the middle shows only what applies to the selection or the active tool.
 		Kept: sizes are sliders (pen size, line width, font size), not presets.
+		Kept: the color picker belongs to this tool only (no shared script). Presets stay one tap away; the picker adds an HSV area, hue, alpha, a text field that takes any CSS color, HEX / HSLA / RGBA display, an eyedropper where supported, and 8 recent colors shared across boards.
 		Kept: decision branches are labeled True and False.
 		Not built yet: share link; connector routing around nodes; Mermaid import.
 	*/
@@ -3549,6 +3846,7 @@
 			close_picker();
 			close_board_menu();
 			close_export_menu();
+			close_color_picker();
 			selection.clear();
 			refresh_panel();
 			invalidate();
@@ -3743,6 +4041,466 @@
 		node_dashes: { key: "node_dash", options: [[false, "Solid"], [true, "Dashed"]] }
 	};
 	const panel_buttons = [];
+	// ---------- color picker ----------
+
+	/*
+		Every color on the board goes through here: the Color row (pen, text,
+		connectors, icons, nodes) and a surface's Fill and Border color.
+		Colors are stored as lowercase hex, #rrggbb or #rrggbbaa, whatever
+		format they were typed in, so boards stay uniform and compare cleanly.
+		The picking area is saturation x brightness (HSV): it is the model that
+		makes the color you mean easy to hit. Values are shown and copied as
+		HEX, HSLA or RGBA. Recent colors are shared across boards.
+	*/
+	const color_keys = {
+		color: { label: "Color" },
+		surface_fill: { label: "Fill", field: "fill" },
+		surface_border_color: { label: "Border color", field: "border_color" }
+	};
+	const recent_key = storage_key + ".recent_colors";
+	const color_format_key = storage_key + ".color_format";
+	const recent_limit = 8;
+
+	function clamp_unit(value) {
+		return Math.max(0, Math.min(1, value));
+	}
+
+	function hsv_to_rgb(h, s, v) {
+		const f = function (n) {
+			const k = (n + h / 60) % 6;
+			return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+		};
+		return { r: Math.round(f(5) * 255), g: Math.round(f(3) * 255), b: Math.round(f(1) * 255) };
+	}
+
+	function rgb_to_hsv(r, g, b) {
+		r /= 255;
+		g /= 255;
+		b /= 255;
+		const max = Math.max(r, g, b), min = Math.min(r, g, b), delta = max - min;
+		let h = 0;
+		if (delta) {
+			if (max === r) h = ((g - b) / delta) % 6;
+			else if (max === g) h = (b - r) / delta + 2;
+			else h = (r - g) / delta + 4;
+			h = (h * 60 + 360) % 360;
+		}
+		return { h: h, s: max ? delta / max : 0, v: max };
+	}
+
+	function rgb_to_hsl(r, g, b) {
+		const hsv = rgb_to_hsv(r, g, b);
+		const l = hsv.v * (1 - hsv.s / 2);
+		const s = l === 0 || l === 1 ? 0 : (hsv.v - l) / Math.min(l, 1 - l);
+		return { h: hsv.h, s: s * 100, l: l * 100 };
+	}
+
+	function hex_pair(value) {
+		return Math.round(value).toString(16).padStart(2, "0");
+	}
+
+	function rgba_to_hex(color) {
+		const hex = "#" + hex_pair(color.r) + hex_pair(color.g) + hex_pair(color.b);
+		return color.a >= 1 ? hex : hex + hex_pair(color.a * 255);
+	}
+
+	/*
+		Reads any CSS color the browser understands (hex, hsl(), hsla(), rgb(),
+		names...). The canvas context does the parsing: an invalid value leaves
+		fillStyle unchanged, so setting it over two different sentinels and
+		comparing tells valid from invalid.
+	*/
+	function parse_color(text) {
+		if (typeof text !== "string" || !text.trim()) return null;
+		const value = text.trim();
+		measure_context.fillStyle = "#010203";
+		measure_context.fillStyle = value;
+		const first = measure_context.fillStyle;
+		measure_context.fillStyle = "#040506";
+		measure_context.fillStyle = value;
+		if (measure_context.fillStyle !== first) return null;
+		if (first.startsWith("#"))
+			return { r: parseInt(first.slice(1, 3), 16), g: parseInt(first.slice(3, 5), 16), b: parseInt(first.slice(5, 7), 16), a: 1 };
+		const parts = first.match(/[\d.]+/g);
+		if (!parts || parts.length < 3) return null;
+		return { r: Number(parts[0]), g: Number(parts[1]), b: Number(parts[2]), a: parts.length > 3 ? Number(parts[3]) : 1 };
+	}
+
+	// Any CSS color to stored hex, or null when it cannot be read.
+	function normalize_color(text) {
+		const color = parse_color(text);
+		return color ? rgba_to_hex(color) : null;
+	}
+
+	function format_color(color, format) {
+		const alpha = Math.round(color.a * 100) / 100;
+		if (format === "rgba") return "rgba(" + color.r + ", " + color.g + ", " + color.b + ", " + alpha + ")";
+		if (format === "hsla") {
+			const hsl = rgb_to_hsl(color.r, color.g, color.b);
+			return "hsla(" + Math.round(hsl.h) + ", " + Math.round(hsl.s) + "%, " + Math.round(hsl.l) + "%, " + alpha + ")";
+		}
+		return rgba_to_hex(color);
+	}
+
+	// recent colors
+
+	function read_recent() {
+		try {
+			const list = JSON.parse(localStorage.getItem(recent_key) || "[]");
+			return Array.isArray(list) ? list.map(normalize_color).filter(Boolean).slice(0, recent_limit) : [];
+		}
+		catch (error) {
+			return [];
+		}
+	}
+
+	let recent_colors = read_recent();
+
+	// Presets never enter the list: they are always one tap away already.
+	function remember_color(hex) {
+		if (!hex || colors.includes(hex)) return;
+		recent_colors = [hex].concat(recent_colors.filter(function (color) { return color !== hex; })).slice(0, recent_limit);
+		try { localStorage.setItem(recent_key, JSON.stringify(recent_colors)); } catch (error) {}
+		render_recent();
+	}
+
+	// One recent row under every color field in the sidebar, plus one in the picker.
+	let recent_buttons = [];
+
+	function render_recent() {
+		recent_buttons = [];
+		for (const key in color_keys) {
+			const row = document.getElementById("recent_" + key);
+			row.innerHTML = "";
+			row.hidden = !recent_colors.length;
+			for (const hex of recent_colors) {
+				const button = color_chip(hex, "Recent " + hex);
+				button.addEventListener("click", function () {
+					set_style(key, hex);
+					remember_color(hex);
+				});
+				row.append(button);
+				recent_buttons.push({ key: key, value: hex, button: button });
+			}
+		}
+		const picker_row = document.getElementById("color_recent");
+		picker_row.innerHTML = "";
+		document.getElementById("color_recent_group").hidden = !recent_colors.length;
+		for (const hex of recent_colors) {
+			const button = color_chip(hex, "Recent " + hex);
+			button.addEventListener("click", function () { pick_color(hex, true); });
+			picker_row.append(button);
+		}
+	}
+
+	// A small round button showing a color over a checkerboard, so transparency is visible.
+	function color_chip(hex, label) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "chip";
+		button.title = label;
+		button.setAttribute("aria-label", label);
+		button.style.setProperty("--chip", hex);
+		return button;
+	}
+
+	// the picker
+
+	const color_picker = document.getElementById("color_picker");
+	const color_area = document.getElementById("color_area");
+	const color_hue = document.getElementById("color_hue");
+	const color_alpha = document.getElementById("color_alpha");
+	const color_text = document.getElementById("color_text");
+	let color_format = "hex";
+	try { color_format = localStorage.getItem(color_format_key) || "hex"; } catch (error) {}
+	if (!["hex", "hsla", "rgba"].includes(color_format)) color_format = "hex";
+
+	// The picker keeps HSV so the hue survives greys and black, where hex alone would lose it.
+	const picking = { key: null, h: 0, s: 0, v: 1, a: 1, opener: null };
+	let coloring = null;
+
+	function picked_rgba() {
+		const rgb = hsv_to_rgb(picking.h, picking.s, picking.v);
+		return { r: rgb.r, g: rgb.g, b: rgb.b, a: Math.round(picking.a * 1000) / 1000 };
+	}
+
+	function load_picker(hex) {
+		const color = parse_color(hex) || { r: 255, g: 255, b: 255, a: 1 };
+		const hsv = rgb_to_hsv(color.r, color.g, color.b);
+		if (hsv.s > 0 && hsv.v > 0) picking.h = hsv.h;
+		picking.s = hsv.s;
+		picking.v = hsv.v;
+		picking.a = color.a;
+	}
+
+	function show_picker() {
+		const color = picked_rgba();
+		const solid = "rgb(" + color.r + ", " + color.g + ", " + color.b + ")";
+		color_area.style.setProperty("--hue", "hsl(" + picking.h + ", 100%, 50%)");
+		document.getElementById("color_area_handle").style.left = (picking.s * 100) + "%";
+		document.getElementById("color_area_handle").style.top = ((1 - picking.v) * 100) + "%";
+		document.getElementById("color_area_handle").style.background = solid;
+		document.getElementById("color_hue_thumb").style.left = (picking.h / 360 * 100) + "%";
+		document.getElementById("color_alpha_thumb").style.left = (picking.a * 100) + "%";
+		color_alpha.style.setProperty("--solid", solid);
+		document.getElementById("color_preview").style.setProperty("--chip", rgba_to_hex(color));
+		color_area.setAttribute("aria-valuetext", "saturation " + Math.round(picking.s * 100) + "%, brightness " + Math.round(picking.v * 100) + "%");
+		color_hue.setAttribute("aria-valuenow", String(Math.round(picking.h)));
+		color_alpha.setAttribute("aria-valuenow", String(Math.round(picking.a * 100)));
+		if (document.activeElement !== color_text) {
+			color_text.value = format_color(color, color_format);
+			color_text.classList.remove("invalid");
+		}
+		for (const button of document.querySelectorAll("#color_formats button")) button.classList.toggle("on", button.getAttribute("data_format") === color_format);
+	}
+
+	/*
+		Applies the picked color live. With nothing selected it sets the default
+		for what you make next; with a selection it recolors it. A whole drag is
+		one undo step: opened on the first change, closed by commit_color().
+	*/
+	function apply_color(hex) {
+		const key = picking.key;
+		if (!key) return;
+		if (!selection.size) {
+			style[key] = hex;
+			refresh_panel();
+			set_cursor();
+			return;
+		}
+		if (coloring !== key) {
+			end_coloring();
+			begin_change();
+			coloring = key;
+		}
+		for (const id of selection) {
+			const element = index.get(id);
+			if (!element) continue;
+			const field = color_keys[key].field;
+			if (field) {
+				if (element.type === "frame") edit(id)[field] = hex;
+			}
+			else if (element.color !== undefined) edit(id).color = hex;
+		}
+		refresh_panel();
+		invalidate();
+	}
+
+	function end_coloring() {
+		if (!coloring) return;
+		coloring = null;
+		end_change();
+	}
+
+	function commit_color() {
+		end_coloring();
+		remember_color(rgba_to_hex(picked_rgba()));
+	}
+
+	function preview_picked() {
+		show_picker();
+		apply_color(rgba_to_hex(picked_rgba()));
+	}
+
+	// A preset or recent color from inside the picker: applied and committed in one step.
+	function pick_color(hex, commit) {
+		load_picker(hex);
+		preview_picked();
+		if (commit) commit_color();
+	}
+
+	function open_color_picker(key, opener) {
+		if (!color_picker.hidden && picking.key === key) {
+			close_color_picker();
+			return;
+		}
+		close_color_picker();
+		finish_everything();
+		picking.key = key;
+		picking.opener = opener;
+		load_picker(current_value(key));
+		document.getElementById("color_title").textContent = color_keys[key].label;
+		color_picker.hidden = false;
+		show_picker();
+		// Beside the sidebar, level with the row that opened it, kept on screen.
+		const side = sidebar.getBoundingClientRect();
+		const row = opener.getBoundingClientRect();
+		const height = color_picker.offsetHeight;
+		color_picker.style.left = (side.right + 8) + "px";
+		color_picker.style.top = Math.max(8, Math.min(row.top - 12, window.innerHeight - height - 8)) + "px";
+		opener.setAttribute("aria-expanded", "true");
+	}
+
+	function close_color_picker() {
+		if (color_picker.hidden) return;
+		commit_color();
+		color_picker.hidden = true;
+		if (picking.opener) picking.opener.setAttribute("aria-expanded", "false");
+		picking.key = null;
+		picking.opener = null;
+	}
+
+	// Drags on the area and the two tracks: pointer capture, so the drag survives leaving the element.
+	function drag_surface(element, on_move) {
+		element.addEventListener("pointerdown", function (event) {
+			event.preventDefault();
+			element.setPointerCapture(event.pointerId);
+			element.focus();
+			on_move(event);
+			const move = function (moved) { on_move(moved); };
+			const up = function () {
+				element.removeEventListener("pointermove", move);
+				element.removeEventListener("pointerup", up);
+				element.removeEventListener("pointercancel", up);
+				commit_color();
+			};
+			element.addEventListener("pointermove", move);
+			element.addEventListener("pointerup", up);
+			element.addEventListener("pointercancel", up);
+		});
+	}
+
+	function fraction(element, event) {
+		const rect = element.getBoundingClientRect();
+		return { x: clamp_unit((event.clientX - rect.left) / rect.width), y: clamp_unit((event.clientY - rect.top) / rect.height) };
+	}
+
+	drag_surface(color_area, function (event) {
+		const at = fraction(color_area, event);
+		picking.s = at.x;
+		picking.v = 1 - at.y;
+		preview_picked();
+	});
+
+	drag_surface(color_hue, function (event) {
+		picking.h = fraction(color_hue, event).x * 359.9;
+		preview_picked();
+	});
+
+	drag_surface(color_alpha, function (event) {
+		picking.a = Math.round(fraction(color_alpha, event).x * 100) / 100;
+		preview_picked();
+	});
+
+	// Arrow keys nudge by 1%, or 10% with Shift; releasing the key commits.
+	function nudge_keys(element, on_nudge) {
+		element.addEventListener("keydown", function (event) {
+			const steps = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+			if (!steps[event.key]) return;
+			event.preventDefault();
+			event.stopPropagation();
+			const size = event.shiftKey ? 0.1 : 0.01;
+			on_nudge(steps[event.key][0] * size, steps[event.key][1] * size);
+			preview_picked();
+		});
+		element.addEventListener("keyup", function (event) {
+			if (event.key.startsWith("Arrow")) commit_color();
+		});
+	}
+
+	nudge_keys(color_area, function (dx, dy) {
+		picking.s = clamp_unit(picking.s + dx);
+		picking.v = clamp_unit(picking.v - dy);
+	});
+
+	nudge_keys(color_hue, function (dx, dy) {
+		picking.h = Math.max(0, Math.min(359.9, picking.h + (dx - dy) * 360));
+	});
+
+	nudge_keys(color_alpha, function (dx, dy) {
+		picking.a = Math.round(clamp_unit(picking.a + dx - dy) * 100) / 100;
+	});
+
+	// The text field takes any CSS color; it previews while valid and commits on Enter or blur.
+	color_text.addEventListener("input", function () {
+		const color = parse_color(color_text.value);
+		color_text.classList.toggle("invalid", !color);
+		if (!color) return;
+		load_picker(rgba_to_hex(color));
+		preview_picked();
+	});
+
+	color_text.addEventListener("keydown", function (event) {
+		event.stopPropagation();
+		if (event.key === "Enter") {
+			event.preventDefault();
+			color_text.blur();
+		}
+		if (event.key === "Escape") close_color_picker();
+	});
+
+	color_text.addEventListener("blur", function () {
+		commit_color();
+		color_text.classList.remove("invalid");
+		show_picker();
+	});
+
+	for (const button of document.querySelectorAll("#color_formats button")) {
+		button.addEventListener("click", function () {
+			color_format = button.getAttribute("data_format");
+			try { localStorage.setItem(color_format_key, color_format); } catch (error) {}
+			show_picker();
+		});
+	}
+
+	document.getElementById("color_copy").addEventListener("click", function () {
+		const text = format_color(picked_rgba(), color_format);
+		if (navigator.clipboard && navigator.clipboard.writeText)
+			navigator.clipboard.writeText(text).then(function () { show_toast("Copied " + text + "."); }, function () { show_toast("Copy was blocked by the browser."); });
+	});
+
+	// The eyedropper exists only where the browser supports it (desktop Chrome and Edge).
+	const dropper = document.getElementById("color_dropper");
+	dropper.hidden = !window.EyeDropper;
+	dropper.addEventListener("click", function () {
+		new EyeDropper().open().then(function (result) { pick_color(result.sRGBHex, true); }).catch(function () {});
+	});
+
+	for (const hex of colors) {
+		const button = color_chip(hex, "Preset " + hex);
+		button.addEventListener("click", function () { pick_color(hex, true); });
+		document.getElementById("color_presets").append(button);
+	}
+
+	// A press anywhere outside the picker, or outside the swatch that opened it, closes it.
+	document.addEventListener("pointerdown", function (event) {
+		if (color_picker.hidden || color_picker.contains(event.target) || (picking.opener && picking.opener.contains(event.target))) return;
+		close_color_picker();
+	}, true);
+
+	/*
+		The last swatch in each color row opens the picker. When the current
+		value is not one of the row's fixed swatches it shows that color and
+		counts as selected, so a custom color is never invisible.
+	*/
+	const custom_swatches = {};
+
+	function add_custom_swatch(container_id, key) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "swatch custom";
+		button.title = "Pick any color";
+		button.setAttribute("aria-label", "Pick any color");
+		button.setAttribute("aria-haspopup", "dialog");
+		button.setAttribute("aria-expanded", "false");
+		button.addEventListener("click", function () { open_color_picker(key, button); });
+		document.getElementById(container_id).append(button);
+		custom_swatches[key] = button;
+	}
+
+	function refresh_color_rows() {
+		for (const key in custom_swatches) {
+			const value = current_value(key);
+			const fixed_values = panel_buttons.filter(function (entry) { return entry.key === key; }).map(function (entry) { return entry.value; });
+			const custom = typeof value === "string" && value.startsWith("#") && !fixed_values.includes(value);
+			const button = custom_swatches[key];
+			button.classList.toggle("on", custom);
+			button.classList.toggle("filled", custom);
+			if (custom) button.style.setProperty("--chip", value);
+		}
+		for (const entry of recent_buttons) entry.button.classList.toggle("on", current_value(entry.key) === entry.value);
+	}
+
 
 	function add_swatch(container_id, key, value, label, kind) {
 		const button = document.createElement("button");
@@ -3758,13 +4516,17 @@
 	}
 
 	for (const color of colors) add_swatch("swatches", "color", color, "Color " + color);
+	add_custom_swatch("swatches", "color");
 
 	add_swatch("surface_fills", "surface_fill", "auto", "Default fill", "auto");
 	add_swatch("surface_fills", "surface_fill", "clear", "Clear, no fill", "clear");
 	for (const color of colors) add_swatch("surface_fills", "surface_fill", color, "Tint " + color);
+	add_custom_swatch("surface_fills", "surface_fill");
 
 	add_swatch("surface_border_colors", "surface_border_color", "auto", "Default border", "ring");
 	for (const color of colors) add_swatch("surface_border_colors", "surface_border_color", color, "Border " + color);
+	add_custom_swatch("surface_border_colors", "surface_border_color");
+	render_recent();
 
 	for (const row in panel_rows) {
 		const spec = panel_rows[row];
@@ -3953,6 +4715,7 @@
 			entry.button.classList.toggle("on", on);
 			entry.button.setAttribute("aria-pressed", String(on));
 		}
+		refresh_color_rows();
 	}
 
 	// With a selection, a control edits only the selection. With nothing selected, it sets the default for what you make next.
@@ -4727,9 +5490,21 @@
 	}
 
 	// Canvas text is laid out from its top edge; SVG places text on its baseline.
+	/*
+		attr="#rrggbb" plus attr-opacity when the color is translucent or a
+		factor fades it (tints). Some SVG editors ignore #rrggbbaa, so alpha is
+		always written as a separate opacity attribute.
+	*/
+	function paint(attr, color, factor) {
+		const parsed = parse_color(color);
+		if (!parsed) return attr + "=\"" + color + "\"";
+		const alpha = parsed.a * (factor === undefined ? 1 : factor);
+		return attr + "=\"" + rgba_to_hex({ r: parsed.r, g: parsed.g, b: parsed.b, a: 1 }) + "\"" + (alpha < 1 ? " " + attr + "-opacity=\"" + num(alpha) + "\"" : "");
+	}
+
 	function svg_text(text, x, y, size, color, anchor, family) {
 		const lines = text_lines(text);
-		let markup = "<text font-family=\"" + xml(family || sans) + "\" font-size=\"" + num(size) + "\" fill=\"" + color + "\"" + (anchor === "middle" ? " text-anchor=\"middle\"" : "") + ">";
+		let markup = "<text font-family=\"" + xml(family || sans) + "\" font-size=\"" + num(size) + "\" " + paint("fill", color) + (anchor === "middle" ? " text-anchor=\"middle\"" : "") + ">";
 		for (let i = 0; i < lines.length; i++)
 			markup += "<tspan x=\"" + num(x) + "\" y=\"" + num(y + size * 0.92 + i * size * 1.3) + "\" xml:space=\"preserve\">" + xml(lines[i]) + "</tspan>";
 		return markup + "</text>";
@@ -4758,7 +5533,7 @@
 		const angle = Math.atan2(to.y - from.y, to.x - from.x);
 		const left = { x: to.x - size * Math.cos(angle - 0.42), y: to.y - size * Math.sin(angle - 0.42) };
 		const right = { x: to.x - size * Math.cos(angle + 0.42), y: to.y - size * Math.sin(angle + 0.42) };
-		return "<path d=\"M" + num(to.x) + " " + num(to.y) + "L" + num(left.x) + " " + num(left.y) + "L" + num(right.x) + " " + num(right.y) + "Z\" fill=\"" + color + "\"/>";
+		return "<path d=\"M" + num(to.x) + " " + num(to.y) + "L" + num(left.x) + " " + num(left.y) + "L" + num(right.x) + " " + num(right.y) + "Z\" " + paint("fill", color) + "/>";
 	}
 
 	function svg_connector(connector) {
@@ -4774,7 +5549,7 @@
 		};
 		if (connector.heads !== "none") trim(trimmed[last], points[last - 1]);
 		if (connector.heads === "both") trim(trimmed[0], points[1]);
-		let markup = "<path d=\"" + rounded_polyline(trimmed) + "\" fill=\"none\" stroke=\"" + connector.color + "\" stroke-width=\"" + num(connector.width) + "\" stroke-linecap=\"round\" stroke-linejoin=\"round\"" + (connector.dash ? " stroke-dasharray=\"" + num(connector.width * 4) + " " + num(connector.width * 3) + "\"" : "") + "/>";
+		let markup = "<path d=\"" + rounded_polyline(trimmed) + "\" fill=\"none\" " + paint("stroke", connector.color) + " stroke-width=\"" + num(connector.width) + "\" stroke-linecap=\"round\" stroke-linejoin=\"round\"" + (connector.dash ? " stroke-dasharray=\"" + num(connector.width * 4) + " " + num(connector.width * 3) + "\"" : "") + "/>";
 		if (connector.heads !== "none") markup += svg_arrowhead(points[last - 1], points[last], head, connector.color);
 		if (connector.heads === "both") markup += svg_arrowhead(points[1], points[0], head, connector.color);
 		if (connector.label) {
@@ -4808,11 +5583,11 @@
 
 		const element_svg = function (element) {
 			if (element.type === "stroke")
-				return "<path transform=\"translate(" + num(element.x) + " " + num(element.y) + ")\" d=\"" + stroke_outline(element.points, element.size) + "\" fill=\"" + element.color + "\"/>";
+				return "<path transform=\"translate(" + num(element.x) + " " + num(element.y) + ")\" d=\"" + stroke_outline(element.points, element.size) + "\" " + paint("fill", element.color) + "/>";
 			if (element.type === "text") return svg_text(element.text, element.x, element.y, element.font_size, element.color, "start");
 			if (element.type === "icon") {
 				const icon = icons[element.icon] || icons.database;
-				let markup = "<path transform=\"translate(" + num(element.x) + " " + num(element.y) + ") scale(" + num(element.w / 960) + " " + num(element.h / 960) + ") translate(0 960)\" d=\"" + icon.d + "\" fill=\"" + element.color + "\"/>";
+				let markup = "<path transform=\"translate(" + num(element.x) + " " + num(element.y) + ") scale(" + num(element.w / 960) + " " + num(element.h / 960) + ") translate(0 960)\" d=\"" + icon.d + "\" " + paint("fill", element.color) + "/>";
 				if (element.label) markup += svg_text(element.label, element.x + element.w / 2, element.y + element.h + 8, label_size, element.color, "middle");
 				return markup;
 			}
@@ -4820,8 +5595,8 @@
 				const fill = element.fill === "none" ? "none" : depth_colors[1];
 				const dash = element.dash ? " stroke-dasharray=\"" + num(element.width * 4) + " " + num(element.width * 3) + "\"" : "";
 				let markup = "<path d=\"" + node_outline(element) + "\" fill=\"" + fill + "\"/>";
-				if (element.fill === "tint") markup += "<path d=\"" + node_outline(element) + "\" fill=\"" + element.color + "\" fill-opacity=\"0.16\"/>";
-				markup += "<path d=\"" + node_outline(element) + node_detail(element) + "\" fill=\"none\" stroke=\"" + element.color + "\" stroke-width=\"" + num(element.width) + "\" stroke-linejoin=\"round\"" + dash + "/>";
+				if (element.fill === "tint") markup += "<path d=\"" + node_outline(element) + "\" " + paint("fill", element.color, 0.16) + "/>";
+				markup += "<path d=\"" + node_outline(element) + node_detail(element) + "\" fill=\"none\" " + paint("stroke", element.color) + " stroke-width=\"" + num(element.width) + "\" stroke-linejoin=\"round\"" + dash + "/>";
 				if (element.text) {
 					const measured = measure_text(element.text, node_font);
 					const center = center_of(element);
@@ -4848,10 +5623,10 @@
 			let markup = "";
 			if (look.fill !== "clear") {
 				markup += "<rect " + rect + " fill=\"" + depth_colors[Math.min(depth, depth_colors.length - 1)] + "\" filter=\"url(#surface_shadow)\"/>";
-				if (look.fill !== "auto") markup += "<rect " + rect + " fill=\"" + look.fill + "\" fill-opacity=\"0.14\"/>";
+				if (look.fill !== "auto") markup += "<rect " + rect + " " + paint("fill", look.fill, 0.14) + "/>";
 			}
 			if (look.border !== "none")
-				markup += "<rect " + rect + " fill=\"none\" stroke=\"" + (accent || line_color) + "\" stroke-width=\"" + (accent ? 1.5 : 1) + "\"" + (look.border === "dashed" ? " stroke-dasharray=\"6 4\"" : "") + "/>";
+				markup += "<rect " + rect + " fill=\"none\" " + paint("stroke", accent || line_color) + " stroke-width=\"" + (accent ? 1.5 : 1) + "\"" + (look.border === "dashed" ? " stroke-dasharray=\"6 4\"" : "") + "/>";
 			markup += svg_text(frame.name || "Surface", frame.x + Math.min(surface_corner(frame), 6), frame.y - 12 * 1.52, 12, accent || faint_color, "start", mono);
 			return markup;
 		};
@@ -4962,6 +5737,12 @@
 		const defaults = element_defaults[element.type];
 		if (defaults)
 			for (const key in defaults) if (element[key] === undefined) element[key] = defaults[key];
+		// Colors arrive in any CSS form from hand- or AI-written files; store hex. Unreadable ones fall back to the default.
+		if (typeof element.color === "string") element.color = normalize_color(element.color) || (defaults && defaults.color) || colors[0];
+		if (element.type === "frame") {
+			if (element.fill !== "auto" && element.fill !== "clear") element.fill = normalize_color(element.fill) || "auto";
+			if (element.border_color !== "auto") element.border_color = normalize_color(element.border_color) || "auto";
+		}
 		const sized = is_number(element.w) && is_number(element.h);
 		if (element.type === "text" && !sized) {
 			const measured = measure_text(element.text, element.font_size);
@@ -5265,7 +6046,7 @@
 			"- `id`: unique string within the document. Short readable ids help, e.g. \"db\", \"auth_check\". Connectors and `frame_id` refer to these.",
 			"- `type`: one of " + values(Array.from(known_types)) + ".",
 			"- `frame_id`: id of the surface this element sits in, or null for the board itself. Connectors ignore it.",
-			"- `color`: a CSS color, normally one from the palette.",
+			"- `color`: a hex color, `#rrggbb`, or `#rrggbbaa` with transparency (e.g. `#74abe0cc`). The palette below reads best on the dark background. Other CSS colors (`hsl()`, `hsla()`, `rgb()`, names) are accepted and stored as hex.",
 			"",
 			"## Element types",
 			"",
@@ -5273,9 +6054,9 @@
 			"",
 			"A rounded panel that groups other elements; moving it moves its contents. Use one per region, layer, service or step.",
 			"- `name`: title drawn in small monospace text just above the top-left corner.",
-			"- `fill`: `\"auto\"` (neutral panel; nested surfaces get lighter at each depth, up to 3 levels), `\"clear\"` (no fill, dots show through) or a palette color (a light tint over the panel).",
+			"- `fill`: `\"auto\"` (neutral panel; nested surfaces get lighter at each depth, up to 3 levels), `\"clear\"` (no fill, dots show through) or any color (a light tint over the panel; transparency makes the tint lighter still).",
 			"- `border`: " + options("surface_borders") + ".",
-			"- `border_color`: `\"auto\"` (neutral line) or a palette color. A colored border also colors the title.",
+			"- `border_color`: `\"auto\"` (neutral line) or any color. A colored border also colors the title.",
 			"- `frame_id`: set it to nest this surface inside another.",
 			"- Defaults: " + defaults("frame"),
 			"",
@@ -5359,6 +6140,7 @@
 			"",
 			"- Fills every missing field from the defaults listed for its type, and measures `w`, `h` when they are left out of text, nodes and strokes.",
 			"- Drops an element that has no string `id`, an unknown `type`, non-numeric `x`, `y`, `w` or `h`, a node `shape` not in the list, a stroke whose `points` are empty or not in triples, an image without an `asset`, or a connector without `start` and `end`.",
+			"- Converts every color to lowercase hex (`#rrggbb` or `#rrggbbaa`); a color it cannot read falls back to the type's default (`\"auto\"` for a surface's `fill` and `border_color`).",
 			"- Turns a connector end bound to an id that is not in the document into a free point.",
 			"- Moves a surface that is its own ancestor to the top level.",
 			"",
