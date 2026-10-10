@@ -186,14 +186,10 @@
 		color: var(--ink);
 	}
 
+	/* Every icon is a filled Material Symbol (Rounded) or a filled shape in the same weight. */
 	.sidebar svg {
-		width: 19px;
-		height: 19px;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 1.7;
-		stroke-linecap: round;
-		stroke-linejoin: round;
+		width: 22px;
+		height: 22px;
 	}
 
 	.sidebar input {
@@ -233,8 +229,8 @@
 
 	.board_button svg {
 		flex: none;
-		width: 16px !important;
-		height: 16px !important;
+		width: 20px !important;
+		height: 20px !important;
 	}
 
 	/* The board menu drops down over the sidebar and spills onto the canvas. */
@@ -343,8 +339,8 @@
 	}
 
 	.tool_grid svg {
-		width: 21px;
-		height: 21px;
+		width: 24px;
+		height: 24px;
 	}
 
 	.tool_grid kbd {
@@ -356,11 +352,20 @@
 		font-size: 9px;
 	}
 
+	/*
+		A color row: the non-colors a field has (default, clear), the picker,
+		then up to three recent colors. One line, every swatch the same size.
+	*/
 	.swatches {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 8px;
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		min-height: 30px;
 		padding: 2px 0;
+	}
+
+	.recent_slot {
+		display: contents;
 	}
 
 	.sidebar .swatch {
@@ -373,12 +378,7 @@
 		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
 	}
 
-	/* The color row: eight presets and the picker swatch, two rows of five. */
-	.swatches:not(.compact) {
-		grid-template-columns: repeat(5, 1fr);
-	}
-
-	/* The picker swatch: a hue wheel with a plus, or the custom color it holds. */
+	/* The picker swatch: a hue ring around the current color, or around a plus when there is no color to show. */
 	.sidebar .swatch.custom {
 		position: relative;
 		background: conic-gradient(#e5766c, #e2c870, #86c39a, #74abe0, #ad9ae0, #e5766c);
@@ -399,16 +399,14 @@
 		line-height: 1;
 	}
 
-	.sidebar .swatch.custom.filled {
+	.sidebar .swatch.custom.showing::after {
+		content: "";
+		inset: 4px;
 		background: linear-gradient(var(--chip), var(--chip)), var(--checker) 0 0 / 8px 8px;
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
 	}
 
-	.sidebar .swatch.custom.filled::after {
-		content: none;
-	}
-
-	/* Recent colors under a color row, and the chips inside the picker. */
-	.recent_row,
+	/* The recent colors inside the picker. */
 	.color_chips {
 		display: flex;
 		flex-wrap: wrap;
@@ -427,9 +425,10 @@
 		cursor: pointer;
 	}
 
-	/* Chips beat the generic button rules (transparent background, hover tint), so their color always shows. */
+	/* Chips beat the generic button rules (transparent background, hover tint, selected wash), so their color always shows. */
 	.sidebar .chip,
 	.sidebar .chip:hover,
+	.sidebar .chip.on,
 	.color_picker .chip,
 	.color_picker .chip:hover {
 		flex: none;
@@ -442,19 +441,15 @@
 		height: 20px;
 	}
 
+	/* A recent color in a sidebar row: a chip at full swatch size. */
+	.sidebar .swatch.chip {
+		width: 26px;
+		height: 26px;
+	}
+
 	.chip.on {
 		outline: 2px solid var(--ink);
 		outline-offset: 2px;
-	}
-
-	/* Surface swatches: two rows of five, still large enough for a fingertip. */
-	.swatches.compact {
-		grid-template-columns: repeat(5, 1fr);
-	}
-
-	.sidebar .swatches.compact .swatch {
-		width: 24px;
-		height: 24px;
 	}
 
 	/* Special swatches: default (depth shading), clear (dots show through), default border. */
@@ -531,11 +526,6 @@
 
 	.sidebar .brush_grid button {
 		height: 36px;
-	}
-
-	.sidebar .brush_grid svg {
-		width: 22px;
-		height: 22px;
 	}
 
 	.file_grid {
@@ -633,11 +623,6 @@
 	.glyph .fill {
 		fill: currentColor;
 		stroke: none;
-	}
-
-	.glyph .line {
-		fill: none;
-		stroke: currentColor;
 	}
 
 	.picker_group {
@@ -841,13 +826,8 @@
 	}
 
 	.color_picker svg {
-		width: 17px;
-		height: 17px;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 1.7;
-		stroke-linecap: round;
-		stroke-linejoin: round;
+		width: 20px;
+		height: 20px;
 	}
 
 	.color_actions {
@@ -1004,9 +984,9 @@
 			<div class="sidebar_head">
 				<button type="button" class="board_button" id="board_button" aria-haspopup="true" aria-expanded="false" title="Boards">
 					<span class="board_name" id="board_name">Board</span>
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+					<svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M480-361q-8 0-15-2.5t-13-8.5L268-556q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-372q-6 6-13 8.5t-15 2.5Z"/></svg>
 				</button>
-				<button type="button" id="collapse_button" aria-label="Collapse sidebar" title="Collapse sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+				<button type="button" id="collapse_button" aria-label="Collapse sidebar" title="Collapse sidebar"><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="m432-480 156 156q11 11 11 28t-11 28q-11 11-28 11t-28-11L348-452q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l184-184q11-11 28-11t28 11q11 11 11 28t-11 28L432-480Z"/></svg></button>
 			</div>
 			<div class="tool_grid" id="tool_grid" role="toolbar" aria-label="Tools"></div>
 
@@ -1044,7 +1024,6 @@
 				<div class="field stacked" data_section="color">
 					<span>Color</span>
 					<div class="swatches" id="swatches"></div>
-					<div class="recent_row" id="recent_color" hidden></div>
 				</div>
 				<div class="field stacked" data_section="brush">
 					<span>Brush</span>
@@ -1103,8 +1082,7 @@
 				</div>
 				<div class="field stacked" data_section="surface_fill">
 					<span>Fill</span>
-					<div class="swatches compact" id="surface_fills"></div>
-					<div class="recent_row" id="recent_surface_fill" hidden></div>
+					<div class="swatches" id="surface_fills"></div>
 				</div>
 				<div class="field" data_section="surface_border">
 					<span>Border</span>
@@ -1112,20 +1090,19 @@
 				</div>
 				<div class="field stacked" data_section="surface_border_color">
 					<span>Border color</span>
-					<div class="swatches compact" id="surface_border_colors"></div>
-					<div class="recent_row" id="recent_surface_border_color" hidden></div>
+					<div class="swatches" id="surface_border_colors"></div>
 				</div>
 			</section>
 		</div>
 
 		<div class="sidebar_foot">
 			<div class="row">
-				<button type="button" id="undo_button" aria-label="Undo" title="Undo (Ctrl + Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5 M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
-				<button type="button" id="redo_button" aria-label="Redo" title="Redo (Ctrl + Shift + Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5 M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+				<button type="button" id="undo_button" aria-label="Undo" title="Undo (Ctrl + Z)"><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M320-200q-17 0-28.5-11.5T280-240q0-17 11.5-28.5T320-280h244q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l76 76q11 11 11 28t-11 28q-11 11-28 11t-28-11L188-572q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l144-144q11-11 28-11t28 11q11 11 11 28t-11 28l-76 76h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H320Z"/></svg></button>
+				<button type="button" id="redo_button" aria-label="Redo" title="Redo (Ctrl + Shift + Z)"><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M648-560H396q-63 0-109.5 40T240-420q0 60 46.5 100T396-280h244q17 0 28.5 11.5T680-240q0 17-11.5 28.5T640-200H396q-97 0-166.5-63T160-420q0-94 69.5-157T396-640h252l-76-76q-11-11-11-28t11-28q11-11 28-11t28 11l144 144q6 6 8.5 13t2.5 15q0 8-2.5 15t-8.5 13L628-428q-11 11-28 11t-28-11q-11-11-11-28t11-28l76-76Z"/></svg></button>
 				<span class="gap"></span>
-				<button type="button" id="zoom_out" aria-label="Zoom out" title="Zoom out (-)">&minus;</button>
+				<button type="button" id="zoom_out" aria-label="Zoom out" title="Zoom out (-)"><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M240-440q-17 0-28.5-11.5T200-480q0-17 11.5-28.5T240-520h480q17 0 28.5 11.5T760-480q0 17-11.5 28.5T720-440H240Z"/></svg></button>
 				<button type="button" id="zoom_label" title="Reset to 100% (Ctrl + 0)">100%</button>
-				<button type="button" id="zoom_in" aria-label="Zoom in" title="Zoom in (+)">+</button>
+				<button type="button" id="zoom_in" aria-label="Zoom in" title="Zoom in (+)"><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M440-440H240q-17 0-28.5-11.5T200-480q0-17 11.5-28.5T240-520h200v-200q0-17 11.5-28.5T480-760q17 0 28.5 11.5T520-720v200h200q17 0 28.5 11.5T760-480q0 17-11.5 28.5T720-440H520v200q0 17-11.5 28.5T480-200q-17 0-28.5-11.5T440-240v-200Z"/></svg></button>
 			</div>
 			<div class="row">
 				<button type="button" id="fit_button" title="Fit everything (Shift + 1)">Fit</button>
@@ -1195,12 +1172,8 @@
 			<button type="button" data_format="hsla">HSLA</button>
 			<button type="button" data_format="rgba">RGBA</button>
 		</div>
-		<button type="button" id="color_copy" aria-label="Copy value" title="Copy value"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v11H8z M5 16V5h11"/></svg></button>
-		<button type="button" id="color_dropper" aria-label="Pick a color from the screen" title="Pick a color from the screen" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6l4 4 M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4z"/></svg></button>
-	</div>
-	<div class="color_group">
-		<span>Presets</span>
-		<div class="color_chips" id="color_presets"></div>
+		<button type="button" id="color_copy" aria-label="Copy value" title="Copy value"><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360ZM200-80q-33 0-56.5-23.5T120-160v-520q0-17 11.5-28.5T160-720q17 0 28.5 11.5T200-680v520h400q17 0 28.5 11.5T640-120q0 17-11.5 28.5T600-80H200Z"/></svg></button>
+		<button type="button" id="color_dropper" aria-label="Pick a color from the screen" title="Pick a color from the screen" hidden><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M120-160v-117q0-16 6-30.5t17-25.5l335-335-58-56 58-56 76 76 124-124q5-5 12.5-8t15.5-3q8 0 15 3t13 8l94 94q5 6 8 13t3 15q0 8-3 15.5t-8 12.5L705-555l76 78-57 57-56-58-335 335q-11 11-25.5 17t-30.5 6H160q-17 0-28.5-11.5T120-160Zm80-40h78l332-334-76-76-334 332v78Z"/></svg></button>
 	</div>
 	<div class="color_group" id="color_recent_group">
 		<span>Recent</span>
@@ -1239,7 +1212,7 @@
 		Bump format_version only when old files would be read differently.
 
 		MAP (sections in this script, in order)
-		constants: palette, size_ranges (sliders), Material Symbols icons, toolbar glyphs
+		constants: palette, size_ranges (sliders), Material Symbols icons, tool glyphs (Material Symbols too)
 		state: elements, view (camera), selection, style defaults
 		elements, geometry: boxes, pressure-stroke outlines, brushes (layers per stroke), path caches
 		connectors: bound ends, edge points, elbow routing
@@ -1289,14 +1262,14 @@
 		CHECKLIST: adding a style option or a size
 		Option rows: panel_rows (or a custom row like node_shapes), style defaults, set_style, current_value, a field mapping (surface_fields, node_fields), and its line in format_spec().
 		Sizes: an entry in size_ranges (types, field, range, initial) and a slider field in the sidebar; format_spec() picks up the range by itself.
-		Colors: an entry in color_keys, a recent_<key> row and add_custom_swatch() in the sidebar, normalization in complete_element, paint() in SVG export, and its line in format_spec().
+		Colors: an entry in color_keys, add_custom_swatch() in the sidebar (it makes the recent_<key> slot), normalization in complete_element, paint() in SVG export, and its line in format_spec().
 
 		CHECKLIST: adding a brush
 		An entry in brushes (label, glyph, reach, layers), a line in brush_uses, and aliases in brush_aliases. The sidebar button, canvas, live stroke, PNG and SVG pick it up from brushes.
 		Layers are filled outlines with an alpha (stroke_outline(), or a ribbon like fountain_layers()). Anything derived from the points (smoothing, flow, texture) must be deterministic, so the live stroke and the saved one match.
 
 		CHECKLIST: adding a tool button
-		tools list (glyph, key, label); activate_tool if it is an action rather than a mode; sticky_tools if it stays active after use; tool_contexts for its sidebar defaults.
+		tools list (d: a Material Symbols Rounded filled path on the 960 grid, key, label); activate_tool if it is an action rather than a mode; sticky_tools if it stays active after use; tool_contexts for its sidebar defaults.
 
 		MANUAL TESTS before finishing
 		Pencil or pen drawing with pressure; finger pan and pinch; mouse and keyboard shortcuts.
@@ -1315,7 +1288,10 @@
 		Removed: the watercolor brush. Tried and not wanted. Strokes saved with it open as the plain pen.
 		Fountain pen: a ribbon from a fixed flat nib on spline-smoothed points (smooth_points), not a pressure outline whose width follows direction; that looked like a marker, not a nib.
 		Added: pen brushes (pen, fountain pen, highlighter). One Pen tool with a Brush row, not a tool per brush; they share the size slider. A stroke stores brush; a missing one is the plain pen.
-		Kept: the color picker belongs to this tool only (no shared script). Presets stay one tap away; the picker adds an HSV area, hue, alpha, a text field that takes any CSS color, HEX / HSLA / RGBA display, an eyedropper where supported, and 8 recent colors shared across boards.
+		Kept: every interface icon is Material Symbols, Rounded, filled (tools, brushes, undo, redo, zoom, collapse, board menu, color picker). Node shape buttons are filled shapes in the same weight, since Material has no flowchart shapes. Interface icons are 22px in the sidebar and 24px in the tool grid.
+		Kept: the color picker belongs to this tool only (no shared script): an HSV area, hue, alpha, a text field that takes any CSS color, HEX / HSLA / RGBA display, and an eyedropper where supported.
+		Removed: suggested (preset) colors in the sidebar and the picker. They crowded the rows and mixed sizes. A color row now holds only its non-colors (default, clear), the picker and the last 3 colors, all one size. The row is the recent list only; the current color shows inside the picker's hue ring, so applying a color never adds or removes a circle. The palette constant stays for element defaults and the AI spec.
+		Kept: a color enters the recent list only when the picker closes on it, never per click or drag inside the picker. The newest sits right next to the picker.
 		Kept: decision branches are labeled True and False. The spec and its example use the same labels.
 		Kept: the AI spec does not prescribe element types. It says what each type is for and shows two examples (a process, a system).
 		Added: the loader accepts drifted names (type "flow", shape "diamond", icon by label, from / to, bare id ends) and cx / cy centers, and clamps sizes.
@@ -1352,20 +1328,6 @@
 	const line_color = token("--line_strong");
 	const ink_color = token("--ink");
 	const faint_color = token("--ink_faint");
-
-	/*
-		Toolbar glyphs are drawn on a 24 x 24 grid in two layers:
-		- fill: solid, rounded shapes
-		- line: thick round-capped strokes (handles, links)
-		These helpers build their SVG path strings.
-	*/
-	function rr(x, y, w, h, r) {
-		return "M" + (x + r) + " " + y + "h" + (w - 2 * r) + "a" + r + " " + r + " 0 0 1 " + r + " " + r + "v" + (h - 2 * r) + "a" + r + " " + r + " 0 0 1 " + (-r) + " " + r + "h" + (2 * r - w) + "a" + r + " " + r + " 0 0 1 " + (-r) + " " + (-r) + "v" + (2 * r - h) + "a" + r + " " + r + " 0 0 1 " + r + " " + (-r) + "z";
-	}
-
-	function circle(cx, cy, r) {
-		return "M" + (cx - r) + " " + cy + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0z";
-	}
 
 	// A polygon whose corners are rounded with a quadratic curve of radius r.
 	function soft_poly(points, r) {
@@ -1456,17 +1418,32 @@
 		check: { label: "Check", group: "Operations", d: "m424-408-86-86q-11-11-28-11t-28 11q-11 11-11 28t11 28l114 114q12 12 28 12t28-12l226-226q11-11 11-28t-11-28q-11-11-28-11t-28 11L424-408Zm56 328q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z" }
 	};
 
+	/*
+		Tool glyphs: Material Symbols, Rounded, filled, by Google (Apache
+		License 2.0), on the 960 grid like the icon library. The comment above
+		each one is its Material name.
+	*/
 	const tools = [
-		{ id: "select", key: "v", label: "Select", fill: soft_poly([[5, 2.5], [19.5, 10.5], [13, 12.5], [10, 19.5]], 1.4) },
-		{ id: "hand", key: "h", label: "Pan", fill: soft_poly([[12, 1.5], [15.5, 5.5], [8.5, 5.5]], 1) + soft_poly([[12, 22.5], [8.5, 18.5], [15.5, 18.5]], 1) + soft_poly([[1.5, 12], [5.5, 8.5], [5.5, 15.5]], 1) + soft_poly([[22.5, 12], [18.5, 15.5], [18.5, 8.5]], 1), line: "M12 5v14 M5 12h14", line_width: 2.2 },
-		{ id: "pen", key: "p", label: "Pen", fill: soft_poly([[3.5, 20.5], [4.6, 15.6], [15.4, 4.8], [19.2, 8.6], [8.4, 19.4]], 1.1) + soft_poly([[16.7, 3.5], [18, 2.2], [21.8, 6], [20.5, 7.3]], 1) },
-		{ id: "eraser", key: "e", label: "Eraser", fill: soft_poly([[8.2, 9.2], [13, 4.4], [20.6, 12], [15.8, 16.8]], 1.4) + soft_poly([[7, 10.4], [14.6, 18], [12.4, 20.2], [6.6, 20.2], [2.8, 16.4], [2.8, 14.6]], 1.2) },
-		{ id: "frame", key: "f", label: "Surface", fill: rr(3, 7.5, 18, 13.5, 3), line: "M4 3.8h7", line_width: 2.2 },
-		{ id: "connector", key: "a", label: "Connector", fill: circle(5, 19, 2.6) + soft_poly([[20.5, 3.5], [19.4, 12.5], [11.5, 4.6]], 1.2), line: "M6.5 17.5L16 8", line_width: 2.4 },
-		{ id: "text", key: "t", label: "Text", fill: rr(4, 3, 16, 4.2, 1.6) + rr(9.9, 3, 4.2, 18, 1.6) },
-		{ id: "flow", key: "w", label: "Flow", fill: rr(2.5, 3, 9, 6, 2) + rr(2.5, 15, 9, 6, 2) + soft_poly([[17, 7.5], [21.5, 12], [17, 16.5], [12.5, 12]], 0.8), line: "M7 9v6 M11.5 18h5.5v-1.5", line_width: 1.8 },
-		{ id: "image", key: "m", label: "Image", fill: soft_poly([[5, 18], [9.5, 11], [13, 15.5], [15.5, 12.5], [19, 18]], 1) + circle(16, 8, 1.9), line: "M6 4h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z", line_width: 2 },
-		{ id: "icon", key: "i", label: "Icons", fill: rr(3, 3, 8, 8, 2.2) + circle(17, 7, 4) + soft_poly([[7, 13.2], [11.2, 20.8], [2.8, 20.8]], 1.4) + rr(13, 13, 8, 8, 2.2) }
+		// arrow_selector_tool
+		{ id: "select", key: "v", label: "Select", d: "M606-105q-23 11-46 2.5T526-134L406-392l-93 130q-17 24-45 15t-28-38v-513q0-25 22.5-36t42.5 5l404 318q23 17 13.5 44T684-440H516l119 255q11 23 2.5 46T606-105Z" },
+		// pan_tool
+		{ id: "hand", key: "h", label: "Pan", d: "M402-40q-30 0-56-13.5T303-92L67-438q-8-12-7-26t12-24q19-19 45-22t47 12l116 81v-383q0-17 11.5-28.5T320-840q17 0 28.5 11.5T360-800v320h80v-400q0-17 11.5-28.5T480-920q17 0 28.5 11.5T520-880v400h80v-360q0-17 11.5-28.5T640-880q17 0 28.5 11.5T680-840v360h80v-280q0-17 11.5-28.5T800-800q17 0 28.5 11.5T840-760v560q0 66-47 113T680-40H402Z" },
+		// edit
+		{ id: "pen", key: "p", label: "Pen", d: "M160-120q-17 0-28.5-11.5T120-160v-97q0-16 6-30.5t17-25.5l505-504q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L313-143q-11 11-25.5 17t-30.5 6h-97Zm544-528 56-56-56-56-56 56 56 56Z" },
+		// ink_eraser
+		{ id: "eraser", key: "e", label: "Eraser", d: "M690-240h150q17 0 28.5 11.5T880-200q0 17-11.5 28.5T840-160H610l80-80Zm-483 80q-8 0-15.5-3t-13.5-9l-73-73q-23-23-23.5-57t22.5-58l440-456q23-24 56.5-24t56.5 23l199 199q23 23 23 57t-23 57L532-172q-6 6-13.5 9t-15.5 3H207Z" },
+		// toolbar
+		{ id: "frame", key: "f", label: "Surface", d: "M200-120q-33 0-56.5-23.5T120-200v-360h720v360q0 33-23.5 56.5T760-120H200Zm-80-520v-120q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v120H120Z" },
+		// conversion_path
+		{ id: "connector", key: "a", label: "Connector", d: "M760-120q-39 0-70-22.5T647-200H440q-66 0-113-47t-47-113q0-66 47-113t113-47h80q33 0 56.5-23.5T600-600q0-33-23.5-56.5T520-680H313q-13 35-43.5 57.5T200-600q-50 0-85-35t-35-85q0-50 35-85t85-35q39 0 69.5 22.5T313-760h207q66 0 113 47t47 113q0 66-47 113t-113 47h-80q-33 0-56.5 23.5T360-360q0 33 23.5 56.5T440-280h207q13-35 43.5-57.5T760-360q50 0 85 35t35 85q0 50-35 85t-85 35ZM200-680q17 0 28.5-11.5T240-720q0-17-11.5-28.5T200-760q-17 0-28.5 11.5T160-720q0 17 11.5 28.5T200-680Z" },
+		// title
+		{ id: "text", key: "t", label: "Text", d: "M420-680H260q-25 0-42.5-17.5T200-740q0-25 17.5-42.5T260-800h440q25 0 42.5 17.5T760-740q0 25-17.5 42.5T700-680H540v460q0 25-17.5 42.5T480-160q-25 0-42.5-17.5T420-220v-460Z" },
+		// flowchart
+		{ id: "flow", key: "w", label: "Flow", d: "M600-160v-80H440v-200h-80v80H80v-240h280v80h80v-200h160v-80h280v240H600v-80h-80v320h80v-80h280v240H600Z" },
+		// image
+		{ id: "image", key: "m", label: "Image", d: "M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm80-160h400q12 0 18-11t-2-21L586-459q-6-8-16-8t-16 8L450-320l-74-99q-6-8-16-8t-16 8l-80 107q-8 10-2 21t18 11Z" },
+		// category
+		{ id: "icon", key: "i", label: "Icons", d: "m297-581 149-243q6-10 15-14.5t19-4.5q10 0 19 4.5t15 14.5l149 243q6 10 6 21t-5 20q-5 9-14 14.5t-21 5.5H331q-12 0-21-5.5T296-540q-5-9-5-20t6-21ZM700-80q-75 0-127.5-52.5T520-260q0-75 52.5-127.5T700-440q75 0 127.5 52.5T880-260q0 75-52.5 127.5T700-80Zm-580-60v-240q0-17 11.5-28.5T160-420h240q17 0 28.5 11.5T440-380v240q0 17-11.5 28.5T400-100H160q-17 0-28.5-11.5T120-140Z" }
 	];
 
 	// Tools that stay active after use. The rest hand control back to select.
@@ -2534,11 +2511,12 @@
 	const node_font = 15;
 	// Format spec: new shapes are listed automatically (add a line to shape_uses and shape_aliases); if node_size() changes, update the sizing formulas in format_spec().
 	const node_shapes = {
-		terminal: { label: "Start / End", glyph: "M7 7h10a5 5 0 0 1 0 10H7a5 5 0 0 1 0-10z" },
-		process: { label: "Process", glyph: "M6 6h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3z" },
-		decision: { label: "Decision", glyph: "M12 3l9 9-9 9-9-9z" },
-		io: { label: "Input / Output", glyph: "M7 6h14l-4 12H3z" },
-		data: { label: "Data", glyph: "M5 7a7 2.5 0 0 0 14 0a7 2.5 0 0 0-14 0v10a7 2.5 0 0 0 14 0V7" }
+		terminal: { label: "Start / End", glyph: "M7 6.5h10a5.5 5.5 0 0 1 0 11H7a5.5 5.5 0 0 1 0-11z" },
+		process: { label: "Process", glyph: "M5.5 5.5h13a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-13a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3z" },
+		decision: { label: "Decision", glyph: soft_poly([[12, 2], [22, 12], [12, 22], [2, 12]], 2.2) },
+		io: { label: "Input / Output", glyph: soft_poly([[7, 5.5], [22, 5.5], [17, 18.5], [2, 18.5]], 1.8) },
+		// A solid lid over a solid body, with a thin gap for the rim.
+		data: { label: "Data", glyph: "M4 6.5a8 3 0 1 0 16 0a8 3 0 1 0-16 0z M4 8.6a8 3 0 0 0 16 0V17.5a8 3 0 0 1-16 0z" }
 	};
 
 	function node_slant(element) {
@@ -2830,7 +2808,7 @@
 	// ---------- overlay ----------
 
 	let hover = null;
-	const pen_glyph = new Path2D(tools.find(function (item) { return item.id === "pen"; }).fill);
+	const pen_glyph = new Path2D(tools.find(function (item) { return item.id === "pen"; }).d);
 	let bind_hint = null;
 
 	function screen_box(box) {
@@ -2969,10 +2947,13 @@
 		// pencil hover and eraser cursor
 		if (hover && hover.kind === "pen") {
 			context.save();
-			context.translate(hover.x - 4, hover.y - 20);
+			// The glyph is on Material's 960 grid; its nib, the hotspot, sits at (3, 21) once scaled to 24.
+			context.translate(hover.x - 3, hover.y - 21);
+			context.scale(24 / 960, 24 / 960);
+			context.translate(0, 960);
 			context.fillStyle = style.color;
 			context.strokeStyle = well_color;
-			context.lineWidth = 1.2;
+			context.lineWidth = 48;
 			context.lineJoin = "round";
 			context.stroke(pen_glyph);
 			context.fill(pen_glyph);
@@ -3312,12 +3293,12 @@
 	/*
 		The pen cursor is the sidebar's pen glyph, filled with the current
 		pen color and outlined so it reads on any background. Its hotspot is
-		the nib, at (4, 20) on the 24 x 24 grid.
+		the nib, at (3, 21) at the 24px cursor size.
 	*/
 	function pen_cursor() {
-		const glyph = tools.find(function (item) { return item.id === "pen"; }).fill;
-		const markup = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='" + glyph + "' fill='" + style.color + "' stroke='" + well_color + "' stroke-width='1.2' stroke-linejoin='round'/></svg>";
-		return "url(\"data:image/svg+xml," + encodeURIComponent(markup) + "\") 4 20, crosshair";
+		const glyph = tools.find(function (item) { return item.id === "pen"; }).d;
+		const markup = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 -960 960 960'><path d='" + glyph + "' fill='" + style.color + "' stroke='" + well_color + "' stroke-width='48' stroke-linejoin='round'/></svg>";
+		return "url(\"data:image/svg+xml," + encodeURIComponent(markup) + "\") 3 21, crosshair";
 	}
 
 	function set_cursor() {
@@ -4139,7 +4120,7 @@
 		button.type = "button";
 		button.title = item.label + " (" + item.key.toUpperCase() + ")";
 		button.setAttribute("aria-label", item.label);
-		button.innerHTML = glyph_svg(item) + "<kbd>" + item.key.toUpperCase() + "</kbd>";
+		button.innerHTML = icon_svg(item) + "<kbd>" + item.key.toUpperCase() + "</kbd>";
 		button.addEventListener("click", function () { activate_tool(item.id); });
 		tool_grid.append(button);
 		tool_buttons.set(item.id, button);
@@ -4194,12 +4175,6 @@
 	}
 
 	// icon picker
-
-	function glyph_svg(glyph) {
-		let markup = "<svg class=\"glyph\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path class=\"fill\" d=\"" + glyph.fill + "\"/>";
-		if (glyph.line) markup += "<path class=\"line\" style=\"stroke-width: " + (glyph.line_width || 2) + "\" d=\"" + glyph.line + "\"/>";
-		return markup + "</svg>";
-	}
 
 	function icon_svg(icon) {
 		return "<svg class=\"glyph\" viewBox=\"0 -960 960 960\" aria-hidden=\"true\"><path class=\"fill\" d=\"" + icon.d + "\"/></svg>";
@@ -4285,7 +4260,7 @@
 	};
 	const recent_key = storage_key + ".recent_colors";
 	const color_format_key = storage_key + ".color_format";
-	const recent_limit = 8;
+	const recent_limit = 3;
 
 	function clamp_unit(value) {
 		return Math.max(0, Math.min(1, value));
@@ -4382,33 +4357,16 @@
 
 	let recent_colors = read_recent();
 
-	// Presets never enter the list: they are always one tap away already.
+	// Every color committed in the picker; the newest first, three at most.
 	function remember_color(hex) {
-		if (!hex || colors.includes(hex)) return;
+		if (!hex) return;
 		recent_colors = [hex].concat(recent_colors.filter(function (color) { return color !== hex; })).slice(0, recent_limit);
 		try { localStorage.setItem(recent_key, JSON.stringify(recent_colors)); } catch (error) {}
 		render_recent();
 	}
 
-	// One recent row under every color field in the sidebar, plus one in the picker.
-	let recent_buttons = [];
-
+	// The recent colors inside the picker. The sidebar rows are built by refresh_color_rows().
 	function render_recent() {
-		recent_buttons = [];
-		for (const key in color_keys) {
-			const row = document.getElementById("recent_" + key);
-			row.innerHTML = "";
-			row.hidden = !recent_colors.length;
-			for (const hex of recent_colors) {
-				const button = color_chip(hex, "Recent " + hex);
-				button.addEventListener("click", function () {
-					set_style(key, hex);
-					remember_color(hex);
-				});
-				row.append(button);
-				recent_buttons.push({ key: key, value: hex, button: button });
-			}
-		}
 		const picker_row = document.getElementById("color_recent");
 		picker_row.innerHTML = "";
 		document.getElementById("color_recent_group").hidden = !recent_colors.length;
@@ -4417,6 +4375,7 @@
 			button.addEventListener("click", function () { pick_color(hex, true); });
 			picker_row.append(button);
 		}
+		refresh_color_rows();
 	}
 
 	// A small round button showing a color over a checkerboard, so transparency is visible.
@@ -4442,7 +4401,8 @@
 	if (!["hex", "hsla", "rgba"].includes(color_format)) color_format = "hex";
 
 	// The picker keeps HSV so the hue survives greys and black, where hex alone would lose it.
-	const picking = { key: null, h: 0, s: 0, v: 1, a: 1, opener: null };
+	// changed: a color was tried while this picker was open; the last one is saved when it closes.
+	const picking = { key: null, h: 0, s: 0, v: 1, a: 1, opener: null, changed: false };
 	let coloring = null;
 
 	function picked_rgba() {
@@ -4518,17 +4478,23 @@
 		end_change();
 	}
 
+	/*
+		Ends the undo step of a drag, a typed value or a tap. It does not touch
+		the recent list: clicking around the picker is trying colors, not
+		choosing one. The color in the picker when it closes is the one that
+		was chosen, and only that one is saved (close_color_picker).
+	*/
 	function commit_color() {
 		end_coloring();
-		remember_color(rgba_to_hex(picked_rgba()));
 	}
 
 	function preview_picked() {
+		picking.changed = true;
 		show_picker();
 		apply_color(rgba_to_hex(picked_rgba()));
 	}
 
-	// A preset or recent color from inside the picker: applied and committed in one step.
+	// A recent color or an eyedropper sample from inside the picker: applied and committed in one step.
 	function pick_color(hex, commit) {
 		load_picker(hex);
 		preview_picked();
@@ -4544,6 +4510,7 @@
 		finish_everything();
 		picking.key = key;
 		picking.opener = opener;
+		picking.changed = false;
 		load_picker(current_value(key));
 		document.getElementById("color_title").textContent = color_keys[key].label;
 		color_picker.hidden = false;
@@ -4560,6 +4527,9 @@
 	function close_color_picker() {
 		if (color_picker.hidden) return;
 		commit_color();
+		// Opening and closing without trying anything saves nothing.
+		if (picking.changed) remember_color(rgba_to_hex(picked_rgba()));
+		picking.changed = false;
 		color_picker.hidden = true;
 		if (picking.opener) picking.opener.setAttribute("aria-expanded", "false");
 		picking.key = null;
@@ -4682,12 +4652,6 @@
 		new EyeDropper().open().then(function (result) { pick_color(result.sRGBHex, true); }).catch(function () {});
 	});
 
-	for (const hex of colors) {
-		const button = color_chip(hex, "Preset " + hex);
-		button.addEventListener("click", function () { pick_color(hex, true); });
-		document.getElementById("color_presets").append(button);
-	}
-
 	// A press anywhere outside the picker, or outside the swatch that opened it, closes it.
 	document.addEventListener("pointerdown", function (event) {
 		if (color_picker.hidden || color_picker.contains(event.target) || (picking.opener && picking.opener.contains(event.target))) return;
@@ -4695,11 +4659,19 @@
 	}, true);
 
 	/*
-		The last swatch in each color row opens the picker. When the current
-		value is not one of the row's fixed swatches it shows that color and
-		counts as selected, so a custom color is never invisible.
+		A color row after its non-colors: the picker, then the recent colors,
+		three at most, newest next to the picker. The row holds the recent
+		list and nothing else, so applying a color never adds, removes or
+		moves a circle; only a color saved from the picker changes it, by
+		taking the first place and pushing the others right.
+		The picker swatch is a hue ring with the current color in its middle,
+		so the current color always shows, even when it is not a recent one
+		(the default white, a color loaded with a board, a color being tried
+		in the picker). With no color to show (a surface's default or clear
+		fill) the middle shows a plus.
 	*/
 	const custom_swatches = {};
+	const row_signatures = {};
 
 	function add_custom_swatch(container_id, key) {
 		const button = document.createElement("button");
@@ -4710,21 +4682,34 @@
 		button.setAttribute("aria-haspopup", "dialog");
 		button.setAttribute("aria-expanded", "false");
 		button.addEventListener("click", function () { open_color_picker(key, button); });
-		document.getElementById(container_id).append(button);
+		const slot = document.createElement("span");
+		slot.className = "recent_slot";
+		slot.id = "recent_" + key;
+		document.getElementById(container_id).append(button, slot);
 		custom_swatches[key] = button;
 	}
 
 	function refresh_color_rows() {
 		for (const key in custom_swatches) {
 			const value = current_value(key);
-			const fixed_values = panel_buttons.filter(function (entry) { return entry.key === key; }).map(function (entry) { return entry.value; });
-			const custom = typeof value === "string" && value.startsWith("#") && !fixed_values.includes(value);
-			const button = custom_swatches[key];
-			button.classList.toggle("on", custom);
-			button.classList.toggle("filled", custom);
-			if (custom) button.style.setProperty("--chip", value);
+			const showing = typeof value === "string" && value.startsWith("#");
+			const picker_button = custom_swatches[key];
+			picker_button.classList.toggle("showing", showing);
+			if (showing) picker_button.style.setProperty("--chip", value);
+			const list = recent_colors.slice(0, recent_limit);
+			const signature = list.join(" ") + "|" + value;
+			if (row_signatures[key] === signature) continue;
+			row_signatures[key] = signature;
+			const slot = document.getElementById("recent_" + key);
+			slot.innerHTML = "";
+			for (const hex of list) {
+				const button = color_chip(hex, "Recent " + hex);
+				button.classList.add("swatch");
+				button.classList.toggle("on", hex === value);
+				button.addEventListener("click", function () { set_style(key, hex); });
+				slot.append(button);
+			}
 		}
-		for (const entry of recent_buttons) entry.button.classList.toggle("on", current_value(entry.key) === entry.value);
 	}
 
 
@@ -4741,16 +4726,14 @@
 		panel_buttons.push({ key: key, value: value, button: button });
 	}
 
-	for (const color of colors) add_swatch("swatches", "color", color, "Color " + color);
+	// No suggested colors: a row holds only its non-colors, the picker and the recent colors.
 	add_custom_swatch("swatches", "color");
 
 	add_swatch("surface_fills", "surface_fill", "auto", "Default fill", "auto");
 	add_swatch("surface_fills", "surface_fill", "clear", "Clear, no fill", "clear");
-	for (const color of colors) add_swatch("surface_fills", "surface_fill", color, "Tint " + color);
 	add_custom_swatch("surface_fills", "surface_fill");
 
 	add_swatch("surface_border_colors", "surface_border_color", "auto", "Default border", "ring");
-	for (const color of colors) add_swatch("surface_border_colors", "surface_border_color", color, "Border " + color);
 	add_custom_swatch("surface_border_colors", "surface_border_color");
 	render_recent();
 
@@ -4782,7 +4765,7 @@
 		button.type = "button";
 		button.title = node_shapes[shape].label;
 		button.setAttribute("aria-label", node_shapes[shape].label);
-		button.innerHTML = "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"" + node_shapes[shape].glyph + "\"/></svg>";
+		button.innerHTML = "<svg class=\"glyph\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path class=\"fill\" d=\"" + node_shapes[shape].glyph + "\"/></svg>";
 		button.addEventListener("click", function () { set_style("node_shape", shape); });
 		document.getElementById("node_shapes").append(button);
 		panel_buttons.push({ key: "node_shape", value: shape, button: button });
