@@ -522,11 +522,20 @@
 		font-family: var(--mono);
 	}
 
-	/* Brushes: named, so they are easy to tell apart at a glance. */
+	/* Brushes: one icon each, sized for a fingertip like the tools above. */
 	.brush_grid {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 2px;
+		gap: 4px;
+	}
+
+	.sidebar .brush_grid button {
+		height: 36px;
+	}
+
+	.sidebar .brush_grid svg {
+		width: 22px;
+		height: 22px;
 	}
 
 	.file_grid {
@@ -1283,7 +1292,7 @@
 		Colors: an entry in color_keys, a recent_<key> row and add_custom_swatch() in the sidebar, normalization in complete_element, paint() in SVG export, and its line in format_spec().
 
 		CHECKLIST: adding a brush
-		An entry in brushes (label, reach, layers), a line in brush_uses, and aliases in brush_aliases. The sidebar button, canvas, live stroke, PNG and SVG pick it up from brushes.
+		An entry in brushes (label, glyph, reach, layers), a line in brush_uses, and aliases in brush_aliases. The sidebar button, canvas, live stroke, PNG and SVG pick it up from brushes.
 		Layers are filled outlines with an alpha (stroke_outline(), or a ribbon like fountain_layers()). Anything derived from the points (smoothing, flow, texture) must be deterministic, so the live stroke and the saved one match.
 
 		CHECKLIST: adding a tool button
@@ -1845,12 +1854,15 @@
 		brush looks the same everywhere. Layers never change the stored points.
 		reach is how far from the centre line the stroke counts as hit, in
 		multiples of size, for selecting and erasing.
+		glyph is the sidebar button's icon: Material Symbols, Rounded, filled
+		(stylus_pen, stylus_fountain_pen, stylus_highlighter), by Google, Apache
+		License 2.0, on the same 960 grid as the icon library.
 		Format spec: brushes are listed in format_spec() from here, with brush_uses.
 	*/
 	const brushes = {
 		pen: {
 			label: "Pen",
-			short: "Pen",
+			glyph: "m254-371 78-280q4-13 14-21t24-8h30v-44q0-8 1.5-15.5T406-755l49-114q2-5 7-8t10-3h16q5 0 10 3t7 8l49 114q3 8 4.5 15.5T560-724v44h30q14 0 24 8t14 21l78 280q5 19-7 35t-32 16H293q-20 0-32-16t-7-35Zm-39 251q-20 0-32.5-16.5T177-173l5-12q8-25 29-40t47-15h444q26 0 47 15t29 40l5 12q7 20-5.5 36.5T745-120H215Z",
 			reach: 0.8,
 			layers: function (points, size) {
 				return [{ d: stroke_outline(points, size), alpha: 1 }];
@@ -1858,14 +1870,14 @@
 		},
 		fountain: {
 			label: "Fountain pen",
-			short: "Fountain",
+			glyph: "M338-320h284q14 0 25-8.5t14-22.5l73-306q2-11-.5-21T723-696L554-852q-10-9-22-3.5T520-837v169q14 10 22 25t8 33q0 29-20.5 49.5T480-540q-29 0-49.5-20.5T410-610q0-18 8-33t22-25v-169q0-13-12-18.5t-22 3.5L237-696q-8 8-10.5 18t-.5 21l73 306q3 14 14 22.5t25 8.5ZM215-120q-20 0-32.5-16.5T177-173l5-12q8-25 29-40t47-15h444q26 0 47 15t29 40l5 12q7 20-5.5 36.5T745-120H215Z",
 			reach: 1.1,
 			layers: fountain_layers
 		},
 		// Wide, even and see-through. It ignores pressure, like a felt tip. One filled outline, so it never darkens where it crosses itself.
 		highlighter: {
 			label: "Highlighter",
-			short: "Highlighter",
+			glyph: "M320-320q-17 0-28.5-11.5T280-360v-400q0-33 23.5-56.5T360-840q9 0 18 2t17 6l240 119q20 10 32.5 29.5T680-641v281q0 17-11.5 28.5T640-320H320ZM215-120q-20 0-32.5-16.5T177-173l5-12q8-25 29-40t47-15h444q26 0 47 15t29 40l5 12q7 20-5.5 36.5T745-120H215Z",
 			reach: 1.3,
 			layers: function (points, size) {
 				const shape = { radius: function () { return size * 1.25; } };
@@ -4759,7 +4771,7 @@
 		button.type = "button";
 		button.title = brushes[brush].label;
 		button.setAttribute("aria-label", brushes[brush].label);
-		button.textContent = brushes[brush].short;
+		button.innerHTML = icon_svg({ d: brushes[brush].glyph });
 		button.addEventListener("click", function () { set_style("brush", brush); });
 		document.getElementById("brushes").append(button);
 		panel_buttons.push({ key: "brush", value: brush, button: button });
