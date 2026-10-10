@@ -1196,7 +1196,7 @@
 	<textarea id="format_text" readonly spellcheck="false" aria-label="File format"></textarea>
 	<div class="format_actions">
 		<button type="button" id="format_copy">Copy</button>
-		<button type="button" id="format_download">Download .md</button>
+		<button type="button" id="format_download" title="The same text with skill front matter; save it as SKILL.md to use it as a skill">Download .md</button>
 		<span class="gap"></span>
 		<button type="button" id="format_close">Close</button>
 	</div>
@@ -1213,7 +1213,9 @@
 		Any change to what a saved board can hold, or to how a file is read, must update format_spec() in the same change.
 		Lists built from constants update themselves (colors, size_ranges, icons, node_shapes, panel_rows, element_defaults); the prose does not.
 		The "Format spec:" comments next to those constants say exactly which part of the spec to touch.
-		format_example must stay valid: it is read the same way a file is read.
+		The spec describes what each element is for and lets the AI choose by content ("Choosing elements"). Do not turn it into rules that push one element type.
+		format_examples must stay valid: example_json() reads each one the way a file is read and warns in the console if anything is dropped.
+		The copied text is the plain spec (pasted into a chat); the downloaded .md adds skill front matter (skill_markdown()). Both must stand on their own.
 		Bump format_version only when old files would be read differently.
 
 		MAP (sections in this script, in order)
@@ -1235,7 +1237,7 @@
 		clipboard and drop; boards: one IndexedDB record per board
 		export: PNG, SVG, copy as PNG
 		files and storage: element_defaults, complete_element, valid_element, parse_document, .json save and open
-		file format for AI: format_spec(), format_example, the dialog
+		file format for AI: shape_uses, format_examples, skill front matter, format_spec(), the dialog
 		start: async start-up and migration
 
 		INVARIANTS
@@ -1244,6 +1246,7 @@
 		Stroke points are never mutated after a stroke is committed. Path caches and undo depend on it.
 		Surfaces form a tree through frame_id only. Never place a surface inside itself or its descendants (reparent skips them).
 		A missing stored field means its default from element_defaults. Old boards, hand-written files and AI-written files must keep opening.
+		The loader repairs rather than drops where intent is clear: type_aliases and shape_aliases, cx / cy placement, sizes clamped to size_ranges. A connector end with no live target and no coordinates drops the connector (settle_links).
 		Board data lives in IndexedDB ("boards"), image bytes in "assets", keyed by content hash. localStorage holds only small settings.
 		The screen, PNG export and SVG export draw in the same order: surfaces (each clipped, contents inside), then loose items, then connectors.
 		Sizes in world units scale with zoom; on-screen chrome (titles, handles, shadows) is sized in screen pixels.
@@ -1251,7 +1254,7 @@
 		Colors are stored as lowercase hex, #rrggbb or #rrggbbaa. complete_element normalizes them on load; SVG export writes them through paint(), which splits alpha into an opacity attribute.
 
 		CHECKLIST: adding or changing an element type
-		1. known_types, element_defaults, complete_element (if fields can be measured), valid_element.
+		1. known_types, element_defaults, complete_element (if fields can be measured), valid_element; type_aliases if AIs are likely to misname it.
 		2. format_spec(): a section under "Element types", plus "Sizing" and "What the loader does" if they change.
 		3. box_of and hits: its bounds and hit area.
 		4. draw_element (and a draw_* helper): canvas drawing.
@@ -1286,7 +1289,9 @@
 		Kept: one fixed left sidebar; tools pinned on top, footer pinned at the bottom, the middle shows only what applies to the selection or the active tool.
 		Kept: sizes are sliders (pen size, line width, font size), not presets.
 		Kept: the color picker belongs to this tool only (no shared script). Presets stay one tap away; the picker adds an HSV area, hue, alpha, a text field that takes any CSS color, HEX / HSLA / RGBA display, an eyedropper where supported, and 8 recent colors shared across boards.
-		Kept: decision branches are labeled True and False.
+		Kept: decision branches are labeled True and False. The spec and its example use the same labels.
+		Kept: the AI spec does not prescribe element types. It says what each type is for and shows two examples (a process, a system).
+		Added: the loader accepts drifted names (type "flow", shape "diamond", icon by label, from / to, bare id ends) and cx / cy centers, and clamps sizes.
 		Not built yet: share link; connector routing around nodes; Mermaid import.
 	*/
 
@@ -2309,7 +2314,7 @@
 		canvas (Path2D), for SVG export, and for hit and edge geometry.
 	*/
 	const node_font = 15;
-	// Format spec: new shapes are listed automatically; if node_size() changes, update the sizing formulas in format_spec().
+	// Format spec: new shapes are listed automatically (add a line to shape_uses and shape_aliases); if node_size() changes, update the sizing formulas in format_spec().
 	const node_shapes = {
 		terminal: { label: "Start / End", glyph: "M7 7h10a5 5 0 0 1 0 10H7a5 5 0 0 1 0-10z" },
 		process: { label: "Process", glyph: "M6 6h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3z" },
@@ -5730,10 +5735,65 @@
 		image: { frame_id: null }
 	};
 
+	/*
+		Names an AI or a person is likely to write instead of the real ones.
+		The spec teaches the real names; these only rescue a file that drifts,
+		so a node written as "diamond" or type "flow" is not dropped along with
+		every arrow bound to it. Keys are compared after alias_key().
+		Format spec: "What the loader does" mentions these; the real names stay the documented ones.
+	*/
+	const type_aliases = { flow: "node", flow_node: "node", flowchart: "node", flowchart_node: "node", surface: "frame", group: "frame", arrow: "connector", edge: "connector", link: "connector" };
+	const shape_aliases = {
+		start: "terminal", end: "terminal", start_end: "terminal", begin: "terminal", stop: "terminal", terminator: "terminal", oval: "terminal", pill: "terminal", stadium: "terminal",
+		rectangle: "process", rect: "process", box: "process", step: "process", action: "process", task: "process", activity: "process", operation: "process",
+		diamond: "decision", rhombus: "decision", condition: "decision", conditional: "decision", if: "decision", branch: "decision", choice: "decision", question: "decision",
+		parallelogram: "io", input: "io", output: "io", input_output: "io", in_out: "io",
+		cylinder: "data", database: "data", db: "data", storage: "data", store: "data", data_store: "data", datastore: "data"
+	};
+
+	function alias_key(value) {
+		return String(value).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+	}
+
+	// Maps drifted names to real ones. A node with no usable shape becomes a process step rather than disappearing.
+	function resolve_aliases(element) {
+		if (typeof element.type === "string" && !known_types.has(element.type)) {
+			const key = alias_key(element.type);
+			if (type_aliases[key]) element.type = type_aliases[key];
+			// A shape name used as the type, e.g. { "type": "decision" }.
+			else if (node_shapes[key]) {
+				element.type = "node";
+				if (element.shape === undefined) element.shape = key;
+			}
+		}
+		if (element.type === "node" && !node_shapes[element.shape]) {
+			const key = element.shape === undefined || element.shape === null ? "" : alias_key(element.shape);
+			element.shape = node_shapes[key] ? key : shape_aliases[key] || "process";
+		}
+		if (element.type === "icon" && typeof element.icon === "string" && !icons[element.icon]) {
+			const key = alias_key(element.icon);
+			for (const name in icons) {
+				if (name !== key && alias_key(icons[name].label) !== key) continue;
+				element.icon = name;
+				break;
+			}
+		}
+		if (element.type === "connector") {
+			if (element.start === undefined && element.from !== undefined) element.start = element.from;
+			if (element.end === undefined && element.to !== undefined) element.end = element.to;
+			delete element.from;
+			delete element.to;
+			// An end written as a bare id, e.g. "end": "db".
+			for (const which of ["start", "end"])
+				if (typeof element[which] === "string" || typeof element[which] === "number") element[which] = { id: String(element[which]) };
+		}
+	}
+
 	// Fills missing fields in place and measures what follows from text, so a terse file still draws correctly.
 	function complete_element(element) {
 		if (!element || typeof element !== "object") return element;
 		if (typeof element.id === "number") element.id = String(element.id);
+		resolve_aliases(element);
 		const defaults = element_defaults[element.type];
 		if (defaults)
 			for (const key in defaults) if (element[key] === undefined) element[key] = defaults[key];
@@ -5742,6 +5802,17 @@
 		if (element.type === "frame") {
 			if (element.fill !== "auto" && element.fill !== "clear") element.fill = normalize_color(element.fill) || "auto";
 			if (element.border_color !== "auto") element.border_color = normalize_color(element.border_color) || "auto";
+		}
+		/*
+			Sizes are kept inside their slider ranges. A file that confuses a
+			node's outline "width" with its box width "w" would otherwise draw a
+			line as thick as the node.
+		*/
+		for (const key in size_ranges) {
+			const range = size_ranges[key];
+			if (!range.types.includes(element.type) || element[range.field] === undefined) continue;
+			const value = Number(element[range.field]);
+			element[range.field] = is_number(value) ? Math.max(range.min, Math.min(range.max, value)) : range.initial;
 		}
 		const sized = is_number(element.w) && is_number(element.h);
 		if (element.type === "text" && !sized) {
@@ -5763,13 +5834,24 @@
 			element.w = w;
 			element.h = h;
 		}
+		// cx, cy place an element by its center; they become x, y once the size is known and are not stored.
+		if (element.type !== "connector") {
+			if (!is_number(element.x) && is_number(element.cx) && is_number(element.w)) element.x = element.cx - element.w / 2;
+			if (!is_number(element.y) && is_number(element.cy) && is_number(element.h)) element.y = element.cy - element.h / 2;
+			delete element.cx;
+			delete element.cy;
+		}
+		/*
+			Connector ends keep missing coordinates missing here: settle_links()
+			decides once it knows whether the bound target exists, so an arrow
+			to a lost element is dropped instead of pointing at the origin.
+		*/
 		if (element.type === "connector") {
 			for (const which of ["start", "end"]) {
 				const end = element[which];
 				if (!end || typeof end !== "object") continue;
 				if (end.id === undefined) end.id = null;
-				if (!is_number(end.x)) end.x = 0;
-				if (!is_number(end.y)) end.y = 0;
+				if (typeof end.id === "number") end.id = String(end.id);
 			}
 		}
 		return element;
@@ -5783,7 +5865,7 @@
 
 	function valid_element(element) {
 		if (!element || typeof element.id !== "string" || !known_types.has(element.type)) return false;
-		if (element.type === "connector") return Boolean(element.start && element.end);
+		if (element.type === "connector") return Boolean(element.start && element.end && typeof element.start === "object" && typeof element.end === "object");
 		if (element.type === "stroke" && (!Array.isArray(element.points) || element.points.length % 3 !== 0 || !element.points.length)) return false;
 		if (element.type === "image" && typeof element.asset !== "string") return false;
 		if (element.type === "node" && !node_shapes[element.shape]) return false;
@@ -5801,18 +5883,33 @@
 		if (!data || !Array.isArray(data.elements)) return null;
 		const list = data.elements.map(complete_element).filter(valid_element);
 		break_loops(list);
-		settle_links(list);
-		return list;
+		return settle_links(list);
 	}
 
-	// A connector end bound to an element that is not in the list keeps its spot as a free point.
+	/*
+		Every connector end ends up either bound to an element it can attach to,
+		or a free point with coordinates. An end bound to a missing element (or
+		to a stroke or connector, which cannot be targets) keeps its spot as a
+		free point when it has one. A connector with an end that has neither is
+		dropped: drawing it would send an arrow to the origin.
+	*/
 	function settle_links(list) {
-		const ids = new Set(list.map(function (element) { return element.id; }));
-		for (const element of list) {
-			if (element.type !== "connector") continue;
-			for (const which of ["start", "end"])
-				if (element[which].id && !ids.has(element[which].id)) element[which] = { id: null, x: element[which].x, y: element[which].y };
-		}
+		const targets = new Map();
+		for (const element of list) if (element.type !== "connector" && element.type !== "stroke") targets.set(element.id, element);
+		return list.filter(function (element) {
+			if (element.type !== "connector") return true;
+			for (const which of ["start", "end"]) {
+				const end = element[which];
+				const placed = is_number(end.x) && is_number(end.y);
+				if (end.id && targets.has(end.id)) {
+					element[which] = { id: end.id, x: placed ? end.x : 0, y: placed ? end.y : 0 };
+					continue;
+				}
+				if (!placed) return false;
+				element[which] = { id: null, x: end.x, y: end.y };
+			}
+			return true;
+		});
 	}
 
 	/*
@@ -5959,33 +6056,92 @@
 		"#ad9ae0": "purple"
 	};
 
-	// The example board in the spec. Keep it valid: it is checked by reading it the way a file is read.
-	const format_example = {
-		app: format_app,
-		version: format_version,
-		name: "Request flow",
-		elements: [
-			{ id: "backend", type: "frame", name: "Backend", x: 0, y: 0, w: 456, h: 216, fill: "auto", border: "solid", border_color: "#74abe0", frame_id: null },
-			{ id: "app", type: "icon", icon: "server", label: "Flask app", x: 72, y: 64, w: 64, h: 64, color: "#e9ebee", frame_id: "backend" },
-			{ id: "db", type: "icon", icon: "database", label: "PostgreSQL", x: 320, y: 64, w: 64, h: 64, color: "#86c39a", frame_id: "backend" },
-			{ id: "request", type: "node", shape: "terminal", text: "Request", x: -312, y: 0, color: "#e9ebee", width: 1.5, fill: "solid", dash: false, frame_id: null },
-			{ id: "check", type: "node", shape: "decision", text: "Signed in?", x: -327, y: 120, color: "#e3a061", width: 1.5, fill: "tint", dash: false, frame_id: null },
-			{ id: "reject", type: "node", shape: "terminal", text: "401", x: -312, y: 300, color: "#e5766c", width: 1.5, fill: "solid", dash: false, frame_id: null },
-			{ id: "note", type: "text", text: "Every query goes through\nthe connection pool.", x: 0, y: 252, color: "#8d96a0", font_size: 14, frame_id: null },
-			{ id: "underline", type: "stroke", x: 0, y: 296, w: 160, h: 2, points: [0, 1, 0.5, 80, 0, 0.6, 160, 2, 0.5], color: "#e3a061", size: 2, frame_id: null },
-			{ id: "c1", type: "connector", start: { id: "request" }, end: { id: "check" }, color: "#8d96a0", width: 1.5, dash: false, routing: "elbow", heads: "end", label: "" },
-			{ id: "c2", type: "connector", start: { id: "check" }, end: { id: "app" }, color: "#86c39a", width: 1.5, dash: false, routing: "elbow", heads: "end", label: "Yes" },
-			{ id: "c3", type: "connector", start: { id: "check" }, end: { id: "reject" }, color: "#e5766c", width: 1.5, dash: false, routing: "elbow", heads: "end", label: "No" },
-			{ id: "c4", type: "connector", start: { id: "app" }, end: { id: "db" }, color: "#8d96a0", width: 2.5, dash: true, routing: "straight", heads: "both", label: "SQL" }
-		]
+	// What each node shape is for, in the spec's shape list. Format spec: a new shape needs a line here.
+	const shape_uses = {
+		terminal: "Where a flow starts or ends.",
+		process: "A step that does something.",
+		decision: "A question; one outgoing connector per answer.",
+		io: "Input the flow receives or output it produces: a form, a request, a file, a message.",
+		data: "Stored data the flow reads or writes: a table, a cache, a file store."
 	};
 
+	/*
+		The example boards in the spec: one process, one system. Each shows a
+		different set of element types, so an AI sees both ways of explaining
+		and picks by content. Keep them valid: example_json() reads each one the
+		way a file is read and warns in the console if anything is dropped.
+		The process example leaves optional fields out on purpose, to show that
+		defaults fill them, and places nodes by center (cx, cy).
+	*/
+	const format_examples = [
+		{
+			title: "a process: flow nodes",
+			board: {
+				app: format_app,
+				version: format_version,
+				name: "Password reset",
+				elements: [
+					{ id: "start", type: "node", shape: "terminal", text: "Reset requested", cx: 0, cy: 0 },
+					{ id: "email", type: "node", shape: "io", text: "Email entered", cx: 0, cy: 124 },
+					{ id: "known", type: "node", shape: "decision", text: "Account exists?", cx: 0, cy: 288, color: "#e3a061", fill: "tint" },
+					{ id: "silent", type: "node", shape: "terminal", text: "Show same message", cx: 288, cy: 288, color: "#e5766c" },
+					{ id: "why", type: "text", text: "Same reply either way,\nso emails cannot be probed.", x: 192, y: 336, color: "#8d96a0", font_size: 14 },
+					{ id: "token", type: "node", shape: "process", text: "Create reset token", cx: 0, cy: 448 },
+					{ id: "store", type: "node", shape: "data", text: "reset_tokens", cx: 264, cy: 448, color: "#74abe0" },
+					{ id: "send", type: "node", shape: "process", text: "Send reset link", cx: 0, cy: 576 },
+					{ id: "done", type: "node", shape: "terminal", text: "Link sent", cx: 0, cy: 700, color: "#86c39a" },
+					{ id: "c1", type: "connector", start: { id: "start" }, end: { id: "email" }, color: "#8d96a0" },
+					{ id: "c2", type: "connector", start: { id: "email" }, end: { id: "known" }, color: "#8d96a0" },
+					{ id: "c3", type: "connector", start: { id: "known" }, end: { id: "token" }, color: "#86c39a", label: "True" },
+					{ id: "c4", type: "connector", start: { id: "known" }, end: { id: "silent" }, color: "#e5766c", label: "False" },
+					{ id: "c5", type: "connector", start: { id: "token" }, end: { id: "store" }, color: "#74abe0", dash: true, routing: "straight", label: "writes" },
+					{ id: "c6", type: "connector", start: { id: "token" }, end: { id: "send" }, color: "#8d96a0" },
+					{ id: "c7", type: "connector", start: { id: "send" }, end: { id: "done" }, color: "#8d96a0" }
+				]
+			}
+		},
+		{
+			title: "a system: surfaces and icons",
+			board: {
+				app: format_app,
+				version: format_version,
+				name: "Request path",
+				elements: [
+					{ id: "backend", type: "frame", name: "Backend", x: 0, y: 0, w: 456, h: 216, fill: "auto", border: "solid", border_color: "#74abe0", frame_id: null },
+					{ id: "storage", type: "frame", name: "Storage", x: 264, y: 40, w: 168, h: 152, fill: "clear", border: "dashed", border_color: "auto", frame_id: "backend" },
+					{ id: "client", type: "icon", icon: "browser", label: "Browser", x: -216, y: 64, w: 64, h: 64, color: "#74abe0", frame_id: null },
+					{ id: "app", type: "icon", icon: "server", label: "Flask app", x: 72, y: 64, w: 64, h: 64, color: "#e9ebee", frame_id: "backend" },
+					{ id: "db", type: "icon", icon: "database", label: "PostgreSQL", x: 316, y: 64, w: 64, h: 64, color: "#86c39a", frame_id: "storage" },
+					{ id: "note", type: "text", text: "Every query goes through\nthe connection pool.", x: 0, y: 252, color: "#8d96a0", font_size: 14, frame_id: null },
+					{ id: "underline", type: "stroke", x: 0, y: 296, w: 160, h: 2, points: [0, 1, 0.5, 80, 0, 0.6, 160, 2, 0.5], color: "#e3a061", size: 2, frame_id: null },
+					{ id: "c1", type: "connector", start: { id: "client" }, end: { id: "app" }, color: "#8d96a0", width: 1.5, dash: false, routing: "elbow", heads: "end", label: "HTTPS" },
+					{ id: "c2", type: "connector", start: { id: "app" }, end: { id: "db" }, color: "#8d96a0", width: 2.5, dash: true, routing: "straight", heads: "both", label: "SQL" }
+				]
+			}
+		}
+	];
+
 	// One element per line: short enough to read whole, and each element reads as a pattern to copy.
-	function example_json() {
-		const head = Object.assign({}, format_example);
+	function example_json(board) {
+		const copy = JSON.parse(JSON.stringify(board));
+		const read = read_data(copy);
+		if (!read || read.length !== board.elements.length) console.warn("infinite_canvas: a format example lost elements on load:", board.name);
+		const head = Object.assign({}, board);
 		delete head.elements;
-		const lines = format_example.elements.map(function (element) { return "\t\t" + JSON.stringify(element); });
+		const lines = board.elements.map(function (element) { return "\t\t" + JSON.stringify(element); });
 		return JSON.stringify(head).slice(0, -1) + ",\n\t\"elements\": [\n" + lines.join(",\n") + "\n\t]\n}";
+	}
+
+	/*
+		Front matter for the downloaded .md, so the same file works as a skill
+		(saved as SKILL.md in a folder of its own). The copied text has none:
+		pasted into a chat, the spec stands on its own.
+	*/
+	const skill_name = "infinite-canvas-boards";
+	const skill_description = "Write boards for infinite_canvas, a whiteboard app for engineers. Use when the user asks to explain, show, draw, diagram, map or sketch something as a board or as an infinite_canvas file: processes and flowcharts, request lifecycles, algorithms, system and architecture diagrams, or anything grouped and linked visually.";
+
+	function skill_markdown() {
+		return "---\nname: " + skill_name + "\ndescription: " + skill_description + "\n---\n\n" + format_spec();
 	}
 
 	function format_spec() {
@@ -6005,21 +6161,37 @@
 			icon_groups.get(group).push("`" + key + "` (" + icons[key].label + ")");
 		}
 		const icon_lines = Array.from(icon_groups, function (entry) { return "- " + entry[0] + ": " + entry[1].join(", "); });
-		const shape_lines = Object.keys(node_shapes).map(function (key) { return "- `" + key + "`: " + node_shapes[key].label; });
+		const shape_lines = Object.keys(node_shapes).map(function (key) { return "- `" + key + "`: " + node_shapes[key].label + ". " + (shape_uses[key] || ""); });
 		const color_lines = colors.map(function (color) { return "- `" + color + "`: " + (color_names[color] || "palette color"); });
+		const example_lines = [];
+		format_examples.forEach(function (example, position) {
+			example_lines.push("### Example " + (position + 1) + ": " + example.title, "", "```json", example_json(example.board), "```", "");
+		});
 
 		return [
 			"# infinite_canvas board format, version " + format_version,
 			"",
-			"infinite_canvas is a whiteboard web app: https://woxroox.github.io/web_tools/source/infinite_canvas/index.html",
-			"A board is a JSON document. When asked to explain or show something as a board, write one in this format.",
+			"infinite_canvas is a whiteboard web app for engineers: https://woxroox.github.io/web_tools/source/infinite_canvas/index.html",
+			"It draws flowcharts (flow nodes and arrows), system diagrams (icons inside surfaces), notes, freehand ink and images, and mixes them freely on one infinite board.",
+			"A board is a JSON document. When the user asks you to explain, show or draw something as a board, or for an infinite_canvas file, answer with a board in this format.",
 			"",
 			"## How to answer",
 			"",
 			"- Put the whole board in a single ```json code block. Explanation can go outside the block.",
 			"- Plain JSON only: no comments, no trailing commas, double-quoted keys and strings.",
 			"- The user saves the reply as a .json file and uses Open; it becomes a new board. Text around the code block is ignored.",
-			"- Lay the board out so it reads on its own: group with surfaces, link with connectors, label everything.",
+			"- Choose the elements that fit what you are explaining (see \"Choosing elements\"), and lay the board out so it reads on its own without your prose.",
+			"",
+			"## Choosing elements",
+			"",
+			"Every element type exists for a kind of content. Look at what you are explaining and use what fits it; most boards combine several.",
+			"- Something that happens in order: steps, decisions, inputs and outputs, loops, a lifecycle, an algorithm, a user journey. Use flow nodes (`node`) linked by connectors. The node's shape says what each step is: `terminal` starts or ends, `process` does something, `decision` asks a question with one outgoing connector per answer, `io` takes input or gives output, `data` is stored data.",
+			"- Things that exist and talk to each other: services, databases, clients, queues, devices. Use icons, linked by connectors labeled with what passes between them.",
+			"- Grouping: a layer, a service boundary, an environment, a team, a phase. Use a surface (`frame`) around the elements that belong together, and nest surfaces for parts of a whole. Surfaces hold any element, flow nodes included.",
+			"- Explanation: headings, notes and captions. Use `text` near what it explains.",
+			"- Emphasis: an underline or a circle around something. Use a `stroke`, sparingly.",
+			"- A screenshot or picture: an `image`, only when you have the image data.",
+			"For example, a login process is flow nodes, perhaps with a surface per phase; a deployment is icons in surfaces; an explanation of a request can be a system of icons with a short flow beside it for the part that branches.",
 			"",
 			"## Document",
 			"",
@@ -6036,7 +6208,8 @@
 			"## Coordinates and layering",
 			"",
 			"- World units equal CSS pixels at 100% zoom. x grows to the right, y grows downward. The origin is arbitrary; the app fits the view to the board when it opens.",
-			"- Every element except connectors has `x`, `y` (top-left corner), `w` and `h`.",
+			"- Every element except connectors has `x`, `y` (its top-left corner), `w` and `h` (its size). `w` and `h` are required for surfaces and images; text, nodes and strokes are measured when they are left out, and icons default to 64 x 64.",
+			"- Instead of `x`, `y` you can give `cx`, `cy`: the element's center. The loader turns it into `x`, `y` once the size is known. This is the easy way to place nodes, whose size follows their text: give a column of nodes the same `cx` and they line up.",
 			"- Surfaces (type `frame`) form a tree through `frame_id`. Each level draws its surfaces first (each with its own contents, clipped to the surface's rectangle), then its other elements in array order. Connectors are always drawn on top of everything.",
 			"- Contents are clipped to their surface: an element whose `frame_id` points at a surface must lie fully inside that surface's rectangle.",
 			"- The background is dark. Use the light palette colors below; dark colors will not be visible.",
@@ -6047,38 +6220,21 @@
 			"- `type`: one of " + values(Array.from(known_types)) + ".",
 			"- `frame_id`: id of the surface this element sits in, or null for the board itself. Connectors ignore it.",
 			"- `color`: a hex color, `#rrggbb`, or `#rrggbbaa` with transparency (e.g. `#74abe0cc`). The palette below reads best on the dark background. Other CSS colors (`hsl()`, `hsla()`, `rgb()`, names) are accepted and stored as hex.",
+			"- `width`, where a type has it, is the thickness of a line or outline, never the element's size. The size is `w`.",
 			"",
 			"## Element types",
 			"",
-			"### frame (surface)",
+			"### node (flow node)",
 			"",
-			"A rounded panel that groups other elements; moving it moves its contents. Use one per region, layer, service or step.",
-			"- `name`: title drawn in small monospace text just above the top-left corner.",
-			"- `fill`: `\"auto\"` (neutral panel; nested surfaces get lighter at each depth, up to 3 levels), `\"clear\"` (no fill, dots show through) or any color (a light tint over the panel; transparency makes the tint lighter still).",
-			"- `border`: " + options("surface_borders") + ".",
-			"- `border_color`: `\"auto\"` (neutral line) or any color. A colored border also colors the title.",
-			"- `frame_id`: set it to nest this surface inside another.",
-			"- Defaults: " + defaults("frame"),
-			"",
-			"### text",
-			"",
-			"Free text, left-aligned, drawn from its top-left corner. It never wraps: break lines with \\n.",
-			"- `text`: the content.",
-			"- `font_size`: " + span("font_size") + ". 14 for notes, 20 for body text, 28 to 40 for headings.",
-			"- `color`.",
-			"- `w`, `h`: optional; the app measures the text.",
-			"- Defaults: " + defaults("text"),
-			"",
-			"### node (flowchart node)",
-			"",
-			"Centered text inside a shape. Its size always follows its text, so `w` and `h` are optional and are computed when left out (see Sizing). Connectors attach to the shape's real outline.",
-			"- `shape`: required, one of:",
+			"A flowchart step: centered text inside a shape. Its size always follows its text, so leave `w` and `h` out and place it with `cx`, `cy` (see Sizing for the formulas). Connectors attach to the shape's real outline, not its box.",
+			"- `shape`: one of:",
 			shape_lines.join("\n"),
 			"- `text`: centered, " + node_font + "px, \\n for line breaks. Keep it to a few words.",
 			"- `color`: outline and text color.",
-			"- `width`: outline width, " + span("line_width") + ".",
+			"- `width`: outline thickness, " + span("line_width") + ".",
 			"- `fill`: " + options("node_fills") + ". `\"solid\"` is an opaque panel, `\"tint\"` adds a light wash of `color`, `\"none\"` is outline only.",
-			"- `dash`: true for a dashed outline.",
+			"- `dash`: true for a dashed outline, e.g. an optional or manual step.",
+			"- A decision's outgoing connectors carry its answers as labels. The app labels the first two \"True\" and \"False\" when you branch by hand; use those, or answers that read better for the question (\"Valid\" / \"Expired\").",
 			"- Defaults: " + defaults("node"),
 			"",
 			"### icon",
@@ -6090,21 +6246,40 @@
 			"- `label`: caption text, \"\" for none. It hangs below the icon box (see Sizing).",
 			"- Defaults: " + defaults("icon"),
 			"",
+			"### frame (surface)",
+			"",
+			"A rounded panel that groups other elements; moving it moves its contents. Use one per region, layer, service, environment or phase.",
+			"- `name`: title drawn in small monospace text just above the top-left corner.",
+			"- `fill`: `\"auto\"` (neutral panel; nested surfaces get lighter at each depth, up to 3 levels), `\"clear\"` (no fill, dots show through) or any color (a light tint over the panel; transparency makes the tint lighter still).",
+			"- `border`: " + options("surface_borders") + ".",
+			"- `border_color`: `\"auto\"` (neutral line) or any color. A colored border also colors the title.",
+			"- `frame_id`: set it to nest this surface inside another.",
+			"- Defaults: " + defaults("frame"),
+			"",
 			"### connector",
 			"",
 			"A line or arrow between two ends. Each end is either bound to an element, `{ \"id\": \"db\" }`, or a free point, `{ \"id\": null, \"x\": 0, \"y\": 0 }`. Bound ends attach to the element's edge and follow it when it moves; prefer them. Any element except strokes and other connectors can be a target, including surfaces.",
 			"- `start`, `end`: required.",
 			"- `routing`: " + options("routings") + ". `\"elbow\"` leaves and enters through side midpoints along the longer axis and turns halfway, with rounded corners; it looks cleanest when the two ends are roughly aligned in a row or column.",
 			"- `heads`: " + options("heads") + ". `\"end\"` puts the arrowhead at `end`.",
-			"- `width`: " + span("line_width") + ".",
+			"- `width`: line thickness, " + span("line_width") + ".",
 			"- `dash`: true for a dashed line, e.g. async calls or optional paths.",
-			"- `label`: text drawn on a small chip at the line's midpoint, \"\" for none. Short verbs work best: \"reads\", \"Yes\", \"HTTPS\".",
+			"- `label`: text drawn on a small chip at the line's midpoint, \"\" for none. Short words work best: \"reads\", \"True\", \"HTTPS\".",
 			"- `color`.",
 			"- Defaults: " + defaults("connector"),
 			"",
+			"### text",
+			"",
+			"Free text, left-aligned, drawn from its top-left corner. It never wraps: break lines with \\n.",
+			"- `text`: the content.",
+			"- `font_size`: " + span("font_size") + ". 14 for notes, 20 for body text, 28 to 40 for headings.",
+			"- `color`.",
+			"- `w`, `h`: optional; the app measures the text.",
+			"- Defaults: " + defaults("text"),
+			"",
 			"### stroke (freehand ink)",
 			"",
-			"A pressure-sensitive pen stroke. Rarely needed when writing a board; useful for an underline or a circle around something.",
+			"A pressure-sensitive pen stroke. Useful for an underline or a circle around something.",
 			"- `points`: flat array of [x, y, pressure] triples, relative to the stroke's `x`, `y`. Pressure runs from 0 to 1; 0.5 is the normal width.",
 			"- `x`, `y`: top-left of the points' bounding box. `w`, `h`: its size (computed when left out).",
 			"- `size`: pen size, " + span("pen_size") + ".",
@@ -6123,7 +6298,7 @@
 			"Palette:",
 			color_lines.join("\n"),
 			"",
-			"Line widths (connectors, nodes): " + span("line_width") + ". Font sizes (text): " + span("font_size") + ". Pen sizes (strokes): " + span("pen_size") + ".",
+			"Line widths (connectors, node outlines): " + span("line_width") + ". Font sizes (text): " + span("font_size") + ". Pen sizes (strokes): " + span("pen_size") + ".",
 			"",
 			"Icons:",
 			icon_lines.join("\n"),
@@ -6133,32 +6308,34 @@
 			"Use these to leave room and to align things. The font is a sans-serif; a character is about 0.55 x the font size wide.",
 			"- Text: width = longest line x font_size x 0.55, height = lines x font_size x 1.3.",
 			"- Node text is " + node_font + "px. With tw, th the text's width and height: terminal max(120, tw + 48) x max(48, th + 20); process max(120, tw + 32) x max(56, th + 24); decision w = max(140, tw + 1.6 th + 40), h = max(84, w / 1.6); io h = max(56, th + 24), w = max(140, tw + 32 + 0.7 h); data max(120, tw + 32) x max(68, th + 44).",
+			"- Spacing nodes: from one node's center to the next, step by half of each node's height (or width, sideways) plus about 72 between their edges. A one-line process is 56 high, so two process nodes in a column sit 128 apart.",
 			"- Icon caption: " + label_size + "px, starts 8 below the icon box and is centered on it, so the icon takes about h + 26 of height per caption line.",
 			"- Surface title: about 24 high, sitting above the surface's top edge. Leave at least 32 between a surface and anything above it.",
 			"",
 			"## What the loader does",
 			"",
-			"- Fills every missing field from the defaults listed for its type, and measures `w`, `h` when they are left out of text, nodes and strokes.",
-			"- Drops an element that has no string `id`, an unknown `type`, non-numeric `x`, `y`, `w` or `h`, a node `shape` not in the list, a stroke whose `points` are empty or not in triples, an image without an `asset`, or a connector without `start` and `end`.",
+			"- Fills every missing field from the defaults listed for its type, measures `w`, `h` when they are left out of text, nodes and strokes, and turns `cx`, `cy` into `x`, `y`.",
+			"- Accepts common alternative names and fixes them, so a slip does not lose an element: for example type `\"flow\"` or `\"flowchart\"` for `node`, `\"surface\"` for `frame`, `\"arrow\"` for `connector`, a shape name as the type, shapes such as `\"diamond\"`, `\"rectangle\"`, `\"start\"`, `\"parallelogram\"` or `\"cylinder\"`, an icon given by its label, `from` and `to` for `start` and `end`, and a connector end written as a bare id string. A node whose shape cannot be read becomes a `process`. Write the real names anyway.",
+			"- Keeps `width`, `size` and `font_size` inside the ranges listed in Values.",
+			"- Drops an element that has no string `id`, an unknown `type`, non-numeric `x`, `y`, `w` or `h` (after the steps above), a stroke whose `points` are empty or not in triples, an image without an `asset`, or a connector without `start` and `end`.",
 			"- Converts every color to lowercase hex (`#rrggbb` or `#rrggbbaa`); a color it cannot read falls back to the type's default (`\"auto\"` for a surface's `fill` and `border_color`).",
-			"- Turns a connector end bound to an id that is not in the document into a free point.",
+			"- A connector end bound to an id that is not in the document (or to a stroke or connector) becomes a free point at its `x`, `y`; if it has no `x`, `y`, the whole connector is dropped.",
 			"- Moves a surface that is its own ancestor to the top level.",
 			"",
 			"## Making a good board",
 			"",
-			"- Work on a 24 grid. Space flow nodes about 72 apart, and keep about 32 of padding inside surfaces.",
-			"- One idea per surface; name surfaces after what they hold. Nest surfaces for parts of a whole.",
+			"- Work on a 24 grid. Space flow nodes about 72 apart edge to edge, and keep about 32 of padding inside surfaces.",
+			"- One idea per surface; name surfaces after what they hold.",
 			"- Bind connectors by id instead of placing free ends. Label the ones whose meaning is not obvious.",
 			"- Use color to encode meaning (for example green for success paths, red for failures) and keep it consistent across the board.",
-			"- Lay flows out in one direction, top to bottom or left to right, so elbow connectors run straight.",
+			"- Lay a flow out in one direction, top to bottom or left to right, so elbow connectors run straight; send a decision's other branches sideways.",
 			"- Keep labels short. Put longer explanations in a text element next to what they explain.",
 			"",
-			"## Example",
+			"## Examples",
 			"",
-			"```json",
-			example_json(),
-			"```",
-			""
+			"Two small boards, each built from the elements that fit its content. They show the patterns; they are not templates to copy.",
+			"",
+			example_lines.join("\n")
 		].join("\n");
 	}
 
@@ -6194,7 +6371,7 @@
 	document.getElementById("format_button").addEventListener("click", open_format_dialog);
 	document.getElementById("format_copy").addEventListener("click", copy_format);
 	document.getElementById("format_download").addEventListener("click", function () {
-		download(new Blob([format_text.value], { type: "text/markdown" }), "infinite_canvas_format.md");
+		download(new Blob([skill_markdown()], { type: "text/markdown" }), "infinite_canvas_format.md");
 	});
 	document.getElementById("format_close").addEventListener("click", function () { format_dialog.close(); });
 
