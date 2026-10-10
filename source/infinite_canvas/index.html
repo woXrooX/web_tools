@@ -35,7 +35,7 @@
 		min-height: 0;
 		overflow: hidden;
 		background-color: var(--well);
-		background-image: radial-gradient(circle, var(--line_strong) 1.1px, transparent 1.5px);
+		background-image: radial-gradient(circle, var(--line) 1px, transparent 1.4px);
 		touch-action: none;
 		-webkit-user-select: none;
 		user-select: none;
@@ -520,6 +520,13 @@
 	#zoom_label {
 		flex: 1.6 1 0;
 		font-family: var(--mono);
+	}
+
+	/* Brushes: named, so they are easy to tell apart at a glance. */
+	.brush_grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 2px;
 	}
 
 	.file_grid {
@@ -1030,6 +1037,10 @@
 					<div class="swatches" id="swatches"></div>
 					<div class="recent_row" id="recent_color" hidden></div>
 				</div>
+				<div class="field stacked" data_section="brush">
+					<span>Brush</span>
+					<div class="brush_grid" id="brushes"></div>
+				</div>
 				<div class="field" data_section="pen_size">
 					<span>Size</span>
 					<div class="slider" id="pen_size"></div>
@@ -1221,7 +1232,7 @@
 		MAP (sections in this script, in order)
 		constants: palette, size_ranges (sliders), Material Symbols icons, toolbar glyphs
 		state: elements, view (camera), selection, style defaults
-		elements, geometry: boxes, pressure-stroke outlines, path caches
+		elements, geometry: boxes, pressure-stroke outlines, brushes (layers per stroke), path caches
 		connectors: bound ends, edge points, elbow routing
 		layering and hit testing: the surface tree, draw and hit order
 		history: snapshot undo (begin_change, edit, end_change, cancel_change)
@@ -1271,6 +1282,10 @@
 		Sizes: an entry in size_ranges (types, field, range, initial) and a slider field in the sidebar; format_spec() picks up the range by itself.
 		Colors: an entry in color_keys, a recent_<key> row and add_custom_swatch() in the sidebar, normalization in complete_element, paint() in SVG export, and its line in format_spec().
 
+		CHECKLIST: adding a brush
+		An entry in brushes (label, reach, layers), a line in brush_uses, and aliases in brush_aliases. The sidebar button, canvas, live stroke, PNG and SVG pick it up from brushes.
+		Layers are filled outlines with an alpha (stroke_outline(), or a ribbon like fountain_layers()). Anything derived from the points (smoothing, flow, texture) must be deterministic, so the live stroke and the saved one match.
+
 		CHECKLIST: adding a tool button
 		tools list (glyph, key, label); activate_tool if it is an action rather than a mode; sticky_tools if it stays active after use; tool_contexts for its sidebar defaults.
 
@@ -1288,6 +1303,9 @@
 		Removed: renaming surfaces by double-tapping the title or pressing Enter. The sidebar name field is the only way.
 		Kept: one fixed left sidebar; tools pinned on top, footer pinned at the bottom, the middle shows only what applies to the selection or the active tool.
 		Kept: sizes are sliders (pen size, line width, font size), not presets.
+		Removed: the watercolor brush. Tried and not wanted. Strokes saved with it open as the plain pen.
+		Fountain pen: a ribbon from a fixed flat nib on spline-smoothed points (smooth_points), not a pressure outline whose width follows direction; that looked like a marker, not a nib.
+		Added: pen brushes (pen, fountain pen, highlighter). One Pen tool with a Brush row, not a tool per brush; they share the size slider. A stroke stores brush; a missing one is the plain pen.
 		Kept: the color picker belongs to this tool only (no shared script). Presets stay one tap away; the picker adds an HSV area, hue, alpha, a text field that takes any CSS color, HEX / HSLA / RGBA display, an eyedropper where supported, and 8 recent colors shared across boards.
 		Kept: decision branches are labeled True and False. The spec and its example use the same labels.
 		Kept: the AI spec does not prescribe element types. It says what each type is for and shows two examples (a process, a system).
@@ -1457,7 +1475,7 @@
 	let index = new Map();
 	const view = { x: 0, y: 0, zoom: 1 };
 	const selection = new Set();
-	const style = { color: colors[0], pen_size: size_ranges.pen_size.initial, line_width: size_ranges.line_width.initial, font_size: size_ranges.font_size.initial, dash: false, routing: "elbow", heads: "end", surface_fill: "auto", surface_border: "solid", surface_border_color: "auto", node_shape: "process", node_fill: "solid", node_dash: false };
+	const style = { color: colors[0], pen_size: size_ranges.pen_size.initial, line_width: size_ranges.line_width.initial, font_size: size_ranges.font_size.initial, dash: false, routing: "elbow", heads: "end", surface_fill: "auto", surface_border: "solid", surface_border_color: "auto", node_shape: "process", node_fill: "solid", node_dash: false, brush: "pen" };
 
 	// Sidebar keys for surface styling, and the element field each one sets.
 	const surface_fields = { surface_fill: "fill", surface_border: "border", surface_border_color: "border_color" };
@@ -1627,25 +1645,20 @@
 		sides, the two sides are smoothed with quadratic curves through the
 		midpoints, and round caps close the ends. Points are [x, y, pressure]
 		triples, flat.
+		shape is optional and comes from a brush: shape.radius(i, pressure,
+		tx, ty) gives the half-width at a sample. Without it the radius is the
+		plain pressure width.
 	*/
-	function stroke_outline(points, size) {
+	function stroke_outline(points, size, shape) {
 		const count = points.length / 3;
-		const xs = [], ys = [], radii = [];
+		const xs = [], ys = [], pressures = [];
 		for (let i = 0; i < count; i++) {
 			xs.push(points[i * 3]);
 			ys.push(points[i * 3 + 1]);
-			radii.push(pressure_width(size, points[i * 3 + 2]) / 2);
+			pressures.push(points[i * 3 + 2]);
 		}
 
-		let travelled = 0;
-		for (let i = 1; i < count; i++) travelled += Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
-		if (count < 2 || travelled < 0.5) {
-			const r = fixed(Math.max(...radii));
-			const x = fixed(xs[0] - r), y = fixed(ys[0]);
-			return "M" + x + " " + y + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0z";
-		}
-
-		const left_x = [], left_y = [], right_x = [], right_y = [], tangent_x = [], tangent_y = [];
+		const tangent_x = [], tangent_y = [];
 		let last_x = 1, last_y = 0;
 		for (let i = 0; i < count; i++) {
 			const a = Math.max(0, i - 1), b = Math.min(count - 1, i + 1);
@@ -1663,17 +1676,26 @@
 			}
 			tangent_x.push(tx);
 			tangent_y.push(ty);
-			left_x.push(xs[i] - ty * radii[i]);
-			left_y.push(ys[i] + tx * radii[i]);
-			right_x.push(xs[i] + ty * radii[i]);
-			right_y.push(ys[i] - tx * radii[i]);
 		}
 
-		function side(px, py) {
-			let path = "";
-			for (let i = 1; i < px.length - 1; i++)
-				path += "Q" + fixed(px[i]) + " " + fixed(py[i]) + " " + fixed((px[i] + px[i + 1]) / 2) + " " + fixed((py[i] + py[i + 1]) / 2);
-			return path + "L" + fixed(px[px.length - 1]) + " " + fixed(py[py.length - 1]);
+		const radii = [];
+		for (let i = 0; i < count; i++)
+			radii.push(shape ? shape.radius(i, pressures[i], tangent_x[i], tangent_y[i]) : pressure_width(size, pressures[i]) / 2);
+
+		let travelled = 0;
+		for (let i = 1; i < count; i++) travelled += Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
+		if (count < 2 || travelled < 0.5) {
+			const r = fixed(Math.max(...radii));
+			const x = fixed(xs[0] - r), y = fixed(ys[0]);
+			return "M" + x + " " + y + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0z";
+		}
+
+		const left_x = [], left_y = [], right_x = [], right_y = [];
+		for (let i = 0; i < count; i++) {
+			left_x.push(xs[i] - tangent_y[i] * radii[i]);
+			left_y.push(ys[i] + tangent_x[i] * radii[i]);
+			right_x.push(xs[i] + tangent_y[i] * radii[i]);
+			right_y.push(ys[i] - tangent_x[i] * radii[i]);
 		}
 
 		function cap(i, direction, to_x, to_y) {
@@ -1685,22 +1707,204 @@
 
 		const last = count - 1;
 		let path = "M" + fixed(left_x[0]) + " " + fixed(left_y[0]);
-		path += side(left_x, left_y);
+		path += outline_side(left_x, left_y);
 		path += cap(last, 1, right_x[last], right_y[last]);
-		path += side(right_x.slice().reverse(), right_y.slice().reverse());
+		path += outline_side(right_x.slice().reverse(), right_y.slice().reverse());
 		path += cap(0, -1, left_x[0], left_y[0]);
 		return path + "z";
 	}
 
+	// One side of an outline, smoothed with quadratic curves through the midpoints of its samples.
+	function outline_side(px, py) {
+		let path = "";
+		for (let i = 1; i < px.length - 1; i++)
+			path += "Q" + fixed(px[i]) + " " + fixed(py[i]) + " " + fixed((px[i] + px[i + 1]) / 2) + " " + fixed((py[i] + py[i + 1]) / 2);
+		return path + "L" + fixed(px[px.length - 1]) + " " + fixed(py[py.length - 1]);
+	}
+
+	/*
+		Smooths a stroke's samples for drawing, never for storing: a light
+		weighted average takes out hand tremor and sensor jitter, then a
+		Catmull-Rom spline puts two more points between each pair so curves
+		flow instead of turning at corners. The ends stay where the pen
+		touched and lifted. Same input, same output, so the live stroke and
+		the saved one match.
+	*/
+	function smooth_points(points) {
+		const count = points.length / 3;
+		if (count < 3) return points.slice();
+		const weights = [1, 2, 3, 2, 1];
+		const calm = [];
+		for (let i = 0; i < count; i++) {
+			if (i === 0 || i === count - 1) {
+				calm.push(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
+				continue;
+			}
+			let x = 0, y = 0, pressure = 0, total = 0;
+			for (let k = -2; k <= 2; k++) {
+				const j = i + k;
+				if (j < 0 || j >= count) continue;
+				const weight = weights[k + 2];
+				x += points[j * 3] * weight;
+				y += points[j * 3 + 1] * weight;
+				pressure += points[j * 3 + 2] * weight;
+				total += weight;
+			}
+			calm.push(x / total, y / total, pressure / total);
+		}
+		const at = function (i, axis) { return calm[Math.max(0, Math.min(count - 1, i)) * 3 + axis]; };
+		const spline = function (i, axis, t) {
+			const p0 = at(i - 1, axis), p1 = at(i, axis), p2 = at(i + 1, axis), p3 = at(i + 2, axis);
+			return 0.5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (3 * p1 - p0 - 3 * p2 + p3) * t * t * t);
+		};
+		const smooth = [];
+		for (let i = 0; i < count - 1; i++) {
+			for (const t of [0, 1 / 3, 2 / 3]) {
+				const pressure = at(i, 2) + (at(i + 1, 2) - at(i, 2)) * t;
+				smooth.push(spline(i, 0, t), spline(i, 1, t), pressure);
+			}
+		}
+		smooth.push(at(count - 1, 0), at(count - 1, 1), at(count - 1, 2));
+		return smooth;
+	}
+
+	/*
+		A fountain pen's broad nib, held at a fixed angle. The nib is a short
+		flat edge, so the mark it leaves is that edge dragged along the path:
+		each side of the ribbon is the path moved by half the nib, the same
+		way at every point. Strokes across the nib come out broad, strokes
+		along it come out as hairlines, and the width turns smoothly through
+		every curve. The ends are cut square by the nib's edge.
+		Ink flow sets the nib's width: firmer pressure spreads the tines, and a
+		slow stroke (close samples) lays down more ink than a fast one. The
+		stroke starts a touch narrow as the ink catches and thins as the nib
+		lifts. A hairline layer underneath is the nib's own thickness, so a
+		stroke along the nib never vanishes.
+	*/
+	const nib_angle = -40 * Math.PI / 180;
+
+	function fountain_layers(points, size) {
+		const path = smooth_points(points);
+		const count = path.length / 3;
+		const hairline = stroke_outline(path, size, { radius: function () { return Math.max(0.3, size * 0.07); } });
+		const along = [0];
+		for (let i = 1; i < count; i++)
+			along.push(along[i - 1] + Math.hypot(path[i * 3] - path[i * 3 - 3], path[i * 3 + 1] - path[i * 3 - 2]));
+		const total = along[count - 1];
+		// A tap is a dot of ink.
+		if (count < 2 || total < 0.5)
+			return [{ d: stroke_outline(points, size, { radius: function () { return size * 0.6; } }), alpha: 1 }];
+
+		// Speed from sample spacing, averaged over a few samples so the width breathes rather than flickers.
+		const flow = [];
+		for (let i = 0; i < count; i++) {
+			let gap = 0, gaps = 0;
+			for (let j = Math.max(1, i - 4); j <= Math.min(count - 1, i + 4); j++) {
+				gap += along[j] - along[j - 1];
+				gaps++;
+			}
+			// Smoothing put two extra points in each gap, so three gaps make one sample step.
+			const step = gaps ? gap / gaps * 3 : 0;
+			flow.push(0.82 + 0.3 * Math.exp(-step / (size * 1.5)));
+		}
+
+		const nib_x = Math.cos(nib_angle), nib_y = Math.sin(nib_angle);
+		const left_x = [], left_y = [], right_x = [], right_y = [];
+		for (let i = 0; i < count; i++) {
+			const entry = Math.min(1, 0.7 + 0.3 * along[i] / (size * 1.5));
+			const lift = Math.min(1, 0.45 + 0.55 * (total - along[i]) / (size * 3));
+			const half = size * 0.7 * (0.55 + 0.9 * path[i * 3 + 2]) * flow[i] * entry * lift;
+			left_x.push(path[i * 3] + nib_x * half);
+			left_y.push(path[i * 3 + 1] + nib_y * half);
+			right_x.push(path[i * 3] - nib_x * half);
+			right_y.push(path[i * 3 + 1] - nib_y * half);
+		}
+		/*
+			The ribbon is built from one small piece per step, the area the nib
+			sweeps from one point to the next, each wound the same way. One long
+			outline would wind backwards wherever the stroke turns past the nib,
+			and where a loop crosses itself the two passes would cancel into a
+			gap. Pieces wound alike always fill, and they fill as one shape, so
+			there are no seams between them.
+		*/
+		let ribbon = "";
+		for (let i = 0; i < count - 1; i++) {
+			const corners = [[left_x[i], left_y[i]], [left_x[i + 1], left_y[i + 1]], [right_x[i + 1], right_y[i + 1]], [right_x[i], right_y[i]]];
+			const mid_x = (corners[0][0] + corners[1][0] + corners[2][0] + corners[3][0]) / 4;
+			const mid_y = (corners[0][1] + corners[1][1] + corners[2][1] + corners[3][1]) / 4;
+			corners.sort(function (a, b) { return Math.atan2(a[1] - mid_y, a[0] - mid_x) - Math.atan2(b[1] - mid_y, b[0] - mid_x); });
+			ribbon += "M" + corners.map(function (corner) { return fixed(corner[0]) + " " + fixed(corner[1]); }).join("L") + "Z";
+		}
+		return [{ d: hairline, alpha: 1 }, { d: ribbon, alpha: 1 }];
+	}
+
+	/*
+		Brushes. Every brush turns the same stored points into one or more
+		filled layers, each an outline path with an opacity. The screen, the
+		live stroke, PNG export and SVG export all draw these layers, so a
+		brush looks the same everywhere. Layers never change the stored points.
+		reach is how far from the centre line the stroke counts as hit, in
+		multiples of size, for selecting and erasing.
+		Format spec: brushes are listed in format_spec() from here, with brush_uses.
+	*/
+	const brushes = {
+		pen: {
+			label: "Pen",
+			short: "Pen",
+			reach: 0.8,
+			layers: function (points, size) {
+				return [{ d: stroke_outline(points, size), alpha: 1 }];
+			}
+		},
+		fountain: {
+			label: "Fountain pen",
+			short: "Fountain",
+			reach: 1.1,
+			layers: fountain_layers
+		},
+		// Wide, even and see-through. It ignores pressure, like a felt tip. One filled outline, so it never darkens where it crosses itself.
+		highlighter: {
+			label: "Highlighter",
+			short: "Highlighter",
+			reach: 1.3,
+			layers: function (points, size) {
+				const shape = { radius: function () { return size * 1.25; } };
+				return [{ d: stroke_outline(points, size, shape), alpha: 0.5 }];
+			}
+		}
+	};
+
+	function brush_of(element) {
+		return brushes[element.brush] ? element.brush : "pen";
+	}
+
+	function brush_layers(points, size, brush) {
+		return (brushes[brush] || brushes.pen).layers(points, size);
+	}
+
 	const stroke_cache = new WeakMap();
 
-	function stroke_path(element) {
+	// Path2D layers for a committed stroke, cached on its points array (never mutated once committed).
+	function stroke_layers(element) {
+		const brush = brush_of(element);
 		let entry = stroke_cache.get(element.points);
-		if (!entry || entry.size !== element.size) {
-			entry = { size: element.size, path: new Path2D(stroke_outline(element.points, element.size)) };
+		if (!entry || entry.size !== element.size || entry.brush !== brush) {
+			const layers = brush_layers(element.points, element.size, brush).map(function (layer) {
+				return { path: new Path2D(layer.d), alpha: layer.alpha };
+			});
+			entry = { size: element.size, brush: brush, layers: layers };
 			stroke_cache.set(element.points, entry);
 		}
-		return entry.path;
+		return entry.layers;
+	}
+
+	function draw_brush_layers(context, layers, color) {
+		context.fillStyle = color;
+		for (const layer of layers) {
+			context.globalAlpha = layer.alpha;
+			context.fill(layer.path);
+		}
+		context.globalAlpha = 1;
 	}
 
 	const icon_cache = new Map();
@@ -1824,13 +2028,14 @@
 
 	function hits(element, x, y, tolerance) {
 		if (element.type === "stroke") {
-			const reach = element.size + tolerance;
+			const line_reach = element.size * brushes[brush_of(element)].reach + tolerance;
+			const reach = Math.max(element.size, line_reach) + tolerance;
 			if (!contains(element, x, y, reach)) return false;
 			const points = element.points;
 			const lx = x - element.x, ly = y - element.y;
 			if (points.length === 3) return Math.hypot(lx - points[0], ly - points[1]) <= reach;
 			for (let i = 3; i < points.length; i += 3)
-				if (segment_distance(lx, ly, points[i - 3], points[i - 2], points[i], points[i + 1]) <= element.size * 0.8 + tolerance) return true;
+				if (segment_distance(lx, ly, points[i - 3], points[i - 2], points[i], points[i + 1]) <= line_reach) return true;
 			return false;
 		}
 		if (element.type === "connector") {
@@ -2077,7 +2282,9 @@
 		const seen = function (element) {
 			if (only && !only.has(element.id)) return false;
 			const box = box_of(element);
-			return intersects({ x: box.x - pad, y: box.y - pad, w: box.w + pad * 2, h: box.h + pad * 2 }, area);
+			// A stroke's box holds its points; its ink reaches past them by up to about twice its size.
+			const reach = pad + (element.type === "stroke" ? element.size * 2 : 0);
+			return intersects({ x: box.x - reach, y: box.y - reach, w: box.w + reach * 2, h: box.h + reach * 2 }, area);
 		};
 
 		const layer = layers(only);
@@ -2231,8 +2438,7 @@
 		if (element.type === "stroke") {
 			context.save();
 			context.translate(element.x, element.y);
-			context.fillStyle = element.color;
-			context.fill(stroke_path(element));
+			draw_brush_layers(context, stroke_layers(element), element.color);
 			context.restore();
 			return;
 		}
@@ -2741,8 +2947,10 @@
 		// live pen stroke: drawn here so the full scene is not repainted per sample
 		if (action && action.kind === "stroke" && action.points.length) {
 			context.setTransform(ratio * view.zoom, 0, 0, ratio * view.zoom, ratio * view.x, ratio * view.y);
-			context.fillStyle = action.color;
-			context.fill(new Path2D(stroke_outline(action.points, action.size)));
+			const live = brush_layers(action.points, action.size, action.brush).map(function (layer) {
+				return { path: new Path2D(layer.d), alpha: layer.alpha };
+			});
+			draw_brush_layers(context, live, action.color);
 			context.setTransform(ratio, 0, 0, ratio, 0, 0);
 		}
 
@@ -2982,7 +3190,7 @@
 			return;
 		}
 		if (kind === "pen") {
-			action = Object.assign(base, { kind: "stroke", points: [], color: style.color, size: style.pen_size, pressure: null, last: null });
+			action = Object.assign(base, { kind: "stroke", points: [], color: style.color, size: style.pen_size, brush: style.brush, pressure: null, last: null });
 			add_samples(event);
 			invalidate(false);
 			return;
@@ -3172,6 +3380,7 @@
 			points: relative,
 			color: current.color,
 			size: current.size,
+			brush: current.brush,
 			frame_id: frame ? frame.id : null
 		});
 		end_change();
@@ -4545,6 +4754,17 @@
 		}
 	}
 
+	for (const brush in brushes) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.title = brushes[brush].label;
+		button.setAttribute("aria-label", brushes[brush].label);
+		button.textContent = brushes[brush].short;
+		button.addEventListener("click", function () { set_style("brush", brush); });
+		document.getElementById("brushes").append(button);
+		panel_buttons.push({ key: "brush", value: brush, button: button });
+	}
+
 	for (const shape in node_shapes) {
 		const button = document.createElement("button");
 		button.type = "button";
@@ -4633,7 +4853,7 @@
 	}
 
 	const panel_sections = {
-		stroke: ["color", "pen_size"],
+		stroke: ["color", "brush", "pen_size"],
 		connector: ["color", "line_width", "dash", "routing", "heads"],
 		text: ["color", "font_size"],
 		image: ["image"],
@@ -4656,6 +4876,7 @@
 		if (!first) return style[key];
 		if (surface_fields[key]) return first.type === "frame" ? surface_style(first)[surface_fields[key]] : style[key];
 		if (node_fields[key]) return first.type === "node" ? first[node_fields[key]] : style[key];
+		if (key === "brush") return first.type === "stroke" ? brush_of(first) : style[key];
 		return first[key] !== undefined ? first[key] : style[key];
 	}
 
@@ -4739,6 +4960,9 @@
 					const copy = edit(id);
 					copy[node_fields[key]] = value;
 					if (key === "node_shape") fit_node(copy);
+				}
+				else if (key === "brush") {
+					if (element.type === "stroke") edit(id).brush = value;
 				}
 				else if (key === "color" && element.color !== undefined) edit(id).color = value;
 				else if (key !== "color" && element[key] !== undefined) edit(id)[key] = value;
@@ -5587,8 +5811,12 @@
 		};
 
 		const element_svg = function (element) {
-			if (element.type === "stroke")
-				return "<path transform=\"translate(" + num(element.x) + " " + num(element.y) + ")\" d=\"" + stroke_outline(element.points, element.size) + "\" " + paint("fill", element.color) + "/>";
+			if (element.type === "stroke") {
+				const layers = brush_layers(element.points, element.size, brush_of(element)).map(function (layer) {
+					return "<path d=\"" + layer.d + "\" " + paint("fill", element.color, layer.alpha) + "/>";
+				});
+				return "<g transform=\"translate(" + num(element.x) + " " + num(element.y) + ")\">" + layers.join("") + "</g>";
+			}
 			if (element.type === "text") return svg_text(element.text, element.x, element.y, element.font_size, element.color, "start");
 			if (element.type === "icon") {
 				const icon = icons[element.icon] || icons.database;
@@ -5731,7 +5959,7 @@
 		node: { text: "", color: colors[0], width: size_ranges.line_width.initial, fill: "solid", dash: false, frame_id: null },
 		icon: { icon: "database", color: colors[0], label: "", w: default_sizes.icon[0], h: default_sizes.icon[1], frame_id: null },
 		connector: { color: colors[0], width: size_ranges.line_width.initial, dash: false, routing: "elbow", heads: "end", label: "" },
-		stroke: { color: colors[0], size: size_ranges.pen_size.initial, frame_id: null },
+		stroke: { color: colors[0], size: size_ranges.pen_size.initial, brush: "pen", frame_id: null },
 		image: { frame_id: null }
 	};
 
@@ -5749,6 +5977,11 @@
 		diamond: "decision", rhombus: "decision", condition: "decision", conditional: "decision", if: "decision", branch: "decision", choice: "decision", question: "decision",
 		parallelogram: "io", input: "io", output: "io", input_output: "io", in_out: "io",
 		cylinder: "data", database: "data", db: "data", storage: "data", store: "data", data_store: "data", datastore: "data"
+	};
+	const brush_aliases = {
+		ballpoint: "pen", ink: "pen", pencil: "pen", marker_pen: "pen",
+		fountain_pen: "fountain", nib: "fountain", calligraphy: "fountain", italic: "fountain",
+		marker: "highlighter", highlight: "highlighter", highlighter_pen: "highlighter"
 	};
 
 	function alias_key(value) {
@@ -5769,6 +6002,11 @@
 		if (element.type === "node" && !node_shapes[element.shape]) {
 			const key = element.shape === undefined || element.shape === null ? "" : alias_key(element.shape);
 			element.shape = node_shapes[key] ? key : shape_aliases[key] || "process";
+		}
+		// A stroke without a usable brush draws with the plain pen.
+		if (element.type === "stroke" && element.brush !== undefined && !brushes[element.brush]) {
+			const key = element.brush === null ? "" : alias_key(element.brush);
+			element.brush = brushes[key] ? key : brush_aliases[key] || "pen";
 		}
 		if (element.type === "icon" && typeof element.icon === "string" && !icons[element.icon]) {
 			const key = alias_key(element.icon);
@@ -6056,6 +6294,13 @@
 		"#ad9ae0": "purple"
 	};
 
+	// What each brush looks like, in the spec's brush list. Format spec: a new brush needs a line here.
+	const brush_uses = {
+		pen: "An even ink line that follows pressure. The default.",
+		fountain: "A broad nib held at 40 degrees: broad on strokes from top-left to bottom-right, a hairline on strokes from bottom-left to top-right, with smooth curves, square-cut ends and more ink on slow, firm strokes. For handwriting and lettering. Use many closely spaced points so the curves come out smooth.",
+		highlighter: "A wide, see-through band about 2.5 x `size` across that ignores pressure. Draw it over text or an element to mark it."
+	};
+
 	// What each node shape is for, in the spec's shape list. Format spec: a new shape needs a line here.
 	const shape_uses = {
 		terminal: "Where a flow starts or ends.",
@@ -6162,6 +6407,7 @@
 		}
 		const icon_lines = Array.from(icon_groups, function (entry) { return "- " + entry[0] + ": " + entry[1].join(", "); });
 		const shape_lines = Object.keys(node_shapes).map(function (key) { return "- `" + key + "`: " + node_shapes[key].label + ". " + (shape_uses[key] || ""); });
+		const brush_lines = Object.keys(brushes).map(function (key) { return "- `" + key + "`: " + brushes[key].label + ". " + (brush_uses[key] || ""); });
 		const color_lines = colors.map(function (color) { return "- `" + color + "`: " + (color_names[color] || "palette color"); });
 		const example_lines = [];
 		format_examples.forEach(function (example, position) {
@@ -6189,7 +6435,7 @@
 			"- Things that exist and talk to each other: services, databases, clients, queues, devices. Use icons, linked by connectors labeled with what passes between them.",
 			"- Grouping: a layer, a service boundary, an environment, a team, a phase. Use a surface (`frame`) around the elements that belong together, and nest surfaces for parts of a whole. Surfaces hold any element, flow nodes included.",
 			"- Explanation: headings, notes and captions. Use `text` near what it explains.",
-			"- Emphasis: an underline or a circle around something. Use a `stroke`, sparingly.",
+			"- Emphasis: an underline, a circle around something, or a highlighter mark over a key line. Use a `stroke`, sparingly; its `brush` sets the look.",
 			"- A screenshot or picture: an `image`, only when you have the image data.",
 			"For example, a login process is flow nodes, perhaps with a surface per phase; a deployment is icons in surfaces; an explanation of a request can be a system of icons with a short flow beside it for the part that branches.",
 			"",
@@ -6279,11 +6525,13 @@
 			"",
 			"### stroke (freehand ink)",
 			"",
-			"A pressure-sensitive pen stroke. Useful for an underline or a circle around something.",
+			"A pressure-sensitive freehand stroke. Useful for an underline, a circle around something, or highlighting.",
 			"- `points`: flat array of [x, y, pressure] triples, relative to the stroke's `x`, `y`. Pressure runs from 0 to 1; 0.5 is the normal width.",
 			"- `x`, `y`: top-left of the points' bounding box. `w`, `h`: its size (computed when left out).",
 			"- `size`: pen size, " + span("pen_size") + ".",
-			"- `color`.",
+			"- `brush`: one of:",
+			brush_lines.join("\n"),
+			"- `color`. A highlighter is see-through, so use a light color such as yellow.",
 			"- Defaults: " + defaults("stroke"),
 			"",
 			"### image",
@@ -6315,7 +6563,7 @@
 			"## What the loader does",
 			"",
 			"- Fills every missing field from the defaults listed for its type, measures `w`, `h` when they are left out of text, nodes and strokes, and turns `cx`, `cy` into `x`, `y`.",
-			"- Accepts common alternative names and fixes them, so a slip does not lose an element: for example type `\"flow\"` or `\"flowchart\"` for `node`, `\"surface\"` for `frame`, `\"arrow\"` for `connector`, a shape name as the type, shapes such as `\"diamond\"`, `\"rectangle\"`, `\"start\"`, `\"parallelogram\"` or `\"cylinder\"`, an icon given by its label, `from` and `to` for `start` and `end`, and a connector end written as a bare id string. A node whose shape cannot be read becomes a `process`. Write the real names anyway.",
+			"- Accepts common alternative names and fixes them, so a slip does not lose an element: for example type `\"flow\"` or `\"flowchart\"` for `node`, `\"surface\"` for `frame`, `\"arrow\"` for `connector`, a shape name as the type, shapes such as `\"diamond\"`, `\"rectangle\"`, `\"start\"`, `\"parallelogram\"` or `\"cylinder\"`, a stroke `brush` such as `\"marker\"` or `\"fountain_pen\"` (an unreadable one becomes `\"pen\"`), an icon given by its label, `from` and `to` for `start` and `end`, and a connector end written as a bare id string. A node whose shape cannot be read becomes a `process`. Write the real names anyway.",
 			"- Keeps `width`, `size` and `font_size` inside the ranges listed in Values.",
 			"- Drops an element that has no string `id`, an unknown `type`, non-numeric `x`, `y`, `w` or `h` (after the steps above), a stroke whose `points` are empty or not in triples, an image without an `asset`, or a connector without `start` and `end`.",
 			"- Converts every color to lowercase hex (`#rrggbb` or `#rrggbbaa`); a color it cannot read falls back to the type's default (`\"auto\"` for a surface's `fill` and `border_color`).",
