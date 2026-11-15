@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hifz tracker</title>
+<title data-text="title">Hifz tracker</title>
 <meta name="description" content="Track how much of the Qur'an you have memorized, by juz, page, surah or ayah. Progress stays in this browser. Nothing is uploaded.">
 
 <link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
@@ -1091,6 +1091,15 @@
 			padding: 14px 48px 6px;
 		}
 	}
+
+	/* The longest brush labels (Uzbek) still fit on a 320px phone. */
+	@media (max-width: 359px) {
+		.toolbar_tools > .segmented button {
+			gap: 6px;
+			padding: 0 6px;
+			font-size: 13px;
+		}
+	}
 </style>
 </head>
 <body>
@@ -1106,108 +1115,108 @@
 <main class="shell">
 
 	<header class="masthead">
-		<h1>Hifz tracker</h1>
-		<p>See how much of the Qur'an you have memorized, and mark it by juz, page, surah or ayah. Progress stays in this browser. Nothing is uploaded.</p>
+		<h1 data-text="title">Hifz tracker</h1>
+		<p data-text="intro">See how much of the Qur'an you have memorized, and mark it by juz, page, surah or ayah. Progress stays in this browser. Nothing is uploaded.</p>
 	</header>
 
-	<p class="banner" id="storage_banner" hidden>This browser is not saving your progress, so it will be lost when you close the page. Export a backup to keep it.</p>
+	<p class="banner" id="storage_banner" data-text="storage_banner" hidden>This browser is not saving your progress, so it will be lost when you close the page. Export a backup to keep it.</p>
 
-	<section class="panel summary" aria-label="Progress">
+	<section class="panel summary" aria-label="Progress" data-text-aria-label="summary_label">
 		<div class="summary_top">
 			<div>
 				<p class="figure"><span id="figure_value">0</span><span class="figure_unit">%</span></p>
 				<p class="caption" id="figure_caption">of the Qur'an memorized</p>
 			</div>
 			<dl class="stats">
-				<div class="stat"><dt>Pages</dt><dd><b id="stat_pages">0</b>of 604</dd></div>
-				<div class="stat"><dt>Juz complete</dt><dd><b id="stat_juz">0</b>of 30</dd></div>
-				<div class="stat"><dt>Surahs complete</dt><dd><b id="stat_surahs">0</b>of 114</dd></div>
-				<div class="stat"><dt>This week</dt><dd><b id="stat_week">0</b>pages<span class="stat_note" id="stat_week_note" hidden>counts from tomorrow</span></dd></div>
+				<div class="stat"><dt data-text="stat_pages">Pages</dt><dd><b id="stat_pages">0</b><span data-text="stat_of" data-total="604">of 604</span></dd></div>
+				<div class="stat"><dt data-text="stat_juz">Juz complete</dt><dd><b id="stat_juz">0</b><span data-text="stat_of" data-total="30">of 30</span></dd></div>
+				<div class="stat"><dt data-text="stat_surahs">Surahs complete</dt><dd><b id="stat_surahs">0</b><span data-text="stat_of" data-total="114">of 114</span></dd></div>
+				<div class="stat"><dt data-text="stat_week">This week</dt><dd><b id="stat_week">0</b><span id="stat_week_unit">pages</span><span class="stat_note" id="stat_week_note" data-text="stat_week_note" hidden>counts from tomorrow</span></dd></div>
 			</dl>
 		</div>
 		<div class="ribbon">
-			<canvas id="ribbon" role="img" aria-label="Memorized pages across the mushaf, juz 1 to 30. Tap a juz to jump to it."></canvas>
+			<canvas id="ribbon" role="img" aria-label="Memorized pages across the mushaf, juz 1 to 30. Tap a juz to jump to it." data-text-aria-label="ribbon_label"></canvas>
 			<div class="ribbon_labels" id="ribbon_labels" aria-hidden="true"></div>
 			<div class="ribbon_tip" id="ribbon_tip" hidden></div>
 		</div>
 		<div class="legend">
-			<span><i class="key key_mem"></i>Memorized</span>
+			<span><i class="key key_mem"></i><span data-text="legend_memorized">Memorized</span></span>
 			<span><i class="key key_learn"></i><span id="legend_learning">Learning</span></span>
-			<span><i class="key key_empty"></i>Not yet</span>
+			<span><i class="key key_empty"></i><span data-text="legend_empty">Not yet</span></span>
 		</div>
-		<p class="empty_hint" id="empty_hint" hidden>Nothing marked yet. Mark the pages you have memorized below, one at a time or several at once by swiping or dragging across them. Under Surahs you can mark whole surahs or single ayahs.</p>
+		<p class="empty_hint" id="empty_hint" data-text="empty_hint" hidden>Nothing marked yet. Mark the pages you have memorized below, one at a time or several at once by swiping or dragging across them. Under Surahs you can mark whole surahs or single ayahs.</p>
 	</section>
 
 	<div class="toolbar" id="toolbar">
 		<div class="toolbar_row">
-			<div class="segmented" role="tablist" aria-label="View">
-				<button type="button" role="tab" data-view="pages" aria-selected="true" aria-controls="view_pages">Pages</button>
-				<button type="button" role="tab" data-view="surahs" aria-selected="false" aria-controls="view_surahs">Surahs</button>
+			<div class="segmented" role="tablist" aria-label="View" data-text-aria-label="view_label">
+				<button type="button" role="tab" data-view="pages" aria-selected="true" aria-controls="view_pages" data-text="view_pages">Pages</button>
+				<button type="button" role="tab" data-view="surahs" aria-selected="false" aria-controls="view_surahs" data-text="view_surahs">Surahs</button>
 			</div>
 			<div class="toolbar_tools">
-				<div class="segmented pages_only" role="radiogroup" aria-label="Mark as">
-					<button type="button" role="radio" data-brush="2" aria-checked="true"><i class="key key_mem"></i>Memorized</button>
-					<button type="button" role="radio" data-brush="1" aria-checked="false"><i class="key key_learn"></i>Learning</button>
-					<button type="button" role="radio" data-brush="0" aria-checked="false"><i class="key key_clear"></i>Clear</button>
+				<div class="segmented pages_only" role="radiogroup" aria-label="Mark as" data-text-aria-label="brush_label">
+					<button type="button" role="radio" data-brush="2" aria-checked="true"><i class="key key_mem"></i><span data-text="brush_memorized">Memorized</span></button>
+					<button type="button" role="radio" data-brush="1" aria-checked="false"><i class="key key_learn"></i><span data-text="brush_learning">Learning</span></button>
+					<button type="button" role="radio" data-brush="0" aria-checked="false"><i class="key key_clear"></i><span data-text="brush_clear">Clear</span></button>
 				</div>
 				<label class="search surahs_only" hidden>
 					<svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
-					<input type="search" id="search" placeholder="Search surahs" aria-label="Search surahs" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+					<input type="search" id="search" placeholder="Search surahs" aria-label="Search surahs" data-text-placeholder="search_surahs" data-text-aria-label="search_surahs" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
 				</label>
-				<button type="button" class="icon_button sort_button surahs_only" id="sort_button" aria-label="Show surahs from 114 to 1" title="Reverse the order" hidden><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M360-440q-17 0-28.5-11.5T320-480v-247l-75 75q-11 11-27.5 11T189-652q-12-12-12-28.5t12-28.5l143-143q6-6 13-8.5t15-2.5q8 0 15 2.5t13 8.5l144 144q12 12 11.5 28T531-651q-12 11-28 11.5T475-651l-75-76v247q0 17-11.5 28.5T360-440ZM600-87q-8 0-15-2.5t-13-8.5L428-242q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l75 76v-247q0-17 11.5-28.5T600-520q17 0 28.5 11.5T640-480v247l75-75q11-11 27.5-11t28.5 11q12 12 12 28.5T771-251L628-108q-6 6-13 8.5T600-87Z"/></svg></button>
+				<button type="button" class="icon_button sort_button surahs_only" id="sort_button" aria-label="Show surahs from 114 to 1" title="Reverse the order" data-text-title="sort_title" hidden><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M360-440q-17 0-28.5-11.5T320-480v-247l-75 75q-11 11-27.5 11T189-652q-12-12-12-28.5t12-28.5l143-143q6-6 13-8.5t15-2.5q8 0 15 2.5t13 8.5l144 144q12 12 11.5 28T531-651q-12 11-28 11.5T475-651l-75-76v247q0 17-11.5 28.5T360-440ZM600-87q-8 0-15-2.5t-13-8.5L428-242q-12-12-11.5-28t12.5-28q12-11 28-11.5t28 11.5l75 76v-247q0-17 11.5-28.5T600-520q17 0 28.5 11.5T640-480v247l75-75q11-11 27.5-11t28.5 11q12 12 12 28.5T771-251L628-108q-6 6-13 8.5T600-87Z"/></svg></button>
 			</div>
-			<button type="button" class="icon_button" id="undo_button" aria-label="Undo" title="Undo (Ctrl + Z)" disabled><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M320-200q-17 0-28.5-11.5T280-240q0-17 11.5-28.5T320-280h244q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l76 76q11 11 11 28t-11 28q-11 11-28 11t-28-11L188-572q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l144-144q11-11 28-11t28 11q11 11 11 28t-11 28l-76 76h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H320Z"/></svg></button>
+			<button type="button" class="icon_button" id="undo_button" aria-label="Undo" title="Undo (Ctrl + Z)" data-text-aria-label="undo" data-text-title="undo_title" disabled><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M320-200q-17 0-28.5-11.5T280-240q0-17 11.5-28.5T320-280h244q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l76 76q11 11 11 28t-11 28q-11 11-28 11t-28-11L188-572q-6-6-8.5-13t-2.5-15q0-8 2.5-15t8.5-13l144-144q11-11 28-11t28 11q11 11 11 28t-11 28l-76 76h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H320Z"/></svg></button>
 		</div>
 		<p class="hint pages_only" id="hint"></p>
-		<div class="segmented filters surahs_only" role="radiogroup" aria-label="Filter surahs" hidden>
-			<button type="button" class="on" role="radio" data-filter="all" aria-checked="true">All <span class="count"></span></button>
-			<button type="button" role="radio" data-filter="progress" aria-checked="false">In progress <span class="count"></span></button>
-			<button type="button" role="radio" data-filter="memorized" aria-checked="false">Memorized <span class="count"></span></button>
-			<button type="button" role="radio" data-filter="not_started" aria-checked="false">Not started <span class="count"></span></button>
+		<div class="segmented filters surahs_only" role="radiogroup" aria-label="Filter surahs" data-text-aria-label="filter_label" hidden>
+			<button type="button" class="on" role="radio" data-filter="all" aria-checked="true"><span data-text="filter_all">All</span> <span class="count"></span></button>
+			<button type="button" role="radio" data-filter="progress" aria-checked="false"><span data-text="filter_progress">In progress</span> <span class="count"></span></button>
+			<button type="button" role="radio" data-filter="memorized" aria-checked="false"><span data-text="filter_memorized">Memorized</span> <span class="count"></span></button>
+			<button type="button" role="radio" data-filter="not_started" aria-checked="false"><span data-text="filter_not_started">Not started</span> <span class="count"></span></button>
 		</div>
 	</div>
 
-	<section class="map" id="view_pages" role="tabpanel" aria-label="Pages by juz"></section>
+	<section class="map" id="view_pages" role="tabpanel" aria-label="Pages by juz" data-text-aria-label="pages_view_label"></section>
 
-	<section id="view_surahs" role="tabpanel" aria-label="Surahs" hidden>
+	<section id="view_surahs" role="tabpanel" aria-label="Surahs" data-text-aria-label="view_surahs" hidden>
 		<div class="surah_list" id="surah_list"></div>
 		<p class="empty_list" id="surah_empty" hidden></p>
 	</section>
 
-	<section class="panel data" aria-label="Your data">
+	<section class="panel data" aria-label="Your data" data-text-aria-label="data_label">
 		<div class="data_row">
 			<div class="data_text">
-				<h2>Backup</h2>
-				<p>Progress is saved in this browser only. Export a backup now and then. Import it to restore your progress or to move it to another browser or device.</p>
+				<h2 data-text="backup_heading">Backup</h2>
+				<p data-text="backup_text">Progress is saved in this browser only. Export a backup now and then. Import it to restore your progress or to move it to another browser or device.</p>
 			</div>
 			<div class="data_actions">
-				<button type="button" id="export_button">Export backup</button>
-				<button type="button" id="import_button">Import backup</button>
+				<button type="button" id="export_button" data-text="backup_export">Export backup</button>
+				<button type="button" id="import_button" data-text="backup_import">Import backup</button>
 				<span class="note" id="backup_note"></span>
 			</div>
 		</div>
 		<div class="data_row">
 			<div class="data_text">
-				<h2>This week</h2>
-				<p>Counts pages you mark memorized. Changes on your first day are not counted, so marking what you already knew does not inflate it. Marked older memorization later? Count from today.</p>
+				<h2 data-text="week_heading">This week</h2>
+				<p data-text="week_text">Counts pages you mark memorized. Changes on your first day are not counted, so marking what you already knew does not inflate it. Marked older memorization later? Count from today.</p>
 			</div>
 			<div class="data_actions">
-				<button type="button" id="count_button">Count from today</button>
+				<button type="button" id="count_button" data-text="week_count_today">Count from today</button>
 				<span class="note" id="count_note"></span>
 			</div>
 		</div>
 		<div class="data_row">
 			<div class="data_text">
-				<h2>Clear progress</h2>
-				<p>Removes every mark. You can undo it right after.</p>
+				<h2 data-text="clear_heading">Clear progress</h2>
+				<p data-text="clear_text">Removes every mark. You can undo it right after.</p>
 			</div>
 			<div class="data_actions">
-				<button type="button" class="danger" id="clear_button">Clear all progress</button>
+				<button type="button" class="danger" id="clear_button" data-text="clear_all">Clear all progress</button>
 			</div>
 		</div>
 	</section>
 
-	<p class="footnote">Pages follow the 604-page Madani mushaf. A juz is its block of pages there: juz 1 is <span class="nowrap">pages 1–21</span>, juz 30 is <span class="nowrap">pages 582–604</span>, and every other juz is 20 pages.</p>
+	<p class="footnote" id="footnote">Pages follow the 604-page Madani mushaf. A juz is its block of pages there: juz 1 is <span class="nowrap">pages 1–21</span>, juz 30 is <span class="nowrap">pages 582–604</span>, and every other juz is 20 pages.</p>
 
 </main>
 
@@ -1217,7 +1226,7 @@
 		<h2 id="sheet_title"></h2>
 		<p class="sheet_sub" id="sheet_sub"></p>
 		<p class="sheet_meta" id="sheet_meta"></p>
-		<button type="button" class="icon_button sheet_close" aria-label="Close" title="Close"><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z"/></svg></button>
+		<button type="button" class="icon_button sheet_close" aria-label="Close" title="Close" data-text-aria-label="close" data-text-title="close"><svg class="glyph" viewBox="0 -960 960 960" aria-hidden="true"><path class="fill" d="M480-424 284-228q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536-480l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-424Z"/></svg></button>
 	</header>
 	<div class="sheet_body" id="sheet_body">
 		<div class="sheet_tools" id="sheet_tools">
@@ -1226,10 +1235,10 @@
 				<p id="sheet_progress_text"></p>
 			</div>
 			<div class="sheet_controls">
-				<div class="segmented" role="radiogroup" aria-label="Mark as">
-					<button type="button" role="radio" data-brush="2" aria-checked="true"><i class="key key_mem"></i>Memorized</button>
-					<button type="button" role="radio" data-brush="1" aria-checked="false"><i class="key key_learn"></i>Learning</button>
-					<button type="button" role="radio" data-brush="0" aria-checked="false"><i class="key key_clear"></i>Clear</button>
+				<div class="segmented" role="radiogroup" aria-label="Mark as" data-text-aria-label="brush_label">
+					<button type="button" role="radio" data-brush="2" aria-checked="true"><i class="key key_mem"></i><span data-text="brush_memorized">Memorized</span></button>
+					<button type="button" role="radio" data-brush="1" aria-checked="false"><i class="key key_learn"></i><span data-text="brush_learning">Learning</span></button>
+					<button type="button" role="radio" data-brush="0" aria-checked="false"><i class="key key_clear"></i><span data-text="brush_clear">Clear</span></button>
 				</div>
 				<button type="button" id="fill_button">Mark all memorized</button>
 			</div>
@@ -1239,15 +1248,19 @@
 	</div>
 </dialog>
 
-<div class="popover" id="popover" role="dialog" aria-label="Details" hidden></div>
+<div class="popover" id="popover" role="dialog" aria-label="Details" data-text-aria-label="details" hidden></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden>
 	<span id="toast_message"></span>
-	<button type="button" id="toast_undo">Undo</button>
+	<button type="button" id="toast_undo" data-text="undo">Undo</button>
 </div>
 
 <input type="file" class="picker_input" id="import_file" accept=".json,application/json" tabindex="-1" aria-hidden="true">
 
+<script src="../../Scripts/Languages/Language.js"></script>
+<script src="../../Scripts/Languages/EN.js"></script>
+<script src="../../Scripts/Languages/UZ.js"></script>
+<script src="../../Scripts/Languages/RU.js"></script>
 <script>
 	/*
 		PROTOCOL: hifz_tracker
@@ -1258,7 +1271,7 @@
 		Quran: surah table, page starts of the 604-page Madani mushaf, lookups (surah_of, page_of, juz_starts), labels, search keys
 		Store: one state per ayah, the weekly log, undo history, localStorage, backup files
 		Stats: pages, surahs and juz, derived from Store.ayahs
-		Format: numbers and words shown in the interface
+		Format: numbers, dates and the marking sentences shown in the interface
 		Dom: element helpers and the Material Symbols paths used from script
 		Toast, Popover: short-lived chrome; Popover holds page details and juz actions
 		Painter: tap, swipe-to-range and long press on a grid of cells; used by the page map and the surah sheet
@@ -1267,7 +1280,8 @@
 		Surahs: the surah list, search, filters and order
 		Sheet: one surah's ayahs, in a dialog
 		Data: backup export and import, the weekly count, clear all
-		App: start-up, render, view and brush, keyboard, dialogs
+		App: start-up, render, translate, view and brush, keyboard, dialogs
+		Outside this script, in /Scripts/Languages: Language.js, the language layer shared by the site, and one file per language (EN.js, UZ.js, RU.js), whose hifz_tracker section holds this tool's texts.
 
 		INVARIANTS
 		Progress is one state per ayah: Store.ayahs, 6236 entries, 0 not memorized, 1 learning, 2 memorized. Pages, surahs and juz are always derived, never stored.
@@ -1282,13 +1296,31 @@
 		Touch: a finger marks by swiping sideways and scrolls by swiping up or down (touch-action: pan-y); mouse and Apple Pencil mark in any direction. Starting on a cell that already has the brush's state erases instead.
 		A press that dismisses a popover does nothing else. A click that follows a swipe or a long press is ignored.
 		The toast moves into an open dialog, because a modal dialog sits in the top layer above it.
+		Text: no interface text is written in this script. Each one is a key in the hifz_tracker section of /Scripts/Languages/EN.js, UZ.js and RU.js (App.init calls Language.start("hifz_tracker")): markup asks for it with data-text attributes, the script with Language.text. A sentence is never put together from pieces, because word order differs between languages; the whole sentence gets a key with {placeholders}, and a text that changes with a number lists its plural forms.
+		EN.js has every key, and the other languages fall back to it. The English in the markup is only what shows before the script runs; keep it equal to EN.js (Language warns in the console when they differ).
+		Text the script builds once (juz labels, surah names, the footnote, an open sheet) is redone in App.translate when the language changes, then everything renders again.
+		Surah names and meanings: English in Quran.surahs; other languages in the surahs list of their hifz_tracker section, 114 rows in mushaf order. The Arabic names never change.
+		Search matches the English, Arabic and aliases, and the names, meanings and aliases of every loaded language. Quran.normalize drops marks and the Uzbek ʻ and ʼ, so typing without them still matches.
+		Numbers and dates go through Language (Format.pages, Format.percent, Format.date), so 12.5 reads 12,5 in Russian and Uzbek. A plural form is picked from the number as shown, after rounding.
+		The language choice is stored for the whole site ("web_tools.language"), not in this tool's storage key, and is not part of backups.
 
 		CHECKLIST: adding a progress state (for example "needs revision")
 		1. The digit for it in Store.ayahs, and #valid_ayahs to accept it. Old files keep their meaning.
-		2. Stats counters, Format.state_name and Format.action.
+		2. Stats counters, and Format.marked and Format.marking with their keys.
 		3. A cell class, a key, a ribbon color in Summary.draw, the check ring and the sheet bar. Its color is a data color next to --memorized and --learning, checked against both for color-blind separation, with a fill style of its own.
 		4. A brush button in the toolbar and in the sheet, and its label in Sheet.render_fill.
 		5. Surah filters if it should be filterable.
+		6. Its texts (brush, legend, cell labels, marking sentences) in every language file.
+
+		CHECKLIST: adding or changing a text
+		1. Add or change the key in the hifz_tracker section of EN.js, and of UZ.js and RU.js in the same change. Language.missing("uz") in the console lists the keys a language lacks.
+		2. Markup: data-text="key" on an element that holds only that text (wrap it in a span next to icons), or data-text-aria-label, data-text-title, data-text-placeholder. Keep the English in the markup equal to EN.js.
+		3. Script: Language.text("key", { values }). Text built once goes in a translate method, so it follows a change of language.
+
+		CHECKLIST: adding a language (the steps for the site are at the top of EN.js)
+		1. In the new language file, give the hifz_tracker section every key and a surahs list of 114 rows like the one in UZ.js.
+		2. Add its script tag after the other language files, before this script.
+		3. Check the toolbar and the brush buttons on a phone: long words must still fit.
 
 		MANUAL TESTS before finishing
 		Finger: tap a page, swipe sideways across pages, start a swipe on a marked page (it erases), swipe up and down (scrolls, marks nothing), long press a page.
@@ -1298,6 +1330,7 @@
 		Undo button, Ctrl or Cmd + Z, and the toast's Undo.
 		Reload: progress, view and brush are kept. Export, import, clear, and undo each of them.
 		iPad portrait (about 820px), landscape (about 1180px) and a phone.
+		Languages: switch between English, Uzbek and Russian in the site bar; every text changes, with no reload, and the choice is kept after one. Russian plurals for 1, 3, 5 and 21 ayahs and for a fraction of a page; search in Russian and in Uzbek with and without ʻ; no console warnings.
 
 		DECISIONS
 		Added: marking by page, juz, surah and ayah over one per-ayah state, with Memorized, Learning and Clear brushes.
@@ -1307,7 +1340,9 @@
 		Kept: surah names in Amiri, subset and embedded, so the page stays offline.
 		Removed when the tool moved into web_tools: the light theme and theme switch (the site is dark only), and the settings dialog (its actions live in the Your data panel).
 		Changed: memorized and learning were white and grey at first (monochrome). They were too alike, and grey read as disabled. Now green (memorized, solid) and blue (learning, outlined), like done and in progress in issue trackers.
-		Not built yet: revision tracking (last revised per page), goals and a projected finish date, a daily plan, strength levels, sync.
+		Added: Uzbek and Russian, through the shared language layer in /Scripts/Languages (one file per language for the whole site, a section per tool), so other tools can be translated the same way. The language is picked from the saved choice, then the browser's languages, then English.
+		Uzbek is in the Latin script, with oʻ and gʻ written with ʻ (U+02BB) and the tutuq belgisi with ʼ (U+02BC). Juz is "pora". Surah names follow islom.uz and quranenc.com.
+		Not built yet: revision tracking (last revised per page), goals and a projected finish date, a daily plan, strength levels, sync, Uzbek in the Cyrillic script, an Arabic interface (right to left, which needs layout work).
 	*/
 
 	class Quran {
@@ -1486,12 +1521,10 @@
 		static {
 			let index = 0;
 			for (let surah = 0; surah < this.surahs.length; surah++) {
-				const [name, meaning, arabic, count] = this.surahs[surah];
-				const aliases = this.surahs[surah][5] || '';
+				const count = this.surahs[surah][3];
 				this.counts.push(count);
 				this.surah_starts.push(index);
 				this.surah_of.fill(surah, index, index + count);
-				this.search_keys.push(this.normalize(`${name} ${meaning} ${aliases} ${arabic}`));
 				index += count;
 			}
 			this.surah_starts.push(index);
@@ -1509,12 +1542,31 @@
 
 		/////////// APIs
 
+		// Search matches the transliteration, the meaning, the aliases and the Arabic name, and the name, meaning and aliases in every loaded language.
+		static index_search() {
+			const lists = Language.codes().map((code) => Language.value("surahs", code)).filter(Boolean);
+			for (const list of lists) {
+				if (list.length !== this.surahs.length)
+					console.warn(`hifz_tracker: a surahs list has ${list.length} rows, not ${this.surahs.length}`);
+			}
+			this.search_keys.length = 0;
+			for (let surah = 0; surah < this.surahs.length; surah++) {
+				const [name, meaning, arabic] = this.surahs[surah];
+				const words = [name, meaning, this.surahs[surah][5] || '', arabic];
+				for (const list of lists) {
+					if (list[surah]) words.push(...list[surah]);
+				}
+				this.search_keys.push(this.normalize(words.join(' ')));
+			}
+		}
+
+		// In the current language, or in English from the table above when the language has no name for it.
 		static surah_name(surah) {
-			return this.surahs[surah][0];
+			return this.#localized(surah, 0);
 		}
 
 		static surah_meaning(surah) {
-			return this.surahs[surah][1];
+			return this.#localized(surah, 1);
 		}
 
 		static surah_arabic(surah) {
@@ -1543,9 +1595,10 @@
 			return index - this.surah_starts[this.surah_of[index]] + 1;
 		}
 
-		// "Page 5" or "Pages 5–9". Pages are counted from 0 inside the script and from 1 on screen.
-		static pages_label(from, to) {
-			return from === to ? `Page ${from + 1}` : `Pages ${from + 1}–${to + 1}`;
+		// "Page 5" or "Pages 5–9"; inline gives the form for the middle of a sentence. Pages are counted from 0 inside the script and from 1 on screen.
+		static pages_label(from, to, inline = false) {
+			if (from === to) return Language.text(inline ? "label_page_inline" : "label_page", { page: from + 1 });
+			return Language.text(inline ? "label_pages_inline" : "label_pages", { from: from + 1, to: to + 1 });
 		}
 
 		// "Al-Mulk 5", "Al-Mulk 1–10" or "Al-Baqarah 280 to Ali 'Imran 10", for inclusive ayah indexes.
@@ -1554,19 +1607,30 @@
 			const last = this.surah_of[to];
 			const start = this.ayah_number(from);
 			const end = this.ayah_number(to);
-			if (first !== last) return `${this.surah_name(first)} ${start} to ${this.surah_name(last)} ${end}`;
-			return start === end ? `${this.surah_name(first)} ${start}` : `${this.surah_name(first)} ${start}–${end}`;
+			if (first !== last)
+				return Language.text("label_ayahs_across", { first: this.surah_name(first), from: start, last: this.surah_name(last), to: end });
+			if (start === end) return Language.text("label_ayah", { surah: this.surah_name(first), ayah: start });
+			return Language.text("label_ayahs", { surah: this.surah_name(first), from: start, to: end });
 		}
 
-		// Lowercase, without diacritics, spaces or punctuation, so "Ali 'Imran" and "aliimran" match.
+		// Lowercase, without marks, spaces or punctuation, so "Ali 'Imran" and "aliimran" match, and "Gʻofir" matches "gofir".
+		// Marks are accents and Arabic vowel signs; modifier letters include the Uzbek ʻ and ʼ. Letters of any script stay.
 		static normalize(text) {
 			return text
 				.toLowerCase()
 				.normalize("NFD")
-				.replace(/[̀-ًͯ-ٰٟ]/g, '')
+				.replace(/[\p{M}\p{Lm}]/gu, '')
 				.replace(/ة/g, 'ه')
 				.replace(/ى/g, 'ي')
-				.replace(/[^a-z0-9ء-ي]+/g, '');
+				.replace(/[^\p{L}\p{N}]+/gu, '');
+		}
+
+
+		/////////// Helpers
+
+		static #localized(surah, field) {
+			const row = Language.value("surahs")?.[surah];
+			return row && row[field] ? row[field] : this.surahs[surah][field];
 		}
 	}
 
@@ -1843,45 +1907,50 @@
 
 		/////////// APIs
 
-		// At most one decimal, rounded down so progress is never overstated.
+		// At most one decimal, rounded down so progress is never overstated. Plural forms are picked from this number.
+		static pages_value(value) {
+			if (value > 0 && value < 0.1) return 0.1;
+			return Math.floor(value * 10 + 1e-9) / 10;
+		}
+
+		// pages_value as the language writes it: 12.5, or 12,5 in Russian and Uzbek.
 		static pages(value) {
-			if (value > 0 && value < 0.1) return "0.1";
-			return String(Math.floor(value * 10 + 1e-9) / 10);
+			return Language.number(this.pages_value(value));
 		}
 
 		static percent(value) {
-			if (value <= 0) return '0';
-			if (value >= 100) return "100";
-			if (value < 0.1) return "0.1";
-			if (value < 10) return String(Math.floor(value * 10 + 1e-9) / 10);
-			return String(Math.floor(value + 1e-9));
+			return Language.number(this.#percent_value(value));
 		}
 
 		static signed(value) {
-			if (value === 0) return '0';
+			if (value === 0) return Language.number(0);
 			return (value > 0 ? '+' : '−') + this.pages(Math.abs(value));
 		}
 
-		static action(value) {
-			return ["cleared", "marked learning", "marked memorized"][value];
+		// Toast text once marking is done: "Pages 5–9 marked memorized".
+		static marked(label, value) {
+			return Language.text(["marked_cleared", "marked_learning", "marked_memorized"][value], { label });
 		}
 
-		static state_name(value) {
-			return ["not memorized", "learning", "memorized"][value];
-		}
-
-		// Live text shown while a swipe is marking cells.
-		static live(label, value) {
-			return value === 0 ? `Clearing ${label}` : `Marking ${label} as ${this.state_name(value)}`;
-		}
-
-		static plural(count, word) {
-			return `${count} ${word}${count === 1 ? '' : 's'}`;
+		// Live text shown while a swipe is marking cells: "Marking pages 5–9 as memorized".
+		static marking(label, value) {
+			return Language.text(["marking_cleared", "marking_learning", "marking_memorized"][value], { label });
 		}
 
 		static date(value) {
 			const date = typeof value === "string" ? new Date(`${value}T00:00:00`) : new Date(value);
-			return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+			return Language.date(date);
+		}
+
+
+		/////////// Helpers
+
+		static #percent_value(value) {
+			if (value <= 0) return 0;
+			if (value >= 100) return 100;
+			if (value < 0.1) return 0.1;
+			if (value < 10) return Math.floor(value * 10 + 1e-9) / 10;
+			return Math.floor(value + 1e-9);
 		}
 	}
 
@@ -2259,16 +2328,18 @@
 
 		static render() {
 			const percent = Stats.memorized_pages / Quran.total_pages * 100;
-			const learning = Stats.learning_pages;
+			const learning = Format.pages_value(Stats.learning_pages);
 			const counting = Store.today() !== Store.baseline;
+			const week = counting ? Store.week_total() : 0;
 			document.getElementById("figure_value").textContent = Format.percent(percent);
-			document.getElementById("figure_caption").textContent = percent >= 100 ? "of the Qur'an memorized. Masha'Allah." : "of the Qur'an memorized";
+			document.getElementById("figure_caption").textContent = Language.text(percent >= 100 ? "caption_complete" : "caption");
 			document.getElementById("stat_pages").textContent = Format.pages(Stats.memorized_pages);
 			document.getElementById("stat_juz").textContent = Stats.juz_complete;
 			document.getElementById("stat_surahs").textContent = Stats.surahs_complete;
-			document.getElementById("stat_week").textContent = counting ? Format.signed(Store.week_total()) : '0';
+			document.getElementById("stat_week").textContent = counting ? Format.signed(week) : Language.number(0);
+			document.getElementById("stat_week_unit").textContent = Language.text("stat_week_unit", { count: Format.pages_value(Math.abs(week)) });
 			document.getElementById("stat_week_note").hidden = counting;
-			document.getElementById("legend_learning").textContent = learning > 0 ? `Learning (${Format.pages(learning)} ${learning === 1 ? "page" : "pages"})` : "Learning";
+			document.getElementById("legend_learning").textContent = learning > 0 ? Language.text("legend_learning_pages", { count: learning }) : Language.text("legend_learning");
 			document.getElementById("empty_hint").hidden = Stats.memorized_pages > 0 || learning > 0;
 			this.draw();
 		}
@@ -2346,7 +2417,7 @@
 			const juz = this.#juz_at(event.clientX);
 			const [first, end] = Quran.juz_range(juz);
 			const rect = this.#canvas.getBoundingClientRect();
-			this.#tip.textContent = `Juz ${juz + 1}: ${Format.pages(Stats.juz_memorized(juz))} of ${end - first} pages`;
+			this.#tip.textContent = Language.text("ribbon_tip", { juz: juz + 1, memorized: Format.pages(Stats.juz_memorized(juz)), count: end - first });
 			this.#tip.hidden = false;
 			const half = this.#tip.offsetWidth / 2;
 			const left = Math.max(half, Math.min(event.clientX - rect.left, rect.width - half));
@@ -2362,7 +2433,10 @@
 		static #root = null;
 		static #cells = [];
 		static #rows = [];
+		static #names = [];
 		static #percents = [];
+		// The label key each cell has now, so a render only relabels the cells whose state changed.
+		static #labels = [];
 
 
 		/////////// APIs
@@ -2394,6 +2468,13 @@
 			}
 		}
 
+		static translate() {
+			for (let juz = 0; juz < Quran.total_juz; juz++) {
+				this.#names[juz].textContent = Language.text("label_juz", { juz: juz + 1 });
+			}
+			this.#labels.length = 0;
+		}
+
 		static show_juz(juz) {
 			App.set_view("pages");
 			const row = this.#rows[juz];
@@ -2414,9 +2495,10 @@
 				const count = end - first;
 				const row = Dom.make("div", "juz_row");
 				const label = Dom.button("juz_label", null, () => this.#juz_menu(juz, label));
+				const name = Dom.make("span", "juz_name");
 				const percent = Dom.make("span", "juz_pct", "0%");
 				label.setAttribute("aria-haspopup", "true");
-				label.append(Dom.make("span", "juz_name", `Juz ${juz + 1}`), percent);
+				label.append(name, percent);
 				const grid = Dom.make("div", "juz_pages");
 				grid.style.setProperty("--n1", count);
 				grid.style.setProperty("--n2", Math.ceil(count / 2));
@@ -2430,6 +2512,7 @@
 				row.append(label, grid);
 				fragment.append(row);
 				this.#rows.push(row);
+				this.#names.push(name);
 				this.#percents.push(percent);
 			}
 			this.#root.append(fragment);
@@ -2444,12 +2527,14 @@
 			cell.classList.toggle("partial", mem < 1 && learn < 1 && mem + learn > 0);
 			cell.style.setProperty("--m", mem);
 			cell.style.setProperty("--l", learn);
-			let state = "not memorized";
-			if (mem === 1) state = "memorized";
-			else if (learn === 1) state = "learning";
-			else if (mem > 0) state = "partly memorized";
-			else if (learn > 0) state = "partly learning";
-			cell.setAttribute("aria-label", `Page ${page + 1}, ${state}`);
+			let state = "page_none";
+			if (mem === 1) state = "page_memorized";
+			else if (learn === 1) state = "page_learning";
+			else if (mem > 0) state = "page_part_memorized";
+			else if (learn > 0) state = "page_part_learning";
+			if (this.#labels[page] === state) return;
+			this.#labels[page] = state;
+			cell.setAttribute("aria-label", Language.text(state, { page: page + 1 }));
 		}
 
 		static #preview(from, to, value) {
@@ -2457,7 +2542,7 @@
 				if (page >= from && page <= to) this.#cells[page].dataset.preview = value;
 				else delete this.#cells[page].dataset.preview;
 			}
-			App.hint(Format.live(Quran.pages_label(from, to).toLowerCase(), value));
+			App.hint(Format.marking(Quran.pages_label(from, to, true), value));
 		}
 
 		static #clear_preview() {
@@ -2469,15 +2554,15 @@
 
 		static #commit(from, to, value) {
 			const changed = Store.set_range(Quran.page_starts[from], Quran.page_starts[to + 1], value);
-			App.changed(changed, `${Quran.pages_label(from, to)} ${Format.action(value)}`);
+			App.changed(changed, Format.marked(Quran.pages_label(from, to), value));
 		}
 
 		// Which surahs and ayahs a page holds; each one opens its surah.
 		static #page_info(page, cell) {
 			Popover.open(cell, (box) => {
 				const [from, to] = Quran.page_range(page);
-				box.append(Dom.make('p', "pop_title", `Page ${page + 1}`));
-				box.append(Dom.make('p', "pop_text", `Juz ${Quran.juz_of_page(page) + 1}`));
+				box.append(Dom.make('p', "pop_title", Quran.pages_label(page, page)));
+				box.append(Dom.make('p', "pop_text", Language.text("label_juz", { juz: Quran.juz_of_page(page) + 1 })));
 				const list = Dom.make("div", "pop_list");
 				for (let surah = Quran.surah_of[from]; surah <= Quran.surah_of[to - 1]; surah++) {
 					const start = Math.max(from, Quran.surah_starts[surah]);
@@ -2491,7 +2576,7 @@
 						Sheet.open(surah);
 					});
 					const text = Dom.make("span", null, Quran.ayahs_label(start, end - 1));
-					text.append(Dom.make("small", null, `${mem} of ${Format.plural(end - start, "ayah")} memorized`));
+					text.append(Dom.make("small", null, Language.text("page_info_ayahs", { memorized: mem, count: end - start })));
 					item.append(text, Dom.glyph("chevron_right"));
 					list.append(item);
 				}
@@ -2504,16 +2589,17 @@
 				const [first, end] = Quran.juz_range(juz);
 				const from = Quran.page_starts[first];
 				const to = Quran.page_starts[end];
-				box.append(Dom.make('p', "pop_title", `Juz ${juz + 1}`));
-				box.append(Dom.make('p', "pop_text", `${Quran.pages_label(first, end - 1)}, ${Quran.ayahs_label(from, to - 1)}`));
-				box.append(Dom.make('p', "pop_text", `${Format.pages(Stats.juz_memorized(juz))} of ${end - first} pages memorized`));
+				const name = Language.text("label_juz", { juz: juz + 1 });
+				box.append(Dom.make('p', "pop_title", name));
+				box.append(Dom.make('p', "pop_text", Language.text("juz_range", { pages: Quran.pages_label(first, end - 1), ayahs: Quran.ayahs_label(from, to - 1) })));
+				box.append(Dom.make('p', "pop_text", Language.text("juz_memorized", { memorized: Format.pages(Stats.juz_memorized(juz)), count: end - first })));
 				const actions = Dom.make("div", "pop_actions");
 				for (const value of [2, 1, 0]) {
 					const button = Dom.button(null, null, () => {
 						Popover.close();
-						App.changed(Store.set_range(from, to, value), `Juz ${juz + 1} ${Format.action(value)}`);
+						App.changed(Store.set_range(from, to, value), Format.marked(name, value));
 					});
-					button.append(Dom.make('i', `key ${["key_clear", "key_learn", "key_mem"][value]}`), ["Clear juz", "Mark juz learning", "Mark juz memorized"][value]);
+					button.append(Dom.make('i', `key ${["key_clear", "key_learn", "key_mem"][value]}`), Language.text(["juz_clear", "juz_mark_learning", "juz_mark_memorized"][value]));
 					actions.append(button);
 				}
 				box.append(actions);
@@ -2567,8 +2653,8 @@
 				row.check.classList.toggle("done", done);
 				row.check.style.setProperty("--m", mem / total);
 				row.check.style.setProperty("--l", learn / total);
-				row.check.setAttribute("aria-label", done ? `Clear ${Quran.surah_name(surah)}` : `Mark ${Quran.surah_name(surah)} memorized`);
-				row.meta.textContent = `${Quran.surah_meaning(surah)}, ${this.#status(mem, learn, total)}`;
+				row.check.setAttribute("aria-label", Language.text(done ? "surah_clear" : "surah_mark", { surah: Quran.surah_name(surah) }));
+				row.meta.textContent = Language.text("surah_meta", { meaning: Quran.surah_meaning(surah), status: this.#status(mem, learn, total) });
 				if (done) counts.memorized++;
 				else if (mem > 0 || learn > 0) counts.progress++;
 				else counts.not_started++;
@@ -2579,6 +2665,13 @@
 			this.#apply_filter();
 		}
 
+		static translate() {
+			for (let surah = 0; surah < this.#rows.length; surah++) {
+				this.#rows[surah].name.textContent = Quran.surah_name(surah);
+			}
+			this.#label_sort();
+		}
+
 
 		/////////// Helpers
 
@@ -2587,24 +2680,30 @@
 			const check = Dom.button("check", null, () => this.#toggle(surah));
 			const open = Dom.button("surah_open", null, () => Sheet.open(surah));
 			const text = Dom.make("span", "surah_text");
+			const name = Dom.make("span", "surah_name");
 			const meta = Dom.make("span", "surah_meta");
 			const arabic = Dom.make("span", "surah_ar arabic", Quran.surah_arabic(surah));
 			arabic.lang = "ar";
 			arabic.dir = "rtl";
 			check.append(Dom.glyph("check"));
-			text.append(Dom.make("span", "surah_name", Quran.surah_name(surah)), meta);
+			text.append(name, meta);
 			open.append(Dom.make("span", "surah_no", String(surah + 1)), text, arabic);
 			element.append(check, open);
-			return { element, check, meta };
+			return { element, check, name, meta };
 		}
 
 		static #place_rows() {
 			const ascending = Store.settings.order === "asc";
 			const rows = ascending ? this.#rows : [...this.#rows].reverse();
 			this.#list.replaceChildren(...rows.map((row) => row.element));
-			const button = document.getElementById("sort_button");
-			button.setAttribute("aria-label", ascending ? "Show surahs from 114 to 1" : "Show surahs from 1 to 114");
-			button.classList.toggle("reversed", !ascending);
+			document.getElementById("sort_button").classList.toggle("reversed", !ascending);
+			this.#label_sort();
+		}
+
+		// The button says what pressing it does.
+		static #label_sort() {
+			const ascending = Store.settings.order === "asc";
+			document.getElementById("sort_button").setAttribute("aria-label", Language.text(ascending ? "sort_descending" : "sort_ascending"));
 		}
 
 		static #set_filter(filter) {
@@ -2640,25 +2739,24 @@
 		}
 
 		static #empty_message() {
-			if (this.#query) return "No surah matches your search.";
-			if (this.#filter === "progress") return "Nothing in progress. Surahs you have partly memorized or are learning show up here.";
-			if (this.#filter === "memorized") return "No surah is fully memorized yet.";
-			return "Every surah has been started.";
+			if (this.#query) return Language.text("empty_search");
+			if (this.#filter === "progress") return Language.text("empty_progress");
+			if (this.#filter === "memorized") return Language.text("empty_memorized");
+			return Language.text("empty_not_started");
 		}
 
 		static #status(mem, learn, total) {
-			if (mem === total) return `all ${total} ayahs memorized`;
-			if (mem === 0 && learn === 0) return Format.plural(total, "ayah");
-			const parts = [];
-			if (mem > 0) parts.push(`${mem} of ${total} memorized`);
-			if (learn > 0) parts.push(mem > 0 ? `${learn} learning` : `${learn} of ${total} learning`);
-			return parts.join(", ");
+			if (mem === total) return Language.text("status_all", { count: total });
+			if (mem === 0 && learn === 0) return Language.text("ayah_count", { count: total });
+			if (learn === 0) return Language.text("status_memorized", { memorized: mem, total });
+			if (mem === 0) return Language.text("status_learning", { learning: learn, total });
+			return Language.text("status_both", { memorized: mem, learning: learn, total });
 		}
 
 		static #toggle(surah) {
 			const done = Stats.surah_mem[surah] === Quran.counts[surah];
 			const changed = Store.set_range(Quran.surah_starts[surah], Quran.surah_starts[surah + 1], done ? 0 : 2);
-			App.changed(changed, `${Quran.surah_name(surah)} ${done ? "cleared" : "marked memorized"}`);
+			App.changed(changed, Format.marked(Quran.surah_name(surah), done ? 0 : 2));
 		}
 	}
 
@@ -2716,7 +2814,7 @@
 				const cell = this.#cells[offset];
 				cell.classList.toggle("mem", state === 2);
 				cell.classList.toggle("learn", state === 1);
-				cell.setAttribute("aria-label", `Ayah ${offset + 1}, ${Format.state_name(state)}`);
+				cell.setAttribute("aria-label", Language.text(["ayah_none", "ayah_learning", "ayah_memorized"][state], { ayah: offset + 1 }));
 			}
 			const total = Quran.counts[surah];
 			const mem = Stats.surah_mem[surah];
@@ -2734,8 +2832,16 @@
 			const button = document.getElementById("fill_button");
 			const brush = Store.settings.brush;
 			const ayahs = Store.ayahs.subarray(Quran.surah_starts[this.#surah], Quran.surah_starts[this.#surah + 1]);
-			button.textContent = ["Clear all ayahs", "Mark all learning", "Mark all memorized"][brush];
+			button.textContent = Language.text(["fill_clear", "fill_learning", "fill_memorized"][brush]);
 			button.disabled = ayahs.every((state) => state === brush);
+		}
+
+		// The open sheet was built in the language before; build it again.
+		static translate() {
+			if (!this.#dialog.open) return;
+			this.#build();
+			this.#clear_preview();
+			this.render();
 		}
 
 
@@ -2749,13 +2855,19 @@
 			const last_page = Quran.page_of[to - 1];
 			const first_juz = Quran.juz_of_page(first_page) + 1;
 			const last_juz = Quran.juz_of_page(last_page) + 1;
-			const juz_text = first_juz === last_juz ? `juz ${first_juz}` : `juz ${first_juz}–${last_juz}`;
-			const origin = Quran.is_meccan(surah) ? "Meccan" : "Medinan";
+			const juz_text = first_juz === last_juz
+				? Language.text("sheet_juz", { juz: first_juz })
+				: Language.text("sheet_juz_range", { from: first_juz, to: last_juz });
 			document.getElementById("sheet_ar").textContent = Quran.surah_arabic(surah);
 			document.getElementById("sheet_title").textContent = Quran.surah_name(surah);
 			document.getElementById("sheet_sub").textContent = Quran.surah_meaning(surah);
-			document.getElementById("sheet_meta").textContent =
-				`Surah ${surah + 1}, ${Format.plural(to - from, "ayah")}, ${origin}. ${Quran.pages_label(first_page, last_page)} in ${juz_text}.`;
+			document.getElementById("sheet_meta").textContent = Language.text("sheet_meta", {
+				number: surah + 1,
+				ayahs: Language.text("ayah_count", { count: to - from }),
+				origin: Language.text(Quran.is_meccan(surah) ? "meccan" : "medinan"),
+				pages: Quran.pages_label(first_page, last_page),
+				juz: juz_text
+			});
 			const fragment = document.createDocumentFragment();
 			this.#cells = [];
 			for (let index = from; index < to; index++) {
@@ -2763,7 +2875,7 @@
 				// A small page marker before the first ayah of each mushaf page.
 				if (index === from || Quran.page_starts[page] === index) {
 					const mark = Dom.make("span", "page_mark");
-					mark.append(Dom.make("small", null, "page"), String(page + 1));
+					mark.append(Dom.make("small", null, Language.text("page_mark")), String(page + 1));
 					fragment.append(mark);
 				}
 				const cell = Dom.button("cell", String(index - from + 1));
@@ -2781,7 +2893,7 @@
 				if (index >= from && index <= to) this.#cells[offset].dataset.preview = value;
 				else delete this.#cells[offset].dataset.preview;
 			}
-			this.#hint.textContent = Format.live(Quran.ayahs_label(from, to), value);
+			this.#hint.textContent = Format.marking(Quran.ayahs_label(from, to), value);
 			this.#hint.classList.add("live");
 		}
 
@@ -2790,27 +2902,25 @@
 				delete cell.dataset.preview;
 			}
 			this.#hint.classList.remove("live");
-			this.#hint.textContent = App.fine_pointer()
-				? "Click an ayah to mark it, or drag across ayahs to mark several."
-				: "Tap an ayah to mark it, or swipe sideways across ayahs to mark several.";
+			this.#hint.textContent = Language.text(App.fine_pointer() ? "sheet_hint_click" : "sheet_hint_tap");
 		}
 
 		static #commit(from, to, value) {
-			App.changed(Store.set_range(from, to + 1, value), `${Quran.ayahs_label(from, to)} ${Format.action(value)}`);
+			App.changed(Store.set_range(from, to + 1, value), Format.marked(Quran.ayahs_label(from, to), value));
 		}
 
 		static #fill() {
 			const surah = this.#surah;
 			const value = Store.settings.brush;
 			const changed = Store.set_range(Quran.surah_starts[surah], Quran.surah_starts[surah + 1], value);
-			App.changed(changed, `${Quran.surah_name(surah)} ${Format.action(value)}`);
+			App.changed(changed, Format.marked(Quran.surah_name(surah), value));
 		}
 
 		static #progress_text(mem, learn, total) {
-			if (mem === total) return `All ${total} ayahs memorized`;
-			if (mem === 0 && learn === 0) return "Not started";
-			if (learn === 0) return `${mem} of ${total} memorized`;
-			return `${mem} of ${total} memorized, ${learn} learning`;
+			if (mem === total) return Language.text("progress_all", { count: total });
+			if (mem === 0 && learn === 0) return Language.text("progress_none");
+			if (learn === 0) return Language.text("progress_memorized", { memorized: mem, total });
+			return Language.text("progress_both", { memorized: mem, learning: learn, total });
 		}
 	}
 
@@ -2831,14 +2941,21 @@
 			file_input.addEventListener("change", () => this.#import(file_input));
 			document.getElementById("count_button").addEventListener("click", () => {
 				Store.start_counting_today();
-				App.changed(1, "This week counts from today");
+				App.changed(1, Language.text("week_counts_today"));
 			});
 			document.getElementById("clear_button").addEventListener("click", (event) => this.#clear(event.currentTarget));
 		}
 
 		static render() {
-			document.getElementById("backup_note").textContent = Store.last_backup ? `Last backup ${Format.date(Store.last_backup)}` : "No backup yet";
-			document.getElementById("count_note").textContent = `Counting since ${Format.date(Store.baseline)}`;
+			document.getElementById("backup_note").textContent = Store.last_backup
+				? Language.text("backup_last", { date: Format.date(Store.last_backup) })
+				: Language.text("backup_none");
+			document.getElementById("count_note").textContent = Language.text("week_counting_since", { date: Format.date(Store.baseline) });
+		}
+
+		// A pending clear does not carry over into another language.
+		static translate() {
+			this.#disarm(document.getElementById("clear_button"));
 		}
 
 		// Download everything as a JSON file the user keeps (Files on iPad, Downloads elsewhere).
@@ -2855,7 +2972,7 @@
 			Store.last_backup = Date.now();
 			Store.persist();
 			App.render();
-			Toast.show("Backup exported", false);
+			Toast.show(Language.text("backup_exported"), false);
 		}
 
 
@@ -2871,27 +2988,27 @@
 			} catch {
 				// Not JSON: reported below like any other unreadable backup.
 			}
-			if (Store.import_backup(data)) App.changed(1, "Backup imported");
-			else Toast.show("That file is not a Hifz tracker backup", false);
+			if (Store.import_backup(data)) App.changed(1, Language.text("backup_imported"));
+			else Toast.show(Language.text("backup_invalid"), false);
 		}
 
 		// Two presses instead of a confirm dialog; undo covers the rest.
 		static #clear(button) {
 			if (!button.classList.contains("armed")) {
 				button.classList.add("armed");
-				button.textContent = "Press again to clear";
+				button.textContent = Language.text("clear_confirm");
 				this.#clear_timer = setTimeout(() => this.#disarm(button), 4000);
 				return;
 			}
 			this.#disarm(button);
 			Store.reset_all();
-			App.changed(1, "All progress cleared");
+			App.changed(1, Language.text("clear_done"));
 		}
 
 		static #disarm(button) {
 			clearTimeout(this.#clear_timer);
 			button.classList.remove("armed");
-			button.textContent = "Clear all progress";
+			button.textContent = Language.text("clear_all");
 		}
 	}
 
@@ -2908,6 +3025,8 @@
 		/////////// APIs
 
 		static init() {
+			Language.start("hifz_tracker");
+			Quran.index_search();
 			Store.load();
 			Store.check_storage();
 			Stats.compute();
@@ -2923,7 +3042,7 @@
 			this.#bind();
 			this.set_view(Store.settings.view);
 			this.set_brush(Store.settings.brush);
-			this.hint(null);
+			this.translate();
 			this.render();
 		}
 
@@ -2938,6 +3057,22 @@
 			document.getElementById("storage_banner").hidden = Store.saving_works;
 		}
 
+		// Text the script builds once, rather than marked-up text. Runs at start and after each change of language.
+		static translate() {
+			Popover.close();
+			Toast.hide();
+			Pages.translate();
+			Surahs.translate();
+			Sheet.translate();
+			Data.translate();
+			this.hint(null);
+			const nowrap = (juz) => {
+				const [first, end] = Quran.juz_range(juz);
+				return Dom.make("span", "nowrap", Quran.pages_label(first, end - 1, true));
+			};
+			Language.fill(document.getElementById("footnote"), "footnote", { first: nowrap(0), last: nowrap(Quran.total_juz - 1) });
+		}
+
 		static changed(count, message) {
 			if (count === 0) return;
 			this.render();
@@ -2947,7 +3082,7 @@
 		static undo() {
 			if (!Store.undo()) return;
 			this.render();
-			Toast.show("Undone", false);
+			Toast.show(Language.text("undone"), false);
 		}
 
 		static set_view(view) {
@@ -2985,10 +3120,7 @@
 		static hint(text) {
 			this.#hint.classList.toggle("live", Boolean(text));
 			if (text) this.#hint.textContent = text;
-			else if (this.fine_pointer())
-				this.#hint.textContent = "Click a page to mark it, or drag across pages to mark several. Right-click a page for details.";
-			else
-				this.#hint.textContent = "Tap a page to mark it, or swipe sideways across pages to mark several. Press and hold a page for details.";
+			else this.#hint.textContent = Language.text(this.fine_pointer() ? "hint_click" : "hint_tap");
 		}
 
 		static fine_pointer() {
@@ -3042,6 +3174,10 @@
 				if (event.key !== Store.key) return;
 				Store.load();
 				Store.clear_history();
+				this.render();
+			});
+			Language.on_change(() => {
+				this.translate();
 				this.render();
 			});
 			new ResizeObserver(() => {

@@ -121,6 +121,54 @@ a:hover {
 	font-weight: 500;
 }
 
+/* Language picker. Scripts/Languages/Language.js adds it to the bar of tools that have more than one language.
+   The native select lies invisible over the label, so every device opens its own picker,
+   and its 16px text keeps iOS from zooming in when it is tapped. */
+.site_language {
+	position: relative;
+	display: flex;
+	align-items: center;
+	align-self: stretch;
+	gap: 4px;
+	margin-left: auto;
+	padding: 0 4px 0 6px;
+	border-radius: var(--radius);
+	color: var(--ink_faint);
+	cursor: pointer;
+}
+
+.site_language:hover {
+	color: var(--ink);
+}
+
+.site_language:has(select:focus-visible) {
+	outline: 2px solid var(--ink);
+	outline-offset: -2px;
+	color: var(--ink);
+}
+
+.site_language span {
+	color: inherit;
+}
+
+.site_language svg {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	fill: currentColor;
+}
+
+.site_language select {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	opacity: 0;
+	font-size: 16px;
+	cursor: pointer;
+}
+
 /* ---------- headings ---------- */
 
 h1 {
