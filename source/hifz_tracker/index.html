@@ -47,8 +47,12 @@
 		overflow: hidden;
 	}
 
+	/*
+		The tool takes the width of the screen, up to a large monitor. Grids and lists use the room: page cells grow, the surah list
+		adds columns, the sheet widens. Text keeps its own measure (max-width in ch), so lines stay easy to read.
+	*/
 	.shell {
-		max-width: var(--shell);
+		max-width: 160rem;
 		margin: 0 auto;
 		padding: 26px 24px 64px;
 	}
@@ -477,10 +481,35 @@
 		}
 	}
 
+	/*
+		One line per juz from here, and the cells grow with the line. A line holds about 20 cells, so a cell is about 5cqi wide;
+		a height of 4cqi keeps it a little wider than tall, between 40px and 56px. The numbers grow with it.
+	*/
 	@container map (min-width: 1000px) {
 		.juz_pages {
 			--cols: var(--n1);
-			--cell_height: 40px;
+			--cell_height: clamp(40px, 4cqi - 3px, 56px);
+			container-type: inline-size;
+		}
+
+		.juz_pages .cell {
+			font-size: clamp(12px, 1.1cqi, 14px);
+		}
+	}
+
+	/*
+		Very wide: two juz side by side, read left to right like the ribbon, so most of the mushaf fits on one screen.
+		It starts at 2200px, where half a line still gives cells about 40px wide or more.
+	*/
+	@container map (min-width: 2200px) {
+		.juz_list {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			column-gap: 40px;
+		}
+
+		.juz_row:nth-child(2) {
+			border-top: 0;
 		}
 	}
 
@@ -556,9 +585,13 @@
 
 	/* ---------- surahs ---------- */
 
+	/*
+		As many columns as fit at 480px or more: one on a phone, two on an iPad in landscape or a laptop, three or four on a monitor.
+		Rows read left to right. Narrower columns cut off more of a surah's progress line ("The Family of Imran, 66 of 200 memorized, 67 learning").
+	*/
 	.surah_list {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr);
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
 		column-gap: 32px;
 	}
 
@@ -739,8 +772,9 @@
 
 	/* ---------- surah sheet ---------- */
 
+	/* The sheet widens with the screen, up to 1200px, so a long surah needs fewer rows of ayahs. */
 	.sheet {
-		width: min(720px, calc(100vw - 32px));
+		width: min(clamp(720px, 64vw, 1200px), calc(100vw - 32px));
 		max-width: none;
 		max-height: calc(100vh - 32px);
 		max-height: calc(100dvh - 32px);
@@ -1017,9 +1051,27 @@
 		pointer-events: none;
 	}
 
-	@media (min-width: 900px) {
-		.surah_list {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+	/* Wide: the three parts of Your data side by side, each with its buttons under its text. */
+	@media (min-width: 1300px) {
+		.data {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			column-gap: 28px;
+		}
+
+		.data_row {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.data_text {
+			flex: none;
+		}
+
+		.data_row + .data_row {
+			padding-left: 28px;
+			border-top: 0;
+			border-left: 1px solid var(--line);
 		}
 	}
 
@@ -1296,6 +1348,7 @@
 		Touch: a finger marks by swiping sideways and scrolls by swiping up or down (touch-action: pan-y); mouse and Apple Pencil mark in any direction. Starting on a cell that already has the brush's state erases instead.
 		A press that dismisses a popover does nothing else. A click that follows a swipe or a long press is ignored.
 		The toast moves into an open dialog, because a modal dialog sits in the top layer above it.
+		Layout: the tool is as wide as the screen, up to 160rem, not the site's --shell. Grids take the room; text keeps its measure (max-width in ch). The page map follows its own width (container map): a juz takes 4, 2 or 1 lines; from 1000px a cell's height and numbers follow its line (cqi, with .juz_pages as the container); from 2200px .juz_list puts two juz on a line, in reading order. Painter finds cells by data-index under the pointer, so layout changes need no script changes.
 		Text: no interface text is written in this script. Each one is a key in the hifz_tracker section of /Scripts/Languages/EN.js, UZ.js and RU.js (App.init calls Language.start("hifz_tracker")): markup asks for it with data-text attributes, the script with Language.text. A sentence is never put together from pieces, because word order differs between languages; the whole sentence gets a key with {placeholders}, and a text that changes with a number lists its plural forms.
 		EN.js has every key, and the other languages fall back to it. The English in the markup is only what shows before the script runs; keep it equal to EN.js (Language warns in the console when they differ).
 		Text the script builds once (juz labels, surah names, the footnote, an open sheet) is redone in App.translate when the language changes, then everything renders again.
@@ -1329,7 +1382,7 @@
 		Juz actions, surah check circles, search in English and Arabic, filters, order.
 		Undo button, Ctrl or Cmd + Z, and the toast's Undo.
 		Reload: progress, view and brush are kept. Export, import, clear, and undo each of them.
-		iPad portrait (about 820px), landscape (about 1180px) and a phone.
+		A phone, iPad portrait (about 820px) and landscape (about 1180px), a laptop (about 1440px) and wide monitors (1920px and 2560px): cells grow with the line, two juz share a line from a 2200px map, and a drag from one column to the other marks every page in between.
 		Languages: switch between English, Uzbek and Russian in the site bar; every text changes, with no reload, and the choice is kept after one. Russian plurals for 1, 3, 5 and 21 ayahs and for a fraction of a page; search in Russian and in Uzbek with and without ʻ; no console warnings.
 
 		DECISIONS
@@ -1342,6 +1395,7 @@
 		Changed: memorized and learning were white and grey at first (monochrome). They were too alike, and grey read as disabled. Now green (memorized, solid) and blue (learning, outlined), like done and in progress in issue trackers.
 		Added: Uzbek and Russian, through the shared language layer in /Scripts/Languages (one file per language for the whole site, a section per tool), so other tools can be translated the same way. The language is picked from the saved choice, then the browser's languages, then English.
 		Uzbek is in the Latin script, with oʻ and gʻ written with ʻ (U+02BB) and the tutuq belgisi with ʼ (U+02BC). Juz is "pora". Surah names follow islom.uz and quranenc.com.
+		Changed: the tool used the site's 68rem column, which left wide screens mostly empty. It now spans the screen up to 160rem: page cells grow with their line (40 to 56px tall), two juz share a line from a 2200px map so most of the mushaf fits on a large monitor, the surah list adds columns, the sheet widens up to 1200px, and Your data goes into three columns from 1300px. The other tools keep --shell.
 		Not built yet: revision tracking (last revised per page), goals and a projected finish date, a daily plan, strength levels, sync, Uzbek in the Cyrillic script, an Arabic interface (right to left, which needs layout work).
 	*/
 
@@ -2489,7 +2543,8 @@
 		/////////// Helpers
 
 		static #build() {
-			const fragment = document.createDocumentFragment();
+			// The rows sit in a list of their own, which the stylesheet lays out in two columns on very wide screens.
+			const list = Dom.make("div", "juz_list");
 			for (let juz = 0; juz < Quran.total_juz; juz++) {
 				const [first, end] = Quran.juz_range(juz);
 				const count = end - first;
@@ -2510,12 +2565,12 @@
 					this.#cells.push(cell);
 				}
 				row.append(label, grid);
-				fragment.append(row);
+				list.append(row);
 				this.#rows.push(row);
 				this.#names.push(name);
 				this.#percents.push(percent);
 			}
-			this.#root.append(fragment);
+			this.#root.append(list);
 		}
 
 		static #paint(page) {
