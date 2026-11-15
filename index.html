@@ -1,127 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>web_tools</title>
-<meta name="description" content="Small browser tools for software engineers. Everything runs locally. Nothing is uploaded.">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>web_tools</title>
+		<meta name="description" content="Small browser tools for software engineers. Everything runs locally. Nothing is uploaded.">
 
-<link rel="icon" href="images/Favicon/logo.ico" sizes="32x32">
-<link rel="icon" href="images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
-<link rel="icon" href="images/Favicon/logo.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="images/Favicon/logo_180x180.png">
-<link rel="manifest" href="images/Favicon/site.webmanifest">
-<meta name="theme-color" content="#0e0f12">
+		<link rel="icon" href="images/Favicon/logo.ico" sizes="32x32">
+		<link rel="icon" href="images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
+		<link rel="icon" href="images/Favicon/logo.svg" type="image/svg+xml">
+		<link rel="apple-touch-icon" href="images/Favicon/logo_180x180.png">
+		<link rel="manifest" href="images/Favicon/site.webmanifest">
+		<meta name="theme-color" content="#0e0f12">
 
-<link rel="stylesheet" href="styles/core.css">
-<style>
-	.shell {
-		max-width: 44rem;
-		margin: 0 auto;
-		padding: 72px 24px 96px;
-	}
+		<link rel="stylesheet" href="styles/core.css">
+		<style>
+			.shell {
+				max-width: 44rem;
+				margin: 0 auto;
+				padding: 72px 24px 96px;
+			}
 
-	.wordmark {
-		font-family: var(--mono);
-		font-size: 26px;
-		font-weight: 500;
-		letter-spacing: -0.01em;
-	}
+			.wordmark {
+				font-family: var(--mono);
+				font-size: 26px;
+				font-weight: 500;
+				letter-spacing: -0.01em;
+			}
 
-	.lede {
-		margin: 10px 0 0;
-		color: var(--ink_soft);
-		max-width: 54ch;
-	}
+			.lede {
+				margin: 10px 0 0;
+				color: var(--ink_soft);
+				max-width: 54ch;
+			}
 
-	.tools {
-		margin: 44px 0 0;
-		padding: 0;
-		list-style: none;
-		border-top: 1px solid var(--line);
-	}
+			.tools {
+				margin: 44px 0 0;
+				padding: 0;
+				list-style: none;
+				border-top: 1px solid var(--line);
+			}
 
-	.tools li {
-		border-bottom: 1px solid var(--line);
-	}
+			.tools li {
+				border-bottom: 1px solid var(--line);
+			}
 
-	.tools a {
-		display: block;
-		padding: 10px;
-		color: var(--ink);
-		text-decoration: none;
-	}
+			.tools a {
+				display: block;
+				padding: 10px;
+				color: var(--ink);
+				text-decoration: none;
+			}
 
-	.tools a:hover,
-	.tools a:focus-visible {
-		background: var(--accent_soft);
-		color: var(--ink);
-	}
+			.tools a:hover,
+			.tools a:focus-visible {
+				background: var(--accent_soft);
+				color: var(--ink);
+			}
 
-	.tools a {
-		font-family: var(--mono);
-		font-size: 14px;
-	}
+			.tools a {
+				font-family: var(--mono);
+				font-size: 14px;
+			}
 
-	.colophon {
-		margin: 44px 0 0;
-		color: var(--ink_faint);
-		font-size: 13px;
-	}
+			.colophon {
+				margin: 44px 0 0;
+				color: var(--ink_faint);
+				font-size: 13px;
+			}
 
-	.colophon a {
-		color: var(--ink_soft);
-	}
+			.colophon a {
+				color: var(--ink_soft);
+			}
 
-	@media (max-width: 540px) {
-		.shell { padding: 44px 20px 64px; }
-		.wordmark { font-size: 22px; }
-	}
-</style>
-</head>
-<body>
+			@media (max-width: 540px) {
+				.shell { padding: 44px 20px 64px; }
+				.wordmark { font-size: 22px; }
+			}
+		</style>
+	</head>
 
-<main class="shell">
+	<body>
+		<main class="shell">
 
-	<h1 class="wordmark">web_tools</h1>
-	<p class="lede">Small tools for everyday engineering work.</p>
+			<h1 class="wordmark">web_tools</h1>
+			<p class="lede">Small tools for everyday engineering work.</p>
 
-	<ul class="tools">
-		<li>
-			<a href="source/color_picker/index.html">color_picker</a>
-		</li>
-		<li>
-			<a href="source/ERD_generator/index.html">ERD_generator</a>
-		</li>
-		<li>
-			<a href="source/favicon_and_OGP/index.html">favicon_and_OGP</a>
-		</li>
-		<li>
-			<a href="source/hash_bench/index.html">hash_bench</a>
-		</li>
-		<li>
-			<a href="source/infinite_canvas/index.html">infinite_canvas</a>
-		</li>
-		<li>
-			<a href="source/JS_Scratchpad/index.html">JS_Scratchpad</a>
-		</li>
-		<li>
-			<a href="source/JSON_beautifier/index.html">JSON_beautifier</a>
-		</li>
-		<li>
-			<a href="source/Printer_Test/index.html">Printer_Test</a>
-		</li>
-		<li>
-			<a href="source/SVG_resizer/index.html">SVG_resizer</a>
-		</li>
-		<li>
-			<a href="source/text_bench/index.html">text_bench</a>
-		</li>
-	</ul>
+			<ul class="tools">
+				<li>
+					<a href="source/color_picker/index.html">color_picker</a>
+				</li>
+				<li>
+					<a href="source/ERD_generator/index.html">ERD_generator</a>
+				</li>
+				<li>
+					<a href="source/favicon_and_OGP/index.html">favicon_and_OGP</a>
+				</li>
+				<li>
+					<a href="source/hash_bench/index.html">hash_bench</a>
+				</li>
+				<li>
+					<a href="source/hifz_tracker/index.html">hifz_tracker</a>
+				</li>
+				<li>
+					<a href="source/infinite_canvas/index.html">infinite_canvas</a>
+				</li>
+				<li>
+					<a href="source/JS_Scratchpad/index.html">JS_Scratchpad</a>
+				</li>
+				<li>
+					<a href="source/JSON_beautifier/index.html">JSON_beautifier</a>
+				</li>
+				<li>
+					<a href="source/Printer_Test/index.html">Printer_Test</a>
+				</li>
+				<li>
+					<a href="source/SVG_resizer/index.html">SVG_resizer</a>
+				</li>
+				<li>
+					<a href="source/text_bench/index.html">text_bench</a>
+				</li>
+			</ul>
 
-	<p class="colophon">Open source on <a href="https://github.com/woXrooX/web_tools">GitHub</a>.</p>
+			<p class="colophon">Open source on <a href="https://github.com/woXrooX/web_tools">GitHub</a>.</p>
 
-</main>
-
-</body>
+		</main>
+	</body>
 </html>

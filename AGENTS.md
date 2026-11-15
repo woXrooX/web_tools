@@ -86,6 +86,7 @@ A tool with enough internal structure keeps a protocol block as the first thing 
 
 Tools that have a protocol block:
 
+- `source/hifz_tracker/index.html`
 - `source/infinite_canvas/index.html` (also publishes a spec for AI: "Format for AI" in the sidebar, built by `format_spec()`)
 
 ## Decisions (repo-wide)
