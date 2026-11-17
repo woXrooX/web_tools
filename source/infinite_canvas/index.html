@@ -1404,7 +1404,7 @@
 		Added: the loader accepts drifted names (type "flow", shape "diamond", icon by label, from / to, bare id ends) and cx / cy centers, and clamps sizes.
 		Added: Actions and Status icon groups (add, view, edit, delete, remove, done, failed, error, info, question, blocked, pending, idea and more) and missing system icons (CI and deploy, media, security, devices). Check and warning moved into Status; their keys are unchanged.
 		Added: icon search words, so the picker finds an icon by other names ("trash" or "bin" finds Delete, "x" the crosses). Picker only; they are not loader aliases.
-		Added: backgrounds from the shared /Scripts/Backgrounds/Background.js, one file for every tool that needs them. A background is settings (color, grid color, grid: dots, lines or none, rulers, angle guides); the presets Dot grid, Blueprint grid and Cutting mat fill them, so a black blueprint or a black mat is a color change. The original dots are the Dot grid preset, the default, and look as before. Per board, saved in the record and the .json, not an undo step. Changed from the Background button beside Fit and Snap.
+		Added: backgrounds from the shared /Scripts/Backgrounds/Background.js, one file for every tool that needs them. A background is settings (color, grid color, grid: dots, lines or none, rulers, angle guides); the presets Dot grid, Blueprint grid and Cutting mat fill them, so a black blueprint or a black mat is a color change. Every preset's grid color is pure white (#ffffff); the marks are drawn faintly, so the dimming lives in Background.js, not in the color. The original dots are the Dot grid preset, the default, and look as before. Per board, saved in the record and the .json, not an undo step. Changed from the Background button beside Fit and Snap.
 		Kept: the background is painted on the canvas, not with CSS gradients, so thin lines stay sharp and on the snap grid at every zoom and exports can include it. Dots are tiny pluses that look round; a pattern fill was tried and dropped, since it costs a full-canvas fill on every frame while panning.
 		Added: "Include background" in the export menu, off by default and remembered. Off, exports keep the plain dark paper they always had.
 		Removed: a grain texture on the cutting mat. Too strong; it can come back as a detail in Background.js.
@@ -6771,7 +6771,7 @@
 			"- `assets`: optional object mapping an image asset id to a `data:` URL. Only needed for `image` elements.",
 			"- `background`: optional; leave it out for the default dot grid, and set it only when the user asks for a look. Either a preset name, one of " + preset_list + ", or an object of settings:",
 			"  - `color`: the paper color.",
-			"  - `line_color`: the color of the dots, grid lines, rulers and angle lines, which are drawn faintly in it.",
+			"  - `line_color`: the color of the dots, grid lines, rulers and angle lines, which are drawn faintly in it. Every preset uses `#ffffff`.",
 			"  - `pattern`: " + values(Object.keys(Background.patterns)) + ". Lines have a strong line every " + Background.major + " squares of " + Background.grid + ".",
 			"  - `rulers`: true for numbered ticks along the top and left edges, counted in grid squares from the origin.",
 			"  - `guides`: true for angle lines at 30, 45 and 60 degrees through the origin, as on a cutting mat.",

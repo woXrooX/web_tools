@@ -33,13 +33,15 @@ class Background {
 	static fallback = "dot_grid";
 
 	/*
-		Dot grid is the tools' original look: the --well paper of core.css, with a line color
-		whose dots land on --line (#22242b) and whose labels land on --ink_faint (#5b646e).
+		Every preset draws in pure white. How faint each mark looks comes from
+		#strength, not from a dimmed color, so a grid color picked by hand
+		behaves the same way. Dot grid is the tools' original look: the --well
+		paper of core.css, with dots as bright as the old --line dots.
 	*/
 	static presets = {
-		dot_grid: { label: "Dot grid", color: "#08090b", line_color: "#aebfd1", pattern: "dots", rulers: false, guides: false },
-		blueprint_grid: { label: "Blueprint grid", color: "#164779", line_color: "#cde4ff", pattern: "lines", rulers: false, guides: false },
-		cutting_mat: { label: "Cutting mat", color: "#1f4c37", line_color: "#e2eec8", pattern: "lines", rulers: true, guides: true }
+		dot_grid: { label: "Dot grid", color: "#08090b", line_color: "#ffffff", pattern: "dots", rulers: false, guides: false },
+		blueprint_grid: { label: "Blueprint grid", color: "#164779", line_color: "#ffffff", pattern: "lines", rulers: false, guides: false },
+		cutting_mat: { label: "Cutting mat", color: "#1f4c37", line_color: "#ffffff", pattern: "lines", rulers: true, guides: true }
 	};
 
 	// Labels for a tool's menu.
@@ -53,7 +55,10 @@ class Background {
 	static #keys = ["color", "line_color", "pattern", "rulers", "guides"];
 
 	// How strongly line_color shows in each mark. The color's own alpha multiplies it.
-	static #strength = { dot: 0.16, minor: 0.12, major: 0.28, guide: 0.13, tick: 0.5, label: 0.5 };
+	static #strength = { dot: 0.11, minor: 0.12, major: 0.28, guide: 0.13, tick: 0.5 };
+
+	// How much quiet text stands out from the paper: the contrast of --ink_faint on --well, 3.3 to 1.
+	static #label_contrast = 3.3;
 
 	/*
 		In CSS pixels: lines fade out when closer than closest_line, dots thin out
@@ -111,15 +116,29 @@ class Background {
 	/*
 		Colors for marks drawn straight on the background, so they read on any paper.
 		knockout fills behind labels and inside handles: the paper, made opaque.
-		label is for quiet text and lines, such as a surface's title: line_color halfway into the paper.
+		label is for quiet text and lines, such as a surface's title: line_color
+		mixed into the paper just until it stands out as much as --ink_faint does
+		on --well, so it is equally quiet on every paper. When line_color is too
+		close to the paper to get there, label is line_color itself.
 	*/
 	static colors(settings) {
 		const paper = this.#rgb(settings.color);
 		const line = this.#rgb(settings.line_color);
-		const mix = (from, to) => from + (to - from) * this.#strength.label;
+		const mix = (amount) => ({ r: paper.r + (line.r - paper.r) * amount, g: paper.g + (line.g - paper.g) * amount, b: paper.b + (line.b - paper.b) * amount, a: 1 });
+		const enough = (amount) => this.#contrast(mix(amount), paper) >= this.#label_contrast;
+		let low = 0;
+		let high = 1;
+		// Halving the gap 12 times finds the mix to well within one step of the 0 to 255 scale.
+		if (enough(1)) {
+			for (let step = 0; step < 12; step++) {
+				const middle = (low + high) / 2;
+				if (enough(middle)) high = middle;
+				else low = middle;
+			}
+		}
 		return {
 			knockout: this.#hex_of({ r: paper.r, g: paper.g, b: paper.b, a: 1 }),
-			label: this.#hex_of({ r: mix(paper.r, line.r), g: mix(paper.g, line.g), b: mix(paper.b, line.b), a: 1 })
+			label: this.#hex_of(mix(high))
 		};
 	}
 
@@ -249,6 +268,22 @@ class Background {
 		const pair = (value) => Math.round(Math.max(0, Math.min(255, value))).toString(16).padStart(2, '0');
 		const hex = '#' + pair(color.r) + pair(color.g) + pair(color.b);
 		return color.a < 1 ? hex + pair(color.a * 255) : hex;
+	}
+
+	// Relative luminance (WCAG) of { r, g, b } on the 0 to 255 scale.
+	static #luminance(color) {
+		const linear = (value) => {
+			const share = value / 255;
+			return share <= 0.04045 ? share / 12.92 : Math.pow((share + 0.055) / 1.055, 2.4);
+		};
+		return 0.2126 * linear(color.r) + 0.7152 * linear(color.g) + 0.0722 * linear(color.b);
+	}
+
+	// Contrast ratio (WCAG) of two colors, from 1 to 21.
+	static #contrast(first, second) {
+		const one = this.#luminance(first);
+		const two = this.#luminance(second);
+		return (Math.max(one, two) + 0.05) / (Math.min(one, two) + 0.05);
 	}
 
 	static #smooth(t) {
