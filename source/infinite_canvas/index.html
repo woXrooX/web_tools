@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>infinite canvas</title>
-<meta name="description" content="Infinite whiteboard for engineers. Pressure-sensitive pen, dot grid, surfaces that group drawings, connectors and system icons. Runs locally.">
+<meta name="description" content="Infinite whiteboard for engineers. Pressure-sensitive pen, dot grid, blueprint and cutting mat backgrounds, surfaces that group drawings, connectors and system icons. Runs locally.">
 
 <link rel="icon" href="../../images/Favicon/logo.ico" sizes="32x32">
 <link rel="icon" href="../../images/Favicon/logo_96x96.png" type="image/png" sizes="96x96">
@@ -29,13 +29,13 @@
 
 	/* ---------- viewport ---------- */
 
+	/* The background itself is painted on the scene canvas (Background.js); this color only shows before the first paint. */
 	.viewport {
 		position: relative;
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow: hidden;
 		background-color: var(--well);
-		background-image: radial-gradient(circle, var(--line) 1px, transparent 1.4px);
 		touch-action: none;
 		-webkit-user-select: none;
 		user-select: none;
@@ -314,6 +314,80 @@
 		padding: 2px 10px 0;
 		color: var(--ink_faint);
 		font-size: 11.5px;
+	}
+
+	/* A checkbox row in the export menu: the whole row is the label, so it is easy to hit. */
+	.export_option {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		height: 34px;
+		margin-bottom: 4px;
+		padding: 0 10px;
+		border-radius: var(--radius);
+		color: var(--ink_soft);
+		font-size: 12.5px;
+		cursor: pointer;
+	}
+
+	.export_option:hover {
+		background: var(--raised);
+		color: var(--ink);
+	}
+
+	.sidebar .export_option input {
+		flex: none;
+		width: 16px;
+		height: 16px;
+		margin: 0;
+		cursor: pointer;
+	}
+
+	/* The background menu opens upward, above the Background button; open_background_menu() places it. */
+	#background_button {
+		flex: 1.7 1 0;
+	}
+
+	.background_menu {
+		position: absolute;
+		left: 12px;
+		z-index: 6;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		width: 200px;
+		padding: 10px;
+		overflow-y: auto;
+		border-radius: var(--radius);
+		background: var(--surface);
+		box-shadow: var(--shadow_deep);
+	}
+
+	.background_menu[hidden] {
+		display: none;
+	}
+
+	.background_presets {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.sidebar .background_preset {
+		flex: none;
+		justify-content: flex-start;
+		gap: 10px;
+		height: 36px;
+		padding: 0 6px;
+		font-size: 12.5px;
+	}
+
+	.background_preset canvas {
+		flex: none;
+		width: 36px;
+		height: 24px;
+		border-radius: 3px;
+		box-shadow: 0 0 0 1px var(--line);
 	}
 
 	.sidebar #board_delete:hover {
@@ -673,10 +747,11 @@
 		pointer-events: none;
 	}
 
+	/* --ground_label is the background's quiet text color, set by apply_background(). */
 	.empty p {
 		max-width: 40ch;
 		margin: 0;
-		color: var(--ink_faint);
+		color: var(--ground_label, var(--ink_faint));
 		text-align: center;
 	}
 
@@ -1107,6 +1182,7 @@
 			<div class="row">
 				<button type="button" id="fit_button" title="Fit everything (Shift + 1)">Fit</button>
 				<button type="button" id="snap_button" title="Snap surfaces and icons to the grid (G)">Snap</button>
+				<button type="button" id="background_button" aria-haspopup="true" aria-expanded="false" title="The board's background">Background</button>
 			</div>
 			<div class="file_grid">
 				<button type="button" id="open_button" title="Open a saved .json canvas">Open</button>
@@ -1121,9 +1197,30 @@
 
 			<div class="export_menu" id="export_menu" hidden>
 				<p class="export_scope" id="export_scope"></p>
+				<label class="export_option"><input type="checkbox" id="export_background">Include background</label>
 				<button type="button" id="export_png">Export PNG</button>
 				<button type="button" id="export_svg">Export SVG</button>
 				<button type="button" id="export_copy">Copy as PNG</button>
+			</div>
+
+			<div class="background_menu" id="background_menu" hidden>
+				<div class="background_presets" id="background_presets" role="group" aria-label="Presets"></div>
+				<div class="field stacked">
+					<span>Color</span>
+					<div class="swatches" id="background_colors"></div>
+				</div>
+				<div class="field stacked">
+					<span>Grid color</span>
+					<div class="swatches" id="background_line_colors"></div>
+				</div>
+				<div class="field">
+					<span>Grid</span>
+					<div class="row" id="background_patterns"></div>
+				</div>
+				<div class="field">
+					<span>Details</span>
+					<div class="row" id="background_details"></div>
+				</div>
 			</div>
 		</div>
 	</aside>
@@ -1195,16 +1292,18 @@
 	</div>
 </dialog>
 
+<script src="../../Scripts/Backgrounds/Background.js"></script>
 <script>
 	/*
 		PROTOCOL: infinite_canvas
 		Read /AGENTS.md first. This block adds the rules specific to this tool.
 		Update it in the same change whenever any of it stops being true.
+		Outside this script: /Scripts/Backgrounds/Background.js, the canvas backgrounds shared by the site (presets, settings, painting, SVG). Its header explains it.
 
 		THE AI FORMAT SPEC COMES FIRST
 		"Format for AI" (format_spec() in "file format for AI") is the protocol other AIs read to write boards for this app.
 		Any change to what a saved board can hold, or to how a file is read, must update format_spec() in the same change.
-		Lists built from constants update themselves (colors, size_ranges, icons, node_shapes, panel_rows, element_defaults); the prose does not.
+		Lists built from constants update themselves (colors, size_ranges, icons, node_shapes, panel_rows, element_defaults, Background.presets and patterns); the prose does not.
 		The "Format spec:" comments next to those constants say exactly which part of the spec to touch.
 		The spec describes what each element is for and lets the AI choose by content ("Choosing elements"). Do not turn it into rules that push one element type.
 		format_examples must stay valid: example_json() reads each one the way a file is read and warns in the console if anything is dropped.
@@ -1213,12 +1312,12 @@
 
 		MAP (sections in this script, in order)
 		constants: palette, size_ranges (sliders), Material Symbols icons, tool glyphs (Material Symbols too)
-		state: elements, view (camera), selection, style defaults
+		state: elements, view (camera), selection, style defaults, the board's background and its colors (screen_colors, ground)
 		elements, geometry: boxes, pressure-stroke outlines, brushes (layers per stroke), path caches
 		connectors: bound ends, edge points, elbow routing
 		layering and hit testing: the surface tree, draw and hit order
 		history: snapshot undo (begin_change, edit, end_change, cancel_change)
-		rendering: draw_scene, surfaces, elements, connectors
+		rendering: draw_scene (background, surfaces, elements, connectors)
 		flowchart nodes, flow building: node shapes, sizing, + handles, chaining
 		overlay: selection, handles, live pen stroke, hover
 		input, touch navigation, actions: pointer model, pinch, tool actions
@@ -1228,7 +1327,8 @@
 		chrome: sidebar tools, context panel, color picker, size sliders, surface name, collapse, toast
 		images: IndexedDB asset store, paste, drop, picker
 		clipboard and drop; boards: one IndexedDB record per board
-		export: PNG, SVG, copy as PNG
+		background: the board's background settings (set_background, apply_background) and the Background menu
+		export: PNG, SVG, copy as PNG, with the background when "Include background" is on
 		files and storage: element_defaults, complete_element, valid_element, parse_document, .json save and open
 		file format for AI: shape_uses, format_examples, skill front matter, format_spec(), the dialog
 		start: async start-up and migration
@@ -1241,7 +1341,10 @@
 		A missing stored field means its default from element_defaults. Old boards, hand-written files and AI-written files must keep opening.
 		The loader repairs rather than drops where intent is clear: type_aliases and shape_aliases, cx / cy placement, sizes clamped to size_ranges. A connector end with no live target and no coordinates drops the connector (settle_links).
 		Board data lives in IndexedDB ("boards"), image bytes in "assets", keyed by content hash. localStorage holds only small settings.
-		The screen, PNG export and SVG export draw in the same order: surfaces (each clipped, contents inside), then loose items, then connectors.
+		The screen, PNG export and SVG export draw in the same order: the background, surfaces (each clipped, contents inside), then loose items, then connectors.
+		The background is painted on the scene canvas by Background.paint() in draw_scene(), never as a CSS background, so it lines up with the snap grid and exports can include it. Keep only settings that went through Background.complete().
+		Marks drawn straight on the background take its colors, never --well or --ink_faint directly: ground in draw_scene() and its helpers, screen_colors in the overlay, the cursor and DOM over the viewport. knockout fills behind labels and inside handles; label is for quiet text and lines.
+		The background belongs to the board: its IndexedDB record and its .json. It is not an undo step, like the board's name and camera.
 		Sizes in world units scale with zoom; on-screen chrome (titles, handles, shadows) is sized in screen pixels.
 		Pencil draws; once a pen is seen, fingers only pan and pinch. Keep this palm-rejection model.
 		Colors are stored as lowercase hex, #rrggbb or #rrggbbaa. complete_element normalizes them on load; SVG export writes them through paint(), which splits alpha into an opacity attribute.
@@ -1271,12 +1374,16 @@
 		CHECKLIST: adding a tool button
 		tools list (d: a Material Symbols Rounded filled path on the 960 grid, key, label); activate_tool if it is an action rather than a mode; sticky_tools if it stays active after use; tool_contexts for its sidebar defaults.
 
+		CHECKLIST: adding a background preset, pattern or detail
+		The work is in /Scripts/Backgrounds/Background.js; its header lists the steps. The Background menu and the spec's preset and pattern lists build themselves from Background.presets, patterns and details. A new detail also needs its line under `background` in format_spec().
+
 		MANUAL TESTS before finishing
 		Pencil or pen drawing with pressure; finger pan and pinch; mouse and keyboard shortcuts.
 		Undo and redo across the change; reload (autosave); switch boards.
 		Save, then open the .json as a new board; PNG and SVG export match the screen.
 		Open the "Format for AI" text, check the change is described, and open the example board it contains.
 		iPad portrait width (about 820px) and the collapsed sidebar.
+		Backgrounds: each preset, a changed color and grid color, the Grid and Details buttons, zoomed in and far out; reload and switch boards; PNG and SVG export with "Include background" on and off; a .json saved before backgrounds existed opens with the dot grid.
 
 		DECISIONS
 		Removed: generic shapes (rectangle, ellipse, diamond); flow nodes cover flowcharts instead.
@@ -1297,6 +1404,10 @@
 		Added: the loader accepts drifted names (type "flow", shape "diamond", icon by label, from / to, bare id ends) and cx / cy centers, and clamps sizes.
 		Added: Actions and Status icon groups (add, view, edit, delete, remove, done, failed, error, info, question, blocked, pending, idea and more) and missing system icons (CI and deploy, media, security, devices). Check and warning moved into Status; their keys are unchanged.
 		Added: icon search words, so the picker finds an icon by other names ("trash" or "bin" finds Delete, "x" the crosses). Picker only; they are not loader aliases.
+		Added: backgrounds from the shared /Scripts/Backgrounds/Background.js, one file for every tool that needs them. A background is settings (color, grid color, grid: dots, lines or none, rulers, angle guides); the presets Dot grid, Blueprint grid and Cutting mat fill them, so a black blueprint or a black mat is a color change. The original dots are the Dot grid preset, the default, and look as before. Per board, saved in the record and the .json, not an undo step. Changed from the Background button beside Fit and Snap.
+		Kept: the background is painted on the canvas, not with CSS gradients, so thin lines stay sharp and on the snap grid at every zoom and exports can include it. Dots are tiny pluses that look round; a pattern fill was tried and dropped, since it costs a full-canvas fill on every frame while panning.
+		Added: "Include background" in the export menu, off by default and remembered. Off, exports keep the plain dark paper they always had.
+		Removed: a grain texture on the cutting mat. Too strong; it can come back as a detail in Background.js.
 		Not built yet: share link; connector routing around nodes; Mermaid import.
 	*/
 
@@ -1313,7 +1424,6 @@
 		line_width: { min: 1, max: 8, step: 0.5, initial: 2.5, types: ["connector", "node"], field: "width" },
 		font_size: { min: 10, max: 96, step: 1, initial: 20, types: ["text"], field: "font_size" }
 	};
-	const grid_size = 24;
 	const snap_size = 12;
 	const min_zoom = 0.1;
 	const max_zoom = 8;
@@ -1531,6 +1641,16 @@
 	let snap_on = false;
 	let pen_seen = false;
 	let space_down = false;
+
+	/*
+		The open board's background: completed settings from Background.js.
+		screen_colors are the colors for marks drawn straight on it (labels,
+		handles, cursor outlines); ground is the same for whatever draw_scene()
+		is painting right now, which differs from the screen during an export.
+	*/
+	let background = Background.preset(Background.fallback);
+	let screen_colors = Background.colors(background);
+	let ground = screen_colors;
 
 	// ---------- elements ----------
 
@@ -2284,21 +2404,12 @@
 	function render() {
 		frame_requested = false;
 		if (scene_dirty) {
-			draw_scene(scene, { x: view.x, y: view.y, zoom: view.zoom, ratio: ratio, width: screen_width, height: screen_height });
-			update_background();
+			draw_scene(scene, { x: view.x, y: view.y, zoom: view.zoom, ratio: ratio, width: screen_width, height: screen_height }, null, background);
 			update_chrome();
 		}
 		if (overlay_dirty) draw_overlay();
 		scene_dirty = false;
 		overlay_dirty = false;
-	}
-
-	// The dot grid is a CSS background: free to draw, and it doubles its spacing when zoomed far out.
-	function update_background() {
-		let spacing = grid_size * view.zoom;
-		while (spacing < 12) spacing *= 2;
-		viewport.style.backgroundSize = spacing + "px " + spacing + "px";
-		viewport.style.backgroundPosition = (view.x - spacing / 2) + "px " + (view.y - spacing / 2) + "px";
 	}
 
 	function visible_world() {
@@ -2308,14 +2419,14 @@
 	/*
 		Draws the scene into any context. The camera is passed in, so the same
 		code renders the screen and the PNG export. only: optional Set of ids.
+		paper: the background settings painted under everything; ground takes
+		its colors for the marks drawn straight on it.
 	*/
-	function draw_scene(context, camera, only, background) {
+	function draw_scene(context, camera, only, paper) {
 		context.setTransform(1, 0, 0, 1, 0, 0);
 		context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-		if (background) {
-			context.fillStyle = background;
-			context.fillRect(0, 0, context.canvas.width, context.canvas.height);
-		}
+		Background.paint(context, paper, camera);
+		ground = paper === background ? screen_colors : Background.colors(paper);
 		const scale = camera.ratio * camera.zoom;
 		context.setTransform(scale, 0, 0, scale, camera.ratio * camera.x, camera.ratio * camera.y);
 
@@ -2351,7 +2462,7 @@
 	const depth_colors = [page_color, token("--surface"), token("--raised")];
 
 	/*
-		fill: "auto" uses the depth shade, "clear" draws nothing so the dot grid
+		fill: "auto" uses the depth shade, "clear" draws nothing so the background
 		shows through, a color tints the depth shade. border: solid, dashed or
 		none; border_color "auto" is the neutral line. A colored border also
 		colors the title, so a surface's identity reads from far away.
@@ -2416,7 +2527,7 @@
 		}
 		const size = 12 / zoom;
 		context.font = size + "px " + mono;
-		context.fillStyle = selected ? ink_color : accent || faint_color;
+		context.fillStyle = selected ? ink_color : accent || ground.label;
 		context.textBaseline = "alphabetic";
 		context.textAlign = "left";
 		context.fillText(frame.name || "Surface", frame.x + Math.min(surface_corner(frame), 4 / zoom + 2), frame.y - size * 0.6);
@@ -2547,7 +2658,7 @@
 
 		if (connector.label && !(editing && editing.id === connector.id)) {
 			const box = label_box(connector, points);
-			context.fillStyle = well_color;
+			context.fillStyle = ground.knockout;
 			context.fillRect(box.x, box.y, box.w, box.h);
 			draw_text_block(context, connector.label, box.x + box.w / 2, box.y + 3, label_size, connector.color, "center");
 		}
@@ -2911,7 +3022,7 @@
 		if (one && box_types.has(one.type) && !(action && action.kind === "move")) {
 			const handles = handle_boxes(one);
 			for (const name in handles) {
-				context.fillStyle = well_color;
+				context.fillStyle = screen_colors.knockout;
 				context.fillRect(handles[name].x - 4.5, handles[name].y - 4.5, 9, 9);
 				context.strokeRect(handles[name].x - 4.5, handles[name].y - 4.5, 9, 9);
 			}
@@ -2924,7 +3035,7 @@
 				const at = to_screen(point);
 				context.beginPath();
 				context.arc(at.x, at.y, 5, 0, Math.PI * 2);
-				context.fillStyle = well_color;
+				context.fillStyle = screen_colors.knockout;
 				context.fill();
 				context.stroke();
 			}
@@ -2960,7 +3071,7 @@
 			context.beginPath();
 			context.moveTo(from.x, from.y);
 			context.lineTo(action.point.x, action.point.y);
-			context.strokeStyle = faint_color;
+			context.strokeStyle = screen_colors.label;
 			context.lineWidth = 1.5;
 			context.setLineDash([5, 4]);
 			context.stroke();
@@ -2983,7 +3094,7 @@
 			const box = screen_box(box_from_points(action.start.x, action.start.y, action.current.x, action.current.y));
 			context.fillStyle = "rgba(255, 255, 255, 0.05)";
 			context.fillRect(box.x, box.y, box.w, box.h);
-			context.strokeStyle = faint_color;
+			context.strokeStyle = screen_colors.label;
 			context.strokeRect(box.x + 0.5, box.y + 0.5, box.w, box.h);
 		}
 
@@ -3005,7 +3116,7 @@
 			context.scale(24 / 960, 24 / 960);
 			context.translate(0, 960);
 			context.fillStyle = style.color;
-			context.strokeStyle = well_color;
+			context.strokeStyle = screen_colors.knockout;
 			context.lineWidth = 48;
 			context.lineJoin = "round";
 			context.stroke(pen_glyph);
@@ -3015,7 +3126,7 @@
 		else if (hover && hover.kind === "eraser") {
 			context.beginPath();
 			context.arc(hover.x, hover.y, 10, 0, Math.PI * 2);
-			context.strokeStyle = faint_color;
+			context.strokeStyle = screen_colors.label;
 			context.lineWidth = 1;
 			context.stroke();
 		}
@@ -3345,12 +3456,12 @@
 
 	/*
 		The pen cursor is the sidebar's pen glyph, filled with the current
-		pen color and outlined so it reads on any background. Its hotspot is
-		the nib, at (3, 21) at the 24px cursor size.
+		pen color and outlined in the background's paper, so it reads on any
+		background. Its hotspot is the nib, at (3, 21) at the 24px cursor size.
 	*/
 	function pen_cursor() {
 		const glyph = tools.find(function (item) { return item.id === "pen"; }).d;
-		const markup = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 -960 960 960'><path d='" + glyph + "' fill='" + style.color + "' stroke='" + well_color + "' stroke-width='48' stroke-linejoin='round'/></svg>";
+		const markup = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 -960 960 960'><path d='" + glyph + "' fill='" + style.color + "' stroke='" + screen_colors.knockout + "' stroke-width='48' stroke-linejoin='round'/></svg>";
 		return "url(\"data:image/svg+xml," + encodeURIComponent(markup) + "\") 3 21, crosshair";
 	}
 
@@ -4106,6 +4217,7 @@
 			close_picker();
 			close_board_menu();
 			close_export_menu();
+			close_background_menu();
 			close_color_picker();
 			selection.clear();
 			refresh_panel();
@@ -4301,17 +4413,22 @@
 
 	/*
 		Every color on the board goes through here: the Color row (pen, text,
-		connectors, icons, nodes) and a surface's Fill and Border color.
+		connectors, icons, nodes), a surface's Fill and Border color, and the
+		background's Color and Grid color.
 		Colors are stored as lowercase hex, #rrggbb or #rrggbbaa, whatever
 		format they were typed in, so boards stay uniform and compare cleanly.
 		The picking area is saturation x brightness (HSV): it is the model that
 		makes the color you mean easy to hit. Values are shown and copied as
 		HEX, HSLA or RGBA. Recent colors are shared across boards.
+		A key with background names the board's background setting it edits,
+		whatever is selected; field names the surface field a key edits.
 	*/
 	const color_keys = {
 		color: { label: "Color" },
 		surface_fill: { label: "Fill", field: "fill" },
-		surface_border_color: { label: "Border color", field: "border_color" }
+		surface_border_color: { label: "Border color", field: "border_color" },
+		background_color: { label: "Background color", background: "color" },
+		background_line_color: { label: "Grid color", background: "line_color" }
 	};
 	const recent_key = storage_key + ".recent_colors";
 	const color_format_key = storage_key + ".color_format";
@@ -4503,6 +4620,11 @@
 	function apply_color(hex) {
 		const key = picking.key;
 		if (!key) return;
+		// The background belongs to the board, not to the selection, and is not an undo step.
+		if (color_keys[key].background) {
+			set_background_setting(color_keys[key].background, hex);
+			return;
+		}
 		if (!selection.size) {
 			style[key] = hex;
 			refresh_panel();
@@ -4922,6 +5044,7 @@
 	}
 
 	function current_value(key) {
+		if (color_keys[key] && color_keys[key].background) return background[color_keys[key].background];
 		const first = selection.size ? index.get(selection.values().next().value) : null;
 		if (!first) return style[key];
 		if (surface_fields[key]) return first.type === "frame" ? surface_style(first)[surface_fields[key]] : style[key];
@@ -4996,6 +5119,10 @@
 
 	// With a selection, a control edits only the selection. With nothing selected, it sets the default for what you make next.
 	function set_style(key, value) {
+		if (color_keys[key] && color_keys[key].background) {
+			set_background_setting(color_keys[key].background, value);
+			return;
+		}
 		if (!selection.size) style[key] = value;
 		else {
 			begin_change();
@@ -5453,10 +5580,10 @@
 	// ---------- boards ----------
 
 	/*
-		Each board is one record in IndexedDB: its elements, its camera, a
-		name and timestamps. Images stay in the shared asset store, so a
-		screenshot used on two boards is stored once. Undo history belongs to
-		the open board and starts fresh when you switch.
+		Each board is one record in IndexedDB: its elements, its camera, its
+		background, a name and timestamps. Images stay in the shared asset
+		store, so a screenshot used on two boards is stored once. Undo history
+		belongs to the open board and starts fresh when you switch.
 	*/
 	const board_key = storage_key + ".board";
 	let board = null;
@@ -5483,9 +5610,10 @@
 		});
 	}
 
-	function make_board(name, list, camera) {
+	// paper: background settings in any form Background.complete() reads; a new board gets the default.
+	function make_board(name, list, camera, paper) {
 		const now = Date.now();
-		return { id: new_id() + new_id(), name: name, created: now, updated: now, elements: list || [], view: camera || null };
+		return { id: new_id() + new_id(), name: name, created: now, updated: now, elements: list || [], view: camera || null, background: Background.complete(paper) };
 	}
 
 	function board_record() {
@@ -5495,7 +5623,8 @@
 			created: board.created,
 			updated: board.updated,
 			elements: elements,
-			view: { x: view.x, y: view.y, zoom: view.zoom }
+			view: { x: view.x, y: view.y, zoom: view.zoom },
+			background: background
 		};
 	}
 
@@ -5533,6 +5662,9 @@
 			view.x = screen_width / 2;
 			view.y = screen_height / 2;
 		}
+		// Boards saved before backgrounds existed have none and open with the dot grid, as they looked then.
+		background = Background.complete(record.background);
+		apply_background();
 		try { localStorage.setItem(board_key, board.id); } catch (error) {}
 		show_board_name();
 		refresh_panel();
@@ -5570,7 +5702,7 @@
 	async function duplicate_board() {
 		finish_everything();
 		await save_board();
-		const record = make_board(board.name + " copy", JSON.parse(JSON.stringify(elements)), { x: view.x, y: view.y, zoom: view.zoom });
+		const record = make_board(board.name + " copy", JSON.parse(JSON.stringify(elements)), { x: view.x, y: view.y, zoom: view.zoom }, background);
 		await board_put(record);
 		load_board(record);
 	}
@@ -5678,6 +5810,119 @@
 		close_board_menu();
 	}, true);
 
+	// ---------- background ----------
+
+	/*
+		The board's background comes from the shared Background.js
+		(/Scripts/Backgrounds): a few settings (color, grid color, grid,
+		details) that a preset fills all at once and that each change on their
+		own afterwards. It belongs to the board: saved in its record and its
+		.json, and not an undo step, like the board's name and camera. The menu
+		opens above the Background button and is built from Background.presets,
+		patterns and details, so a new one there shows up here by itself.
+	*/
+	const background_menu = document.getElementById("background_menu");
+	const background_button = document.getElementById("background_button");
+	const background_presets = [];
+	const background_toggles = [];
+
+	function set_background(paper) {
+		background = Background.complete(paper);
+		apply_background();
+		schedule_save();
+	}
+
+	function set_background_setting(name, value) {
+		const paper = Object.assign({}, background);
+		paper[name] = value;
+		set_background(paper);
+	}
+
+	// Shows the board's background everywhere it appears: the canvas, the colors drawn on it, the cursor and the menu.
+	function apply_background() {
+		screen_colors = Background.colors(background);
+		viewport.style.backgroundColor = screen_colors.knockout;
+		viewport.style.setProperty("--ground_label", screen_colors.label);
+		set_cursor();
+		refresh_background_menu();
+		invalidate();
+	}
+
+	function refresh_background_menu() {
+		const preset = Background.preset_of(background);
+		for (const entry of background_presets) {
+			const on = entry.name === preset;
+			entry.button.classList.toggle("on", on);
+			entry.button.setAttribute("aria-pressed", String(on));
+		}
+		for (const entry of background_toggles) {
+			const on = background[entry.setting] === entry.value;
+			entry.button.classList.toggle("on", on);
+			entry.button.setAttribute("aria-pressed", String(on));
+		}
+		refresh_color_rows();
+	}
+
+	// flips: the button turns a true or false setting on and off, rather than setting value.
+	function add_background_toggle(container_id, label, setting, value, flips) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.textContent = label;
+		button.addEventListener("click", function () { set_background_setting(setting, flips ? !background[setting] : value); });
+		document.getElementById(container_id).append(button);
+		background_toggles.push({ setting: setting, value: value, button: button });
+	}
+
+	for (const name in Background.presets) {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.className = "background_preset";
+		const swatch = document.createElement("canvas");
+		swatch.setAttribute("aria-hidden", "true");
+		const label = document.createElement("span");
+		label.textContent = Background.presets[name].label;
+		button.append(swatch, label);
+		button.addEventListener("click", function () { set_background(Background.preset(name)); });
+		document.getElementById("background_presets").append(button);
+		background_presets.push({ name: name, button: button, swatch: swatch });
+	}
+
+	add_custom_swatch("background_colors", "background_color");
+	add_custom_swatch("background_line_colors", "background_line_color");
+	for (const pattern in Background.patterns) add_background_toggle("background_patterns", Background.patterns[pattern], "pattern", pattern, false);
+	for (const detail in Background.details) add_background_toggle("background_details", Background.details[detail], detail, true, true);
+
+	// Above the Background button, as tall as the room above it allows.
+	function open_background_menu() {
+		finish_everything();
+		for (const entry of background_presets) Background.preview(entry.swatch, Background.preset(entry.name), 36, 24);
+		refresh_background_menu();
+		const foot = background_button.closest(".sidebar_foot").getBoundingClientRect();
+		const button = background_button.getBoundingClientRect();
+		background_menu.style.bottom = (foot.bottom - button.top + 6) + "px";
+		background_menu.style.maxHeight = Math.max(160, button.top - 12) + "px";
+		background_menu.hidden = false;
+		background_button.setAttribute("aria-expanded", "true");
+	}
+
+	function close_background_menu() {
+		if (background_menu.hidden) return;
+		if (picking.opener && background_menu.contains(picking.opener)) close_color_picker();
+		background_menu.hidden = true;
+		background_button.setAttribute("aria-expanded", "false");
+	}
+
+	background_button.addEventListener("click", function () {
+		if (background_menu.hidden) open_background_menu();
+		else close_background_menu();
+	});
+
+	// A press anywhere outside the menu closes it, except in the color picker it opened.
+	document.addEventListener("pointerdown", function (event) {
+		if (background_menu.hidden || background_menu.contains(event.target) || background_button.contains(event.target) || color_picker.contains(event.target)) return;
+		close_background_menu();
+	}, true);
+
 	// ---------- export ----------
 
 	/*
@@ -5701,6 +5946,25 @@
 		};
 	}
 
+	/*
+		Exports carry the board's background only while "Include background"
+		is on (remembered in localStorage). Otherwise they keep the plain dark
+		paper they always had: plain_background is that paper as background
+		settings, so both cases draw through the same code.
+	*/
+	const plain_background = Background.complete({ color: well_color, pattern: "none" });
+	const export_background = document.getElementById("export_background");
+	const export_background_key = storage_key + ".export_background";
+	try { export_background.checked = localStorage.getItem(export_background_key) === '1'; } catch (error) {}
+
+	export_background.addEventListener("change", function () {
+		try { localStorage.setItem(export_background_key, export_background.checked ? '1' : ''); } catch (error) {}
+	});
+
+	function export_paper() {
+		return export_background.checked ? background : plain_background;
+	}
+
 	function board_slug() {
 		return ((board ? board.name : "canvas").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "canvas") + "_" + stamp();
 	}
@@ -5715,7 +5979,7 @@
 		// Selection outlines and highlights are not part of the picture.
 		const kept = new Set(selection);
 		selection.clear();
-		draw_scene(canvas.getContext("2d"), { x: -job.x, y: -job.y, zoom: 1, ratio: scale, width: job.w, height: job.h }, job.ids, well_color);
+		draw_scene(canvas.getContext("2d"), { x: -job.x, y: -job.y, zoom: 1, ratio: scale, width: job.w, height: job.h }, job.ids, export_paper());
 		for (const id of kept) selection.add(id);
 		return new Promise(function (resolve, reject) {
 			canvas.toBlob(function (blob) {
@@ -5815,7 +6079,8 @@
 		return "<path d=\"M" + num(to.x) + " " + num(to.y) + "L" + num(left.x) + " " + num(left.y) + "L" + num(right.x) + " " + num(right.y) + "Z\" " + paint("fill", color) + "/>";
 	}
 
-	function svg_connector(connector) {
+	// colors: the export background's colors (Background.colors), for the label chip.
+	function svg_connector(connector, colors) {
 		const points = connector_points(connector);
 		const last = points.length - 1;
 		const head = 7 + connector.width * 2.2;
@@ -5833,13 +6098,15 @@
 		if (connector.heads === "both") markup += svg_arrowhead(points[1], points[0], head, connector.color);
 		if (connector.label) {
 			const box = label_box(connector, points);
-			markup += "<rect x=\"" + num(box.x) + "\" y=\"" + num(box.y) + "\" width=\"" + num(box.w) + "\" height=\"" + num(box.h) + "\" fill=\"" + well_color + "\"/>";
+			markup += "<rect x=\"" + num(box.x) + "\" y=\"" + num(box.y) + "\" width=\"" + num(box.w) + "\" height=\"" + num(box.h) + "\" fill=\"" + colors.knockout + "\"/>";
 			markup += svg_text(connector.label, box.x + box.w / 2, box.y + 3, label_size, connector.color, "middle");
 		}
 		return markup;
 	}
 
 	async function build_svg(job) {
+		const paper = export_paper();
+		const colors = Background.colors(paper);
 		const defs = [];
 		let clip_count = 0;
 		const images = new Map();
@@ -5910,7 +6177,7 @@
 			}
 			if (look.border !== "none")
 				markup += "<rect " + rect + " fill=\"none\" " + paint("stroke", accent || line_color) + " stroke-width=\"" + (accent ? 1.5 : 1) + "\"" + (look.border === "dashed" ? " stroke-dasharray=\"6 4\"" : "") + "/>";
-			markup += svg_text(frame.name || "Surface", frame.x + Math.min(surface_corner(frame), 6), frame.y - 12 * 1.52, 12, accent || faint_color, "start", mono);
+			markup += svg_text(frame.name || "Surface", frame.x + Math.min(surface_corner(frame), 6), frame.y - 12 * 1.52, 12, accent || colors.label, "start", mono);
 			return markup;
 		};
 
@@ -5928,11 +6195,11 @@
 		};
 
 		let body = level_svg(layer.surfaces, layer.loose, 0);
-		for (const connector of layer.connectors) body += svg_connector(connector);
+		for (const connector of layer.connectors) body += svg_connector(connector, colors);
 
 		return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + Math.ceil(job.w) + "\" height=\"" + Math.ceil(job.h) + "\" viewBox=\"" + [job.x, job.y, job.w, job.h].map(num).join(" ") + "\">"
 			+ "<defs>" + defs.join("") + "</defs>"
-			+ "<rect x=\"" + num(job.x) + "\" y=\"" + num(job.y) + "\" width=\"" + num(job.w) + "\" height=\"" + num(job.h) + "\" fill=\"" + well_color + "\"/>"
+			+ Background.svg(paper, job)
 			+ body + "</svg>";
 	}
 
@@ -6162,7 +6429,7 @@
 
 	// Format spec: anything added to the saved document belongs in the "Document" section of format_spec().
 	function serialize(with_view) {
-		const data = { app: format_app, version: format_version, elements: elements };
+		const data = { app: format_app, version: format_version, background: background, elements: elements };
 		if (with_view) data.view = { x: view.x, y: view.y, zoom: view.zoom };
 		return data;
 	}
@@ -6306,7 +6573,7 @@
 			finish_everything();
 			await save_board();
 			const name = typeof data.name === "string" && data.name.trim() ? data.name.trim() : file.name.replace(/\.json$/i, "");
-			const record = make_board(name, list);
+			const record = make_board(name, list, null, data.background);
 			if (boards_available) await board_put(record).catch(function () {});
 			load_board(record);
 			fit_view();
@@ -6322,8 +6589,8 @@
 		must describe every element type, field, option and loader rule.
 
 		Lists built from constants update themselves: colors, sizes, icons,
-		node shapes, option rows (panel_rows) and defaults (element_defaults).
-		The prose does not. When a change affects what a saved file can hold
+		node shapes, option rows (panel_rows), defaults (element_defaults) and
+		background presets and patterns (Background.js). The prose does not. When a change affects what a saved file can hold
 		or how it is read, update this spec in the same change:
 		- new element type: known_types, element_defaults, valid_element, and a section under "Element types"
 		- new field on an element: element_defaults, and a line in that type's section
@@ -6459,6 +6726,7 @@
 		const shape_lines = Object.keys(node_shapes).map(function (key) { return "- `" + key + "`: " + node_shapes[key].label + ". " + (shape_uses[key] || ""); });
 		const brush_lines = Object.keys(brushes).map(function (key) { return "- `" + key + "`: " + brushes[key].label + ". " + (brush_uses[key] || ""); });
 		const color_lines = colors.map(function (color) { return "- `" + color + "`: " + (color_names[color] || "palette color"); });
+		const preset_list = Object.keys(Background.presets).map(function (name) { return code(name) + " (" + Background.presets[name].label + ")"; }).join(", ");
 		const example_lines = [];
 		format_examples.forEach(function (example, position) {
 			example_lines.push("### Example " + (position + 1) + ": " + example.title, "", "```json", example_json(example.board), "```", "");
@@ -6501,6 +6769,14 @@
 			"- `name`: the board's name, shown in the boards list. Always set it: a short title for what the board explains, e.g. \"Login flow\" or \"Payment services\". Without it the board is named after the file.",
 			"- `elements`: every element on the board, in drawing order. Required.",
 			"- `assets`: optional object mapping an image asset id to a `data:` URL. Only needed for `image` elements.",
+			"- `background`: optional; leave it out for the default dot grid, and set it only when the user asks for a look. Either a preset name, one of " + preset_list + ", or an object of settings:",
+			"  - `color`: the paper color.",
+			"  - `line_color`: the color of the dots, grid lines, rulers and angle lines, which are drawn faintly in it.",
+			"  - `pattern`: " + values(Object.keys(Background.patterns)) + ". Lines have a strong line every " + Background.major + " squares of " + Background.grid + ".",
+			"  - `rulers`: true for numbered ticks along the top and left edges, counted in grid squares from the origin.",
+			"  - `guides`: true for angle lines at 30, 45 and 60 degrees through the origin, as on a cutting mat.",
+			"  - `preset`: a preset name to start from; the other fields override it. Without it, missing fields come from the dot grid.",
+			"  For example `\"background\": \"blueprint_grid\"`, or `\"background\": { \"preset\": \"cutting_mat\", \"color\": \"#111214\" }` for a black cutting mat.",
 			"",
 			"## Coordinates and layering",
 			"",
@@ -6509,7 +6785,7 @@
 			"- Instead of `x`, `y` you can give `cx`, `cy`: the element's center. The loader turns it into `x`, `y` once the size is known. This is the easy way to place nodes, whose size follows their text: give a column of nodes the same `cx` and they line up.",
 			"- Surfaces (type `frame`) form a tree through `frame_id`. Each level draws its surfaces first (each with its own contents, clipped to the surface's rectangle), then its other elements in array order. Connectors are always drawn on top of everything.",
 			"- Contents are clipped to their surface: an element whose `frame_id` points at a surface must lie fully inside that surface's rectangle.",
-			"- The background is dark. Use the light palette colors below; dark colors will not be visible.",
+			"- The background is dark in every preset. Use the light palette colors below; dark colors will not be visible. If you give the background a light `color`, use dark colors for the elements instead.",
 			"",
 			"## Shared fields",
 			"",
@@ -6547,7 +6823,7 @@
 			"",
 			"A rounded panel that groups other elements; moving it moves its contents. Use one per region, layer, service, environment or phase.",
 			"- `name`: title drawn in small monospace text just above the top-left corner.",
-			"- `fill`: `\"auto\"` (neutral panel; nested surfaces get lighter at each depth, up to 3 levels), `\"clear\"` (no fill, dots show through) or any color (a light tint over the panel; transparency makes the tint lighter still).",
+			"- `fill`: `\"auto\"` (neutral panel; nested surfaces get lighter at each depth, up to 3 levels), `\"clear\"` (no fill, the background shows through) or any color (a light tint over the panel; transparency makes the tint lighter still).",
 			"- `border`: " + options("surface_borders") + ".",
 			"- `border_color`: `\"auto\"` (neutral line) or any color. A colored border also colors the title.",
 			"- `frame_id`: set it to nest this surface inside another.",
@@ -6620,6 +6896,7 @@
 			"- Converts every color to lowercase hex (`#rrggbb` or `#rrggbbaa`); a color it cannot read falls back to the type's default (`\"auto\"` for a surface's `fill` and `border_color`).",
 			"- A connector end bound to an id that is not in the document (or to a stroke or connector) becomes a free point at its `x`, `y`; if it has no `x`, `y`, the whole connector is dropped.",
 			"- Moves a surface that is its own ancestor to the top level.",
+			"- Reads `background` as a preset name or settings, and accepts common names such as `\"blueprint\"`, `\"mat\"` or a pattern of `\"grid\"`. A setting it cannot read comes from the preset (the dot grid when none is named); an unknown preset name gives the dot grid.",
 			"",
 			"## Making a good board",
 			"",
@@ -6645,6 +6922,7 @@
 		finish_everything();
 		close_board_menu();
 		close_export_menu();
+		close_background_menu();
 		format_text.value = format_spec();
 		format_dialog.showModal();
 		document.getElementById("format_copy").focus();
