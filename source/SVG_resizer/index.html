@@ -190,7 +190,8 @@ label {
 	margin-bottom: 4px;
 }
 
-input[type="number"] {
+input[type="number"],
+input[type="text"] {
 	width: 100%;
 	font-family: var(--mono);
 	font-size: 14px;
@@ -202,6 +203,7 @@ input[type="number"] {
 }
 
 input[type="number"]:focus-visible,
+input[type="text"]:focus-visible,
 button:focus-visible,
 select:focus-visible {
 	outline: 2px solid var(--accent);
@@ -447,6 +449,11 @@ select {
 
 		<div class="group actions">
 			<h2>Take it out</h2>
+			<div>
+				<label for="download_name_input">File name</label>
+				<input type="text" id="download_name_input" spellcheck="false" autocomplete="off" autocapitalize="off" disabled>
+				<p class="hint">The .svg or .png ending is added for you. Clear the field to get the default back.</p>
+			</div>
 			<button class="btn btn_primary" id="save_svg_button" disabled>Download SVG</button>
 			<div class="png_row">
 				<button class="btn" id="save_png_button" disabled>Download PNG</button>
@@ -476,6 +483,7 @@ var height_input = document.getElementById("height_input");
 var scale_input = document.getElementById("scale_input");
 var lock_button = document.getElementById("lock_button");
 var normalize_input = document.getElementById("normalize_input");
+var download_name_input = document.getElementById("download_name_input");
 var save_svg_button = document.getElementById("save_svg_button");
 var save_png_button = document.getElementById("save_png_button");
 var png_density = document.getElementById("png_density");
@@ -496,6 +504,7 @@ var target_height = 0;
 var lock_ratio = true;
 var file_name = "image.svg";
 var preview_url = null;
+var download_name_is_custom = false;
 
 function set_status(message, is_error) {
 	status_line.textContent = message || "";
@@ -561,6 +570,8 @@ function read_markup(markup, name) {
 	target_width = round_px(width);
 	target_height = round_px(height);
 	file_name = name || "image.svg";
+	// A name typed for the previous file shouldn't carry over to this one.
+	download_name_is_custom = false;
 
 	fact_name.textContent = file_name;
 	fact_size.textContent = round_px(width) + " × " + round_px(height);
@@ -572,7 +583,7 @@ function read_markup(markup, name) {
 }
 
 function enable_controls(on) {
-	var controls = [width_input, height_input, scale_input, normalize_input, save_svg_button, save_png_button, png_density, copy_button, reset_button];
+	var controls = [width_input, height_input, scale_input, normalize_input, download_name_input, save_svg_button, save_png_button, png_density, copy_button, reset_button];
 	controls.forEach(function (control) {
 		control.disabled = !on;
 	});
@@ -587,6 +598,7 @@ function sync_inputs() {
 	scale_input.value = Math.round((target_width / source_width) * 10000) / 100;
 	dim_h.textContent = target_width + " px";
 	dim_v.textContent = target_height + " px";
+	refresh_download_name(target_width, target_height);
 }
 
 /* ---------- coordinate normalization ----------
@@ -1176,13 +1188,37 @@ function save_blob(blob, name) {
 	setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
 }
 
-function base_name() {
-	return file_name.replace(/\.svg$/i, "");
+// Local time as YYYY_MM_DD_HH_MM_SS.
+function time_stamp() {
+	var now = new Date();
+	var parts = [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()];
+	return parts.map(function (part) {
+		return String(part).padStart(2, '0');
+	}).join('_');
+}
+
+function default_download_name(width, height) {
+	return "SVG_resizer_" + width + '_' + height + '_' + time_stamp();
+}
+
+// Keeps the default in the field until the person types a name of their own.
+function refresh_download_name(width, height) {
+	if (!download_name_is_custom)
+		download_name_input.value = default_download_name(width, height);
+}
+
+// Refreshes the default first, so the file gets its real size and save time, and the field shows the name it got.
+function download_name(extension, width, height) {
+	refresh_download_name(width, height);
+	// Drop a typed ending so "logo.svg" doesn't become "logo.svg.svg", and swap characters file names can't hold.
+	var name = download_name_input.value.trim().replace(/\.(svg|png)$/i, '').replace(/[\\/:*?"<>|]/g, '_');
+	if (!name) name = default_download_name(width, height);
+	return name + '.' + extension;
 }
 
 function save_svg() {
 	var blob = new Blob([build_markup()], { type: "image/svg+xml;charset=utf-8" });
-	save_blob(blob, base_name() + "-" + target_width + "x" + target_height + ".svg");
+	save_blob(blob, download_name("svg", target_width, target_height));
 	set_status(("Saved SVG at " + target_width + " × " + target_height + ". " + describe_normalize()).trim());
 }
 
@@ -1190,6 +1226,7 @@ function save_png() {
 	var density = parseInt(png_density.value, 10) || 1;
 	var out_width = Math.round(target_width * density);
 	var out_height = Math.round(target_height * density);
+	var name = download_name("png", out_width, out_height);
 	var blob = new Blob([build_markup()], { type: "image/svg+xml;charset=utf-8" });
 	var url = URL.createObjectURL(blob);
 	var image = new Image();
@@ -1205,7 +1242,7 @@ function save_png() {
 				set_status("The PNG couldn't be created from this file.", true);
 				return;
 			}
-			save_blob(png, base_name() + "-" + out_width + "x" + out_height + ".png");
+			save_blob(png, name);
 			set_status("Saved PNG at " + out_width + " × " + out_height + ".");
 		}, "image/png");
 	};
@@ -1324,6 +1361,15 @@ document.querySelectorAll("#backdrop button").forEach(function (button) {
 normalize_input.addEventListener("change", function () {
 	render_preview();
 	set_status(normalize_input.checked ? describe_normalize() : "Coordinates left as they are. Only width and height change.");
+});
+
+// Typing makes the name the person's own. A field left empty goes back to the default.
+download_name_input.addEventListener("input", function () {
+	download_name_is_custom = download_name_input.value.trim() !== '';
+});
+
+download_name_input.addEventListener("change", function () {
+	refresh_download_name(target_width, target_height);
 });
 
 save_svg_button.addEventListener("click", save_svg);
