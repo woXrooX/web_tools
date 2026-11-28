@@ -101,6 +101,82 @@
 		gap: 6px;
 	}
 
+	.search {
+		flex: 1 1 240px;
+		max-width: 360px;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	/* Baseline alignment lets the typed text line up with the text of the header's other controls. */
+	.search_box {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		padding: 0 8px;
+		border: 1px solid var(--line);
+		border-radius: 3px;
+		background: var(--surface);
+		color: var(--ink_faint);
+		cursor: text;
+	}
+
+	.search_box:hover {
+		border-color: var(--line_strong);
+	}
+
+	.search_box:focus-within {
+		border-color: var(--line_strong);
+		outline: 2px solid var(--ink);
+		outline-offset: 1px;
+	}
+
+	.search_box svg {
+		flex: none;
+		align-self: center;
+		width: 16px;
+		height: 16px;
+		fill: currentColor;
+	}
+
+	.search_box input {
+		flex: 1;
+		width: 0;
+		min-width: 0;
+		padding: 5px 0;
+		border-radius: 0;
+		background: transparent;
+		font-family: var(--sans);
+		font-size: 13px;
+		line-height: 1.4;
+	}
+
+	.search_box input:focus {
+		outline: 0;
+	}
+
+	.icon_button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 5px 6px;
+	}
+
+	.icon_button svg {
+		width: 18px;
+		height: 18px;
+		fill: currentColor;
+	}
+
+	/* 16px text keeps iOS from zooming in on the field, and the arrows grow to a fingertip. */
+	@media (pointer: coarse) {
+		.search_box input { font-size: 16px; }
+		.icon_button { padding: 7px 8px; }
+	}
+
 	main {
 		flex: 1;
 		min-height: 0;
@@ -147,10 +223,27 @@
 		padding: 3px 8px;
 	}
 
+	.head_title {
+		flex: none;
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
+	}
+
+	.match_count {
+		color: var(--ink_soft);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
+	.match_count.none {
+		color: var(--ink_faint);
+	}
+
 	.status.ok { color: var(--ok); }
 	.status.bad { color: var(--danger); }
 
-	textarea, #output_area {
+	textarea, .input_marks, #output_area {
 		flex: 1;
 		min-height: 0;
 		margin: 0;
@@ -170,6 +263,54 @@
 	}
 
 	textarea::placeholder { color: var(--ink_faint); }
+
+	.input_box {
+		position: relative;
+		flex: 1;
+		min-height: 0;
+		display: flex;
+	}
+
+	.input_box textarea {
+		position: relative;
+		min-width: 0;
+	}
+
+	/*
+		Search marks for the input. This layer sits behind the transparent textarea and shares its text box rule above,
+		and the script copies the browser's own textarea text settings onto it, so each mark lands under its text.
+	*/
+	.input_marks {
+		position: absolute;
+		inset: 0;
+		overflow: hidden;
+		white-space: pre-wrap;
+		overflow-wrap: break-word;
+		color: transparent;
+		pointer-events: none;
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
+	}
+
+	/* Lets the layer scroll as far as the textarea does, even when it holds less text. */
+	.input_marks::after {
+		content: "";
+		display: block;
+		height: 100vh;
+	}
+
+	mark {
+		border-radius: 2px;
+		background: var(--line_strong);
+		color: inherit;
+	}
+
+	mark.current {
+		background: var(--ink_faint);
+		box-shadow: 0 0 0 1px var(--ink);
+	}
+
+	#output_area mark.current > * { color: var(--ink); }
 
 	#output_area {
 		color: var(--syntax_punct);
@@ -271,8 +412,18 @@
 </nav>
 
 
+<!-- Icons: Material Symbols, Rounded style, filled, by Google. Apache License 2.0: https://github.com/google/material-design-icons -->
+
 <header>
 	<h1>JSON beautifier</h1>
+	<div class="search" role="search">
+		<label class="search_box">
+			<svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M380-320q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l224 224q11 11 11 28t-11 28q-11 11-28 11t-28-11L532-372q-30 24-69 38t-83 14Zm0-80q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
+			<input type="search" id="search_field" placeholder="Search input and output" aria-label="Search input and output" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+		</label>
+		<button type="button" class="icon_button" id="search_previous" aria-label="Previous match" title="Previous match (Shift + Enter)" disabled><svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M480-528 324-372q-11 11-28 11t-28-11q-11-11-11-28t11-28l184-184q12-12 28-12t28 12l184 184q11 11 11 28t-11 28q-11 11-28 11t-28-11L480-528Z"/></svg></button>
+		<button type="button" class="icon_button" id="search_next" aria-label="Next match" title="Next match (Enter)" disabled><svg viewBox="0 -960 960 960" aria-hidden="true"><path d="M480-361q-8 0-15-2.5t-13-8.5L268-556q-11-11-11-28t11-28q11-11 28-11t28 11l156 156 156-156q11-11 28-11t28 11q11 11 11 28t-11 28L508-372q-6 6-13 8.5t-15 2.5Z"/></svg></button>
+	</div>
 	<div class="controls">
 		<label class="field">Indent
 			<select id="indent_select">
@@ -293,15 +444,18 @@
 <main>
 	<section class="pane" id="input_pane">
 		<div class="pane_head">
-			<strong>Input</strong>
+			<span class="head_title"><strong>Input</strong><span class="match_count" id="input_count"></span></span>
 			<span id="input_stats"></span>
 		</div>
-		<textarea id="input_area" spellcheck="false" placeholder="Paste JSON or a Python dict here, or drop a .json file."></textarea>
+		<div class="input_box">
+			<div class="input_marks" id="input_marks" aria-hidden="true"></div>
+			<textarea id="input_area" spellcheck="false" placeholder="Paste JSON or a Python dict here, or drop a .json file."></textarea>
+		</div>
 	</section>
 
 	<section class="pane">
 		<div class="pane_head">
-			<strong>Formatted</strong>
+			<span class="head_title"><strong>Formatted</strong><span class="match_count" id="output_count"></span></span>
 			<span class="head_actions">
 				<button id="expand_button" type="button">Expand all</button>
 				<button id="collapse_button" type="button">Collapse all</button>
@@ -324,6 +478,12 @@
 	const minify_button = document.getElementById("minify_button");
 	const expand_button = document.getElementById("expand_button");
 	const collapse_button = document.getElementById("collapse_button");
+	const search_field = document.getElementById("search_field");
+	const search_previous = document.getElementById("search_previous");
+	const search_next = document.getElementById("search_next");
+	const input_marks = document.getElementById("input_marks");
+	const input_count = document.getElementById("input_count");
+	const output_count = document.getElementById("output_count");
 
 	const eager_budget = 4000;
 	const eager_depth = 3;
@@ -333,6 +493,9 @@
 	let build_credit = 0;
 	let view_minified = false;
 	let sort_active = false;
+
+	// The value the formatted pane shows, after sorting. undefined while the input is empty or invalid.
+	let output_value;
 
 	function escape_html(text) {
 		return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -696,6 +859,7 @@
 		if (!is_last) {
 			line.appendChild(span("punct", ","));
 		}
+		paint_line(line);
 		return line;
 	}
 
@@ -708,6 +872,7 @@
 			line.appendChild(span("punct", ": "));
 		}
 		line.appendChild(span("punct", (is_array ? "[]" : "{}") + (is_last ? "" : ",")));
+		paint_line(line);
 		return line;
 	}
 
@@ -765,6 +930,9 @@
 		foot.className = "line close";
 		foot.appendChild(gutter());
 		foot.appendChild(span("punct", close_bracket + comma));
+
+		paint_line(head);
+		paint_line(foot);
 
 		node.appendChild(head);
 		node.appendChild(children);
@@ -857,8 +1025,9 @@
 		collapse_button.disabled = view_minified;
 	}
 
-	function render() {
+	function render_output() {
 		sync_view_controls();
+		output_value = undefined;
 
 		const source = input_area.value;
 		const characters = source.length;
@@ -901,11 +1070,13 @@
 		if (sort_active) {
 			parsed = sort_value(parsed);
 		}
+		output_value = parsed;
 
 		if (view_minified) {
 			last_output = JSON.stringify(parsed);
 			output_area.className = "";
 			output_area.innerHTML = minified_html(parsed);
+			paint_line(output_area);
 		} else {
 			last_output = JSON.stringify(parsed, null, current_indent());
 			build_credit = eager_budget;
@@ -950,16 +1121,420 @@
 		}
 	}
 
+	function render() {
+		render_output();
+		refresh_search();
+	}
+
+	/*
+		Search. One query runs over both panes, case-insensitive, and each pane counts its own matches.
+		Input: a textarea cannot hold marks, so #input_marks sits behind it with the same text layout and holds them.
+		It paints at most mark_limit marks, around the current match, and for long text it waits until typing pauses.
+		Output: each line is searched as it is shown, without its indentation, so a match can run from a key
+		through ": " into its value. Collapsed nodes are built only when opened, so matches are found in output_value,
+		the parsed data, in the order the tree shows them. Becoming the current match opens the nodes around it.
+	*/
+
+	/*
+		Text settings browsers give a textarea on their own, such as line-break on iOS or text-autospace in Chrome,
+		copied onto #input_marks so both wrap text the same way. Font, line height and padding are not copied:
+		both get them from one CSS rule, because a computed line height in px is rounded and drifts over long text.
+	*/
+	const mirrored_properties = [
+		"white-space", "overflow-wrap", "word-break", "line-break", "-webkit-nbsp-mode", "text-autospace", "text-spacing-trim",
+		"letter-spacing", "word-spacing", "text-indent", "text-transform", "text-rendering", "font-kerning", "font-variant-ligatures", "font-feature-settings"
+	];
+
+	/*
+		The layer costs about as much to lay out as the textarea itself, so it is kept small:
+		mark_limit marks at most, and when its text runs past instant_limit characters it waits for typing to pause.
+	*/
+	const mark_limit = 1000;
+	const instant_limit = 50000;
+
+	// Cmd + F on Apple devices, Ctrl + F elsewhere: in macOS text fields Ctrl + F moves the caret.
+	const apple_keys = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+
+	let search_pattern = null;
+	let input_ranges = []; // [start, end] of every match in the input text
+	let output_matches = []; // { path, part, occurrence } for every match in output_value
+	let input_current = 0;
+	let output_current = 0;
+	let input_window = 0; // index of the first match #input_marks paints
+	let input_paint_timer = 0;
+	let input_current_mark = null;
+	let output_current_mark = null;
+
+	function escape_pattern(text) {
+		return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	}
+
+	function compile_search() {
+		const query = search_field.value;
+		search_pattern = query ? new RegExp(escape_pattern(query), "giu") : null;
+	}
+
+	// [start, end] of every match in text.
+	function find_ranges(text) {
+		const ranges = [];
+		if (!search_pattern) return ranges;
+		search_pattern.lastIndex = 0;
+		let found = search_pattern.exec(text);
+		while (found) {
+			ranges.push([found.index, found.index + found[0].length]);
+			found = search_pattern.exec(text);
+		}
+		return ranges;
+	}
+
+	function marked_fragment(text, ranges) {
+		const fragment = document.createDocumentFragment();
+		let cursor = 0;
+		ranges.forEach(function (range) {
+			const mark = document.createElement("mark");
+			mark.textContent = text.slice(range[0], range[1]);
+			fragment.append(text.slice(cursor, range[0]), mark);
+			cursor = range[1];
+		});
+		fragment.append(text.slice(cursor));
+		return fragment;
+	}
+
+	/*
+		Marks the matches of one output line: a tree line, or the whole minified output.
+		Keys, values and punctuation are separate spans, so the spans a match touches are swapped for copies
+		cut at the match's edges, and one mark holds the pieces of each match. The originals are kept
+		in line.painted so unpaint_line can put them back. Nodes build their lines when opened, so builders call this too.
+	*/
+	function paint_line(line) {
+		unpaint_line(line);
+		if (!search_pattern) return;
+		const parts = Array.from(line.children).filter(function (element) {
+			return !element.matches(".gutter, .fold, .tail");
+		});
+		const texts = parts.map(function (part) {
+			return part.textContent;
+		});
+		const ranges = find_ranges(texts.join(''));
+		if (!ranges.length) return;
+
+		line.painted = [];
+		let run = null; // { parts, nodes }: touched spans next to each other, and what replaces them
+		let mark = null;
+		let mark_range = null;
+		let start = 0;
+		let next = 0;
+		parts.forEach(function (part, index) {
+			const text = texts[index];
+			const end = start + text.length;
+			while (next < ranges.length && ranges[next][1] <= start) next += 1;
+			if (next === ranges.length || ranges[next][0] >= end) {
+				run = null;
+				start = end;
+				return;
+			}
+			if (!run) {
+				run = { parts: [], nodes: [] };
+				line.painted.push(run);
+			}
+			run.parts.push(part);
+			let cursor = 0;
+			for (let k = next; k < ranges.length && ranges[k][0] < end; k += 1) {
+				const from = Math.max(ranges[k][0] - start, 0);
+				const to = Math.min(ranges[k][1] - start, text.length);
+				if (from > cursor) run.nodes.push(piece(part, text.slice(cursor, from)));
+				if (mark_range !== ranges[k]) {
+					mark = document.createElement("mark");
+					mark_range = ranges[k];
+					run.nodes.push(mark);
+				}
+				mark.append(piece(part, text.slice(from, to)));
+				cursor = to;
+			}
+			if (cursor < text.length) run.nodes.push(piece(part, text.slice(cursor)));
+			start = end;
+		});
+		line.painted.forEach(function (painted) {
+			painted.parts[0].before(...painted.nodes);
+			painted.parts.forEach(function (part) {
+				part.remove();
+			});
+		});
+	}
+
+	function unpaint_line(line) {
+		if (!line.painted) return;
+		line.painted.forEach(function (painted) {
+			if (painted.nodes[0].parentNode !== line) return;
+			painted.nodes[0].before(...painted.parts);
+			painted.nodes.forEach(function (node) {
+				node.remove();
+			});
+		});
+		line.painted = null;
+	}
+
+	// A copy of a span, same classes, holding part of its text.
+	function piece(part, text) {
+		const copy = part.cloneNode(false);
+		copy.textContent = text;
+		return copy;
+	}
+
+	function paint_output_lines() {
+		if (output_value === undefined) return;
+		if (view_minified) paint_line(output_area);
+		else output_area.querySelectorAll(".line").forEach(paint_line);
+	}
+
+	// Paints the window of matches that starts at input_window. Text after the last one's line cannot move a mark, so the layer stops there.
+	function paint_input_marks() {
+		clearTimeout(input_paint_timer);
+		input_paint_timer = 0;
+		const ranges = input_ranges.slice(input_window, input_window + mark_limit);
+		if (!ranges.length) {
+			input_marks.replaceChildren();
+			return;
+		}
+		const text = input_area.value;
+		let end = text.indexOf('\n', ranges[ranges.length - 1][1]);
+		if (end === -1) end = text.length;
+		input_marks.replaceChildren(marked_fragment(text.slice(0, end), ranges));
+		sync_input_box();
+	}
+
+	// When the layer would hold long text, the stale marks go now and new ones are painted once typing pauses, so typing stays quick.
+	function update_input_marks(scroll) {
+		const last = input_ranges[Math.min(input_window + mark_limit, input_ranges.length) - 1];
+		if (!last || last[1] <= instant_limit) {
+			paint_input_marks();
+			return;
+		}
+		input_marks.replaceChildren();
+		clearTimeout(input_paint_timer);
+		input_paint_timer = setTimeout(function () {
+			paint_input_marks();
+			show_search(scroll);
+		}, 250);
+	}
+
+	// Moves the window when the current match is outside it, and says whether it moved.
+	function frame_input_window() {
+		if (input_current >= input_window && input_current < input_window + mark_limit) return false;
+		input_window = Math.max(0, input_current - mark_limit / 2);
+		return true;
+	}
+
+	function input_mark_at(index) {
+		if (input_paint_timer || index < input_window) return null;
+		return input_marks.children[index - input_window] || null;
+	}
+
+	function mirror_input_style() {
+		const style = getComputedStyle(input_area);
+		mirrored_properties.forEach(function (name) {
+			input_marks.style.setProperty(name, style.getPropertyValue(name));
+		});
+	}
+
+	// A scrollbar narrows the textarea's text, so the layer leaves the same room for it.
+	function sync_input_box() {
+		input_marks.style.right = (input_area.offsetWidth - input_area.clientWidth) + "px";
+		sync_input_scroll();
+	}
+
+	function sync_input_scroll() {
+		input_marks.scrollTop = input_area.scrollTop;
+		input_marks.scrollLeft = input_area.scrollLeft;
+	}
+
+	function collect_output_matches() {
+		output_matches = [];
+		if (!search_pattern || output_value === undefined) return;
+		if (view_minified) add_matches(last_output, [], "line");
+		else collect_matches(null, output_value, [], true);
+	}
+
+	/*
+		Walks the value the way build_node lays it out and writes each line's text as the tree shows it,
+		so matches come in order. line is "line" for one-line entries, or "head" and "close" for a node's two lines.
+	*/
+	function collect_matches(key, value, path, is_last) {
+		const prefix = key === null ? '' : JSON.stringify(key) + ": ";
+		const comma = is_last ? '' : ',';
+		if (value === null || typeof value !== "object") {
+			add_matches(prefix + JSON.stringify(value) + comma, path, "line");
+			return;
+		}
+		const names = Array.isArray(value) ? null : Object.keys(value);
+		const length = names ? names.length : value.length;
+		if (!length) {
+			add_matches(prefix + (names ? "{}" : "[]") + comma, path, "line");
+			return;
+		}
+		add_matches(prefix + (names ? '{' : '['), path, "head");
+		for (let index = 0; index < length; index += 1) {
+			path.push(index);
+			if (names) collect_matches(names[index], value[names[index]], path, index === length - 1);
+			else collect_matches(null, value[index], path, index === length - 1);
+			path.pop();
+		}
+		add_matches((names ? '}' : ']') + comma, path, "close");
+	}
+
+	function add_matches(text, path, line) {
+		const found = text.match(search_pattern);
+		if (!found) return;
+		const at = path.slice();
+		for (let occurrence = 0; occurrence < found.length; occurrence += 1) {
+			output_matches.push({ path: at, line: line, occurrence: occurrence });
+		}
+	}
+
+	// The mark of output match index, or null while its line is not built. reveal opens the nodes needed to show it.
+	function output_mark_at(index, reveal) {
+		const match = output_matches[index];
+		if (view_minified) return output_area.querySelectorAll(":scope > mark")[match.occurrence] || null;
+		let entry = output_area.querySelector(".tree_root > *");
+		for (let step = 0; entry && step < match.path.length; step += 1) {
+			if (reveal) toggle_node(entry, false);
+			entry = entry.node_built ? entry.querySelector(":scope > .children").children[match.path[step]] : null;
+		}
+		if (!entry) return null;
+		// A node's closing line shows only while the node is open.
+		if (reveal && match.line === "close") toggle_node(entry, false);
+		let line = entry;
+		if (match.line === "head") line = entry.firstElementChild;
+		if (match.line === "close") line = entry.lastElementChild;
+		return line.querySelectorAll(":scope > mark")[match.occurrence] || null;
+	}
+
+	function scroll_input_to(mark) {
+		const top = mark.offsetTop;
+		const bottom = top + mark.offsetHeight;
+		if (top >= input_area.scrollTop && bottom <= input_area.scrollTop + input_area.clientHeight) return;
+		input_area.scrollTop = top - (input_area.clientHeight - mark.offsetHeight) / 2;
+		sync_input_scroll();
+	}
+
+	function scroll_output_to(mark) {
+		const view = output_area.getBoundingClientRect();
+		const box = mark.getBoundingClientRect();
+		if (box.top >= view.top && box.bottom <= view.bottom) return;
+		output_area.scrollTop += box.top - view.top - (view.height - box.height) / 2;
+	}
+
+	function count_label(current, total) {
+		return total ? (current + 1) + " of " + total : "No matches";
+	}
+
+	function show_search(scroll) {
+		if (input_current_mark) input_current_mark.classList.remove("current");
+		if (output_current_mark) output_current_mark.classList.remove("current");
+		input_current_mark = input_mark_at(input_current);
+		output_current_mark = output_matches.length ? output_mark_at(output_current, scroll) : null;
+		if (input_current_mark) input_current_mark.classList.add("current");
+		if (output_current_mark) output_current_mark.classList.add("current");
+		if (scroll && input_current_mark) scroll_input_to(input_current_mark);
+		if (scroll && output_current_mark) scroll_output_to(output_current_mark);
+
+		const searching = search_pattern !== null;
+		input_count.textContent = searching && input_area.value ? count_label(input_current, input_ranges.length) : '';
+		output_count.textContent = searching && output_value !== undefined ? count_label(output_current, output_matches.length) : '';
+		input_count.classList.toggle("none", !input_ranges.length);
+		output_count.classList.toggle("none", !output_matches.length);
+		search_previous.disabled = !input_ranges.length && !output_matches.length;
+		search_next.disabled = search_previous.disabled;
+	}
+
+	// The query changed: mark both panes again and go to the first match.
+	function run_search() {
+		compile_search();
+		input_ranges = find_ranges(input_area.value);
+		paint_output_lines();
+		collect_output_matches();
+		input_current = 0;
+		output_current = 0;
+		input_window = 0;
+		update_input_marks(true);
+		show_search(true);
+	}
+
+	// The input or a view option changed: keep the place in the matches, without scrolling.
+	function refresh_search() {
+		input_ranges = find_ranges(input_area.value);
+		collect_output_matches();
+		input_current = Math.min(input_current, Math.max(input_ranges.length - 1, 0));
+		output_current = Math.min(output_current, Math.max(output_matches.length - 1, 0));
+		frame_input_window();
+		update_input_marks(false);
+		show_search(false);
+	}
+
+	// Both panes step together. Each wraps around its own count.
+	function step_search(direction) {
+		if (input_ranges.length)
+			input_current = (input_current + direction + input_ranges.length) % input_ranges.length;
+		if (output_matches.length)
+			output_current = (output_current + direction + output_matches.length) % output_matches.length;
+		if (frame_input_window() || input_paint_timer) paint_input_marks();
+		show_search(true);
+	}
+
 	output_area.addEventListener("click", function (event) {
 		const toggle = event.target.closest(".fold");
 		if (!toggle) {
 			return;
 		}
 		toggle_node(toggle.closest(".node"));
+		if (search_pattern) show_search(false);
 	});
 
-	expand_button.addEventListener("click", expand_all);
+	expand_button.addEventListener("click", function () {
+		expand_all();
+		if (search_pattern) show_search(false);
+	});
 	collapse_button.addEventListener("click", collapse_all);
+
+	search_field.addEventListener("input", run_search);
+
+	search_field.addEventListener("keydown", function (event) {
+		if (event.isComposing) return;
+		if (event.key === "Enter") {
+			event.preventDefault();
+			step_search(event.shiftKey ? -1 : 1);
+			return;
+		}
+		if (event.key !== "Escape") return;
+		event.preventDefault();
+		if (!search_field.value) {
+			search_field.blur();
+			return;
+		}
+		search_field.value = '';
+		run_search();
+	});
+
+	search_previous.addEventListener("click", function () {
+		step_search(-1);
+	});
+
+	search_next.addEventListener("click", function () {
+		step_search(1);
+	});
+
+	// A second press, from the search field, opens the browser's own find.
+	document.addEventListener("keydown", function (event) {
+		const command = apple_keys ? event.metaKey : event.ctrlKey;
+		if (!command || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'f') return;
+		if (document.activeElement === search_field) return;
+		event.preventDefault();
+		search_field.focus();
+		search_field.select();
+	});
+
+	input_area.addEventListener("scroll", sync_input_scroll);
+	new ResizeObserver(sync_input_box).observe(input_area);
 
 	input_area.addEventListener("input", function () {
 		render();
@@ -1038,6 +1613,7 @@
 	});
 
 	apply_indent_width();
+	mirror_input_style();
 	render();
 </script>
 
